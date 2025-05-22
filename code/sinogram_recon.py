@@ -128,7 +128,7 @@ def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
 
 
 def reconstruct_focal_spot(
-    sinogram: np.ndarray, filter_name="hann", symmetrize: bool = False
+    sinogram: np.ndarray, filter_name:str, symmetrize:bool
 ) -> np.ndarray:
     """
     Reconstruct the focal spot from the sinogram using filtered back-projection.

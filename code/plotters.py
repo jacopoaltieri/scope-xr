@@ -55,7 +55,7 @@ def plot_profiles_and_reconstruction(
 
     plt.tight_layout()
     if show_plots:
-        plt.show(block=False)
+        plt.show()
     plt.savefig(os.path.join(out_dir,"profiles_sinogram_reconstruction.png"))
     
     
@@ -95,7 +95,7 @@ def plot_profiles_with_fwhm(
 
     plt.savefig(out_path, dpi=300)
     if show_plots:
-        plt.show(block=False)
+        plt.show()
     plt.close(fig)
 
 def plot_sinogram_with_traced_profiles(
@@ -115,7 +115,7 @@ def plot_sinogram_with_traced_profiles(
 
     plt.savefig(out_path, dpi=300)
     if show_plots:
-        plt.show(block=False)
+        plt.show()
     plt.close(fig)
 
 
@@ -129,14 +129,13 @@ def plot_focal_spot_with_lines(
     """
 
     img = focal_spot_img.copy()
-    h, w = img.shape[:2]
+    w,h = img.shape[:2]
     cx = w/2
     cy = h/2
 
     fig, ax = plt.subplots(figsize=(6,6))
-    h, w = focal_spot_img.shape
     # show only the image region
-    ax.imshow(focal_spot_img, cmap='gray', origin='lower', extent=[0, w, 0, h])
+    ax.imshow(focal_spot_img, cmap='gray', extent=[0, w, 0, h])
     ax.set_xlim(0, w)
     ax.set_ylim(0, h)
     ax.set_aspect('equal')
@@ -144,15 +143,16 @@ def plot_focal_spot_with_lines(
     # now draw the lines
     half_diag = int(np.sqrt(h**2 + w**2) / 2) + 10
     for angle, color in [(angle_wide, 'red'), (angle_narrow, 'blue')]:
-        θ = np.deg2rad(angle)
-        dx = half_diag * np.cos(θ)
-        dy = half_diag * np.sin(θ)
+        theta = np.deg2rad(angle)
+        dx = half_diag * np.cos(theta)
+        dy = half_diag * np.sin(theta)
         ax.plot([cx - dx, cx + dx], [cy - dy, cy + dy],
                 color=color, linewidth=2)
 
     ax.set_title("Focal Spot with Widest & Narrowest Profiles")
+    ax.legend([f"Widest (angle={angle_wide})", f"Narrowest (angle={angle_narrow})"])
     ax.axis('off')
     plt.savefig(out_path, dpi=300)
     if show_plots:
-        plt.show(block=False)
+        plt.show()
     plt.close()

@@ -85,28 +85,3 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
     wide_idx = int(np.argmax(slopes))
     narrow_idx = int(np.argmin(slopes))
     return wide_idx, narrow_idx, slopes
-
-
-def find_extreme_profiles_fwhm(sinogram: np.ndarray) -> tuple[int, int, np.ndarray]:
-    """
-    Find the sinogram columns with the largest and smallest FWHM.
-
-    Args:
-        sinogram: 2D array of shape [n_rays, n_angles] containing line profiles.
-
-    Returns:
-        wide_idx:   Index of the column with the largest FWHM.
-        narrow_idx: Index of the column with the smallest FWHM.
-        widths:     1D array of FWHM values for each column.
-    """
-    n_rays, n_angles = sinogram.shape
-    widths = np.zeros(n_angles, dtype=float)
-
-    for i in range(n_angles):
-        profile = sinogram[:, i]
-        w, left, right = fwhm(profile)
-        widths[i] = w
-
-    wide_idx   = int(np.argmax(widths))
-    narrow_idx = int(np.argmin(widths))
-    return wide_idx, narrow_idx, widths
