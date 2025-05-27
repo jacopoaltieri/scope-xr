@@ -1,4 +1,5 @@
 import os
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,14 +12,11 @@ import widths_calculator as wc
 from arg_parser import get_args
 
 
-
-
-
 # ----------------------------------------------------------------------------------#
 # Args default to this if not passed via command line
 default_args = {
-    "img_path": r"C:\Users\jacop\Desktop\PhD\Focal Spot\ATS 6 mag\P146\00013_8ca7056d-d871-493e-ad31-99ce37ec2c6d_20250506_120021.2359.raw",
-    "out_dir": r".\output",
+    "img_path": r"C:\Users\jacop\Desktop\PhD\Focal Spot\ATS 6 mag\fs_small\10mm_static.raw",
+    "out_dir": r".\output_small",
     "show_plots": False,
     "use_hough": True,
     "pixel_size": 0.154,
@@ -40,7 +38,8 @@ for k, v in args.items():
 
 # ----------------------------------------------------------------------------------#
 img_path = args["img_path"]
-out_dir = args["out_dir"]
+basename = os.path.splitext(os.path.basename(img_path))[0]
+out_dir = os.path.join(args["out_dir"], basename)
 show_plots = args["show_plots"]
 use_hough = args["use_hough"]
 pixel_size = args["pixel_size"]
@@ -64,17 +63,16 @@ if use_hough:
         dp=1.3,
         min_dist=100,
         param1=70,
-        param2=20,
+        param2=40,
         min_radius=10,
         max_radius=0,
+        output_path=out_dir,
         debug=False,  # if True show the plot, but freezes the script
     )
 
     if hough_circle:
         x, y, r = hough_circle
-        print(
-            f"Estimated circle via Hough transform: Center=({x}, {y}), Radius={r} px"
-        )
+        print(f"Estimated circle via Hough transform: Center=({x}, {y}), Radius={r} px")
 
         # Crop image around the detected circle
         cropped = utils.crop_square_roi(
@@ -84,19 +82,23 @@ if use_hough:
         raise ValueError(
             "Hough transform did not detect any circle. PLease upload an already cropped image."
         )
+
 else:
-    print(
-        "Warning: Hough transform not used. Using provided image as already cropped."
-    )
+    print("Warning: Hough transform not used. Using provided image as already cropped.")
     cropped = img
 
 cx, cy, radius = circ.estimate_circle(cropped)
-print(
-    f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px"
-)
+
+if not circ.is_circle_centered(cropped, cx, cy):
+    print("Warning: The estimated circle center is not at the image center.")
+    exit()
+
+print(f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px")
 plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
 
-m = radius / (circle_diameter / 2)  # magnification
+m = (radius * pixel_size) / (circle_diameter / 2)  # magnification
+print(f"Estimated image magnification: {m:.2f}x")
+print(f"Estimated fs magnification: {(m-1):.2f}x")
 min_r = utils.eval_minimum_radius(min_n, pixel_size, m)
 if min_r > radius:
     print(
@@ -113,12 +115,12 @@ if shift_sino:
 reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
 profiles_path = os.path.join(out_dir, "profiles.png")
-plt.imsave(profiles_path, profiles, cmap="gray", origin="lower")
+cv2.imwrite(profiles_path, (profiles * 65535).astype("uint16"))
 print(f"Saved profiles to {profiles_path}")
 
 # 2) Save the sinogram
 sinogram_path = os.path.join(out_dir, "sinogram.png")
-plt.imsave(sinogram_path, sinogram, cmap="gray", origin="lower")
+cv2.imwrite(sinogram_path, (sinogram * 65535).astype("uint16"))
 print(f"Saved sinogram to {sinogram_path}")
 
 recon_path = os.path.join(out_dir, "reconstruction.png")
@@ -136,9 +138,11 @@ sr.reconstruct_with_axis_shifts(
     sinogram, shift_tiff_path, filter_name, shifts=axis_shifts
 )
 
-wide_idx, narrow_idx, slopes = wc.find_extreme_profiles_erf(profiles)
-print(f"Widest edge at angle idx {wide_idx} (slope={slopes[wide_idx]:.3f})")
-print(f"Narrowest edge at angle idx {narrow_idx} (slope={slopes[narrow_idx]:.3f})")
+wide_idx, narrow_idx, _ = wc.find_extreme_profiles_erf(
+    profiles
+)
+print(f"Widest edge at angle idx {wide_idx}")
+print(f"Narrowest edge at angle idx {narrow_idx}")
 
 prof_wide_sino = sinogram[:, wide_idx]
 prof_narrow_sino = sinogram[:, narrow_idx]
@@ -151,7 +155,7 @@ print(f"Narrowest: FWHM={fn}px (from {ln} to {rn})")
 n_rays = sinogram.shape[0]
 radial = np.arange(n_rays) - n_rays // 2
 
-fwhm_path = (os.path.join(out_dir, "fwhm_sinogram_profiles.png"))
+fwhm_path = os.path.join(out_dir, "fwhm_sinogram_profiles.png")
 plotters.plot_profiles_with_fwhm(
     radial,
     prof_wide_sino,
@@ -168,15 +172,15 @@ plotters.plot_profiles_with_fwhm(
     show_plots,
 )
 
-sino_with_lines_path = (os.path.join(out_dir, "sinogram_traced_profiles.png"))
+sino_with_lines_path = os.path.join(out_dir, "sinogram_traced_profiles.png")
 plotters.plot_sinogram_with_traced_profiles(
     sinogram, wide_idx, narrow_idx, sino_with_lines_path, show_plots
 )
 
 angle_step = 360.0 / n_angles
-angle_wide_deg   = wide_idx   * angle_step
+angle_wide_deg = wide_idx * angle_step
 angle_narrow_deg = narrow_idx * angle_step
-spot_with_lines_path = (os.path.join(out_dir, "focal_spot_traced_profiles.png"))
+spot_with_lines_path = os.path.join(out_dir, "focal_spot_traced_profiles.png")
 plotters.plot_focal_spot_with_lines(
     reconstruction,
     angle_wide_deg,
@@ -185,3 +189,8 @@ plotters.plot_focal_spot_with_lines(
     show_plots=show_plots,
 )
 print(f"Saved FWHM profiles to {fwhm_path}")
+
+wide_fs = wc.compute_fs_width(fw, pixel_size, m)
+narrow_fs = wc.compute_fs_width(fn, pixel_size, m)
+print(f"Widest focal spot width: {wide_fs:.2f} mm")
+print(f"Narrowest focal spot width: {narrow_fs:.2f} mm")

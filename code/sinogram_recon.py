@@ -66,7 +66,7 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift=None) -> int:
     Parameters
     ----------
     sinogram: 2D ndarray, shape (n_rays, n_angles)
-    max_shift:Maximum absolute shift (in rows) to try. Defaults to n_rays//4.
+    max_shift: Maximum absolute shift (in rows) to try. Defaults to n_rays//4.
 
     Returns
     -------
@@ -104,7 +104,7 @@ def auto_center_sinogram(
     Returns the centered sinogram and the applied shift.
     """
     delta = find_best_center_shift(sinogram, max_shift=max_shift)
-    centered = shift(sinogram, shift=[delta, 0], order=1, mode="nearest")
+    centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
     return centered, delta
 
 

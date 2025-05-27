@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,7 +36,7 @@ def crop_square_roi(
         plt.imsave(
             os.path.join(output_path, "cropped.png"),
             cropped.astype(np.uint16),
-            cmap="gray"
+            cmap="gray",
         )
-        print(fr"Saved cropped image to '{output_path}\cropped.png'")
+        print(rf"Saved cropped image to '{output_path}\cropped.png'")
     return cropped

@@ -10,6 +10,7 @@ def detect_circle_hough(
     param2: int,
     min_radius: int,
     max_radius: int,
+    output_path: str = None,
     debug: bool = False,
 ) -> tuple[float, float, float] | None:
     """
@@ -65,14 +66,16 @@ def detect_circle_hough(
     circles = np.uint16(np.around(circles))
     x, y, r = circles[0][0]
 
-    if debug:
-        output = cv2.cvtColor(img_8bit, cv2.COLOR_GRAY2BGR)
-        cv2.circle(output, (x, y), r, (0, 255, 0), 2)
-        cv2.circle(output, (x, y), 2, (0, 0, 255), 3)
+    output = cv2.cvtColor(img_8bit, cv2.COLOR_GRAY2BGR)
+    cv2.circle(output, (x, y), r, (0, 255, 0), 2)
+    cv2.circle(output, (x, y), 2, (0, 0, 255), 3)
+    cv2.imwrite(
+        f"{output_path}/detected_circle.png", output
+    )
 
+    if debug:
         display_scale = 0.5
         output_resized = cv2.resize(output, (0, 0), fx=display_scale, fy=display_scale)
-
         cv2.imshow("Detected Circle", output_resized)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -146,3 +149,22 @@ def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
     radius_estimate = np.round(np.mean([r_x, r_y]))
 
     return cx, cy, radius_estimate
+
+
+def is_circle_centered(cropped, cx, cy, margin=0.1):
+    """
+    Check if the estimated circle center is within `margin` of the cropped image center
+    in both the x- and y-directions. Returns True if it is, False otherwise.
+
+    Parameters:
+    - cropped: 2D or 3D NumPy array (h, w[, channels])
+    - cx, cy: float or int, coordinates of the detected circle center
+    - margin: float in (0,1), allowable fraction of width/height (default 0.1)
+
+    Returns:
+    - bool
+    """
+    h, w = cropped.shape[:2]
+    center_x, center_y = w / 2, h / 2
+
+    return (abs(cx - center_x) < margin * w) and (abs(cy - center_y) < margin * h)
