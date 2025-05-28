@@ -188,4 +188,3 @@ def reconstruct_with_axis_shifts(
     tifffile.imwrite(
         output_tiff_path, np.stack(reconstructions, axis=0), photometric="minisblack"
     )
-    print(f"Saved {len(shifts)} reconstructions to '{output_tiff_path}'")

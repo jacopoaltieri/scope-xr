@@ -36,6 +36,18 @@ def fwhm(sinogram: np.ndarray) -> tuple[int, int, int]:
     width = right - left
     return width, left, right
 
+def fwhm_from_erf_sigma(sigma: float) -> float:
+    """
+    Compute the FWHM from the standard deviation of an error function step.
+
+    Args:
+        sigma: Standard deviation of the error function step.
+
+    Returns:
+        FWHM value.
+    """
+    return 2 * sigma * np.sqrt(2 * np.log(2)) 
+
 
 def erf_step(x: np.ndarray, A: float, x0: float, sigma: float, B: float) -> np.ndarray:
     """
@@ -64,24 +76,64 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
     Returns:
         wide_idx: Index of the profile with the steepest (widest) slope.
         narrow_idx: Index of the profile with the shallowest (narrowest) slope.
-        slopes: 1D array of computed slopes for each profile.
+        sigmas: 1D array of computed sigmas for each profile.
     """
     n_rays, n_angles = profiles.shape
     x = np.arange(n_rays)
-    slopes = np.zeros(n_angles, dtype=float)
+    sigmas = np.zeros(n_angles, dtype=float)
 
     p0 = [profiles.max() - profiles.min(), n_rays / 2, n_rays / 8, profiles.min()]
 
     for i in range(n_angles):
-        p = profiles[:, i]
+        profile = average_neighbors(profiles, i)
         try:
-            popt, _ = curve_fit(erf_step, x, p, p0=p0, maxfev=2000)
+            popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=2000)
             A, x0, sigma, B = popt
             slope = A / (np.sqrt(np.pi) * sigma)
         except RuntimeError:
             slope = 0
-        slopes[i] = slope
+        sigmas[i] = sigma
 
-    wide_idx = int(np.argmax(slopes))
-    narrow_idx = int(np.argmin(slopes))
-    return wide_idx, narrow_idx, slopes
+    wide_idx = int(np.argmax(sigmas))
+    narrow_idx = int(np.argmin(sigmas))
+    return wide_idx, narrow_idx, sigmas
+
+def average_neighbors(sinogram: np.ndarray, angle_idx: int, line_width: int = 3) -> np.ndarray:
+    """
+    Compute the vertical profile at a given angle index, averaging across multiple adjacent rows.
+
+    Args:
+        sinogram: 2D sinogram array of shape (rows/pixels, angles).
+        angle_idx: The angle (column index) to extract the profile from.
+        line_width: Number of adjacent rows to average (must be odd).
+
+    Returns:
+        A 1D profile averaged across multiple rows.
+    """
+    assert line_width % 2 == 1, "line_width must be odd"
+    half_width = line_width // 2
+    rows, _ = sinogram.shape
+
+    # Stack rows centered at each position and average
+    profile_stack = []
+    for offset in range(-half_width, half_width + 1):
+        row_idx = np.clip(np.arange(rows) + offset, 0, rows - 1)  # clamp to bounds
+        profile_stack.append(sinogram[row_idx, angle_idx])
+
+    return np.mean(profile_stack, axis=0)
+
+
+def compute_fs_width(fwhm_px: int, pixel_size: float, magnification: float) -> float:
+    """
+    Compute the focal spot width in micrometers from the FWHM in pixels.
+
+    Args:
+        fwhm_px: Full width at half maximum in pixels.
+        pixel_size: Size of a pixel in micrometers.
+        magnification: Magnification factor of the focal spot
+
+    Returns:
+        Focal spot width in micrometers.
+    """
+    return fwhm_px * pixel_size / magnification
+

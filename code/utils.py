@@ -38,5 +38,4 @@ def crop_square_roi(
             cropped.astype(np.uint16),
             cmap="gray",
         )
-        print(rf"Saved cropped image to '{output_path}\cropped.png'")
     return cropped

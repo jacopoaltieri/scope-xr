@@ -11,11 +11,14 @@ def get_args(
     n_angles,
     profile_half_length,
     derivative_step,
+    axis_shifts,
     filter_name,
     symmetrize,
     shift_sino,
+    avg_neighbors
 ):
     parser = argparse.ArgumentParser()
+
     parser.add_argument("--f", type=str, help="Path to the image file (.raw/.png/.tif)")
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument('--show', action="store_true", help="Show plots")
@@ -26,9 +29,21 @@ def get_args(
     parser.add_argument("--nangles", type=int, help="Number of angles")
     parser.add_argument("--hl", type=int, help="Half profile length")
     parser.add_argument("--ds", type=int, help="Derivative step size")
+    parser.add_argument("--axis_shifts", type=int, default=10, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
-    parser.add_argument("--shift", action="store_true", help="Shift the sinogram")
+
+    # Mutually exclusive group for shift
+    shift_group = parser.add_mutually_exclusive_group()
+    shift_group.add_argument("--shift", dest="shift_sino", action="store_true", help="Enable sinogram shifting")
+    shift_group.add_argument("--no_shift", dest="shift_sino", action="store_false", help="Disable sinogram shifting")
+    parser.set_defaults(shift_sino=shift_sino)
+
+    # Mutually exclusive group for avg_neighbors
+    avg_group = parser.add_mutually_exclusive_group()
+    avg_group.add_argument("--avg", dest="avg_neighbors", action="store_true", help="Enable averaging neighboring profiles")
+    avg_group.add_argument("--no_avg", dest="avg_neighbors", action="store_false", help="Disable averaging neighboring profiles")
+    parser.set_defaults(avg_neighbors=avg_neighbors)
 
     args = parser.parse_args()
 
@@ -43,7 +58,9 @@ def get_args(
         "n_angles": args.nangles if args.nangles is not None else n_angles,
         "profile_half_length": args.hl if args.hl is not None else profile_half_length,
         "derivative_step": args.ds if args.ds is not None else derivative_step,
+        "axis_shifts": args.axis_shifts if args.axis_shifts is not None else axis_shifts,
         "filter_name": args.filter if args.filter is not None else filter_name,
         "symmetrize": args.sym if args.sym else symmetrize,
-        "shift_sino": args.shift if args.shift else shift_sino,
+        "shift_sino": args.shift_sino,
+        "avg_neighbors": args.avg_neighbors,
     }
