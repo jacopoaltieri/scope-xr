@@ -208,13 +208,13 @@ plotters.plot_focal_spot_with_lines(
 
 wide_fs = wc.compute_fs_width(fw, pixel_size, m_fs)
 narrow_fs = wc.compute_fs_width(fn, pixel_size, m_fs)
-print(f"Widest focal spot width: {wide_fs:.2f} mm")
-print(f"Narrowest focal spot width: {narrow_fs:.2f} mm")
+print(f"Widest focal spot width: {wide_fs:.3f} mm")
+print(f"Narrowest focal spot width: {narrow_fs:.3f} mm")
 
 wide_fs_erf = wc.compute_fs_width(fw_erf, pixel_size, m_fs)
 narrow_fs_erf = wc.compute_fs_width(fn_erf, pixel_size, m_fs)
-print(f"Widest focal spot width (ERF): {wide_fs_erf:.2f} mm")
-print(f"Narrowest focal spot width (ERF): {narrow_fs_erf:.2f} mm")
+print(f"Widest focal spot width (ERF): {wide_fs_erf:.3f} mm")
+print(f"Narrowest focal spot width (ERF): {narrow_fs_erf:.3f} mm")
 
 # Create results summary
 summary = [
@@ -226,7 +226,7 @@ summary = [
     f"FWHM classic: widest={fw}px (idx {wide_idx}), narrowest={fn}px (idx {narrow_idx})",
     f"FWHM ERF:     widest={fw_erf:.2f}px, narrowest={fn_erf:.2f}px",
     f"Spot size mm classic: widest={wide_fs:.2f}, narrowest={narrow_fs:.2f}",
-    f"Spot size mm ERF:     widest={wide_fs_erf:.2f}, narrowest={narrow_fs_erf:.2f}",
+    f"Spot size mm ERF:     widest={wide_fs_erf:.3f}, narrowest={narrow_fs_erf:.3f}",
     f"Angles: wide={wide_idx*angle_step:.1f}°, narrow={narrow_idx*angle_step:.1f}°",
 ]
 
