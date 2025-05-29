@@ -15,7 +15,8 @@ def get_args(
     filter_name,
     symmetrize,
     shift_sino,
-    avg_neighbors
+    avg_neighbors,
+    magnification  # New parameter added here
 ):
     parser = argparse.ArgumentParser()
 
@@ -32,6 +33,7 @@ def get_args(
     parser.add_argument("--axis_shifts", type=int, default=10, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
+    parser.add_argument("--m", type=float, help="Magnification")  # New argument added here
 
     # Mutually exclusive group for shift
     shift_group = parser.add_mutually_exclusive_group()
@@ -63,4 +65,5 @@ def get_args(
         "symmetrize": args.sym if args.sym else symmetrize,
         "shift_sino": args.shift_sino,
         "avg_neighbors": args.avg_neighbors,
+        "magnification": args.m if args.m is not None else magnification  # Return value added here
     }
