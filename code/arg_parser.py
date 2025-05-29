@@ -3,29 +3,29 @@ import argparse
 def get_args(
     img_path,
     out_dir,
-    show_plots,
-    use_hough,
     pixel_size,
     circle_diameter,
+    use_hough,
+    magnification,
     min_n,
     n_angles,
     profile_half_length,
     derivative_step,
+    symmetrize,
     axis_shifts,
     filter_name,
-    symmetrize,
     shift_sino,
     avg_neighbors,
-    magnification  # New parameter added here
+    show_plots,
 ):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--f", type=str, help="Path to the image file (.raw/.png/.tif)")
     parser.add_argument("--o", type=str, help="Output directory")
-    parser.add_argument('--show', action="store_true", help="Show plots")
-    parser.add_argument("--hough", action="store_true", help="Use Hough transform")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
+    parser.add_argument("--hough", action="store_true", help="Use Hough transform")
+    parser.add_argument("--m", type=float, help="Magnification")  # New argument added here
     parser.add_argument("--n", type=int, help="Minimum pixel count")
     parser.add_argument("--nangles", type=int, help="Number of angles")
     parser.add_argument("--hl", type=int, help="Half profile length")
@@ -33,7 +33,7 @@ def get_args(
     parser.add_argument("--axis_shifts", type=int, default=10, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
-    parser.add_argument("--m", type=float, help="Magnification")  # New argument added here
+    parser.add_argument('--show', action="store_true", help="Show plots")
 
     # Mutually exclusive group for shift
     shift_group = parser.add_mutually_exclusive_group()
@@ -52,10 +52,10 @@ def get_args(
     return {
         "img_path": args.f if args.f is not None else img_path,
         "out_dir": args.o if args.o is not None else out_dir,
-        "show_plots": args.show if args.show else show_plots,
-        "use_hough": args.hough if args.hough else use_hough,
         "pixel_size": args.p if args.p is not None else pixel_size,
         "circle_diameter": args.d if args.d is not None else circle_diameter,
+        "use_hough": args.hough if args.hough else use_hough,
+        "magnification": args.m if args.m is not None else magnification,
         "min_n": args.n if args.n is not None else min_n,
         "n_angles": args.nangles if args.nangles is not None else n_angles,
         "profile_half_length": args.hl if args.hl is not None else profile_half_length,
@@ -65,5 +65,5 @@ def get_args(
         "symmetrize": args.sym if args.sym else symmetrize,
         "shift_sino": args.shift_sino,
         "avg_neighbors": args.avg_neighbors,
-        "magnification": args.m if args.m is not None else magnification  # Return value added here
+        "show_plots": args.show if args.show else show_plots,
     }

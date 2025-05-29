@@ -16,10 +16,10 @@ from arg_parser import get_args
 default_args = {
     "img_path": r"C:\Users\jacop\Desktop\PhD\Focal Spot\ATS 6 mag\fs_small\10mm_static.raw",
     "out_dir": r".\output_small",
-    "show_plots": False,
-    "use_hough": True,
     "pixel_size": 0.154,
     "circle_diameter": 10,
+    "use_hough": True,
+    "magnification": None,
     "min_n": 6,
     "n_angles": 360,
     "profile_half_length": 64,
@@ -29,7 +29,7 @@ default_args = {
     "symmetrize": False,
     "shift_sino": True,
     "avg_neighbors": True,
-    "magnification": None,
+    "show_plots": False,
 }
 
 # ----------------------------------------------------------------------------------#
@@ -40,10 +40,10 @@ for k, v in args.items():
 
 # ----------------------------------------------------------------------------------#
 img_path = args["img_path"]
-show_plots = args["show_plots"]
-use_hough = args["use_hough"]
 pixel_size = args["pixel_size"]
 circle_diameter = args["circle_diameter"]
+use_hough = args["use_hough"]
+magnification  = args["magnification"]
 min_n = args["min_n"]
 n_angles = args["n_angles"]
 profile_half_length = args["profile_half_length"]
@@ -53,7 +53,7 @@ filter_name = args["filter_name"]
 symmetrize = args["symmetrize"]
 shift_sino = args["shift_sino"]
 avg_neighbors = args["avg_neighbors"]
-magnification  = args["magnification"]
+show_plots = args["show_plots"]
  
 # ----------------------------------------------------------------------------------#
 # create output directory
