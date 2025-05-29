@@ -29,6 +29,7 @@ default_args = {
     "symmetrize": False,
     "shift_sino": True,
     "avg_neighbors": True,
+    "magnification": None,
 }
 
 # ----------------------------------------------------------------------------------#
@@ -52,7 +53,8 @@ filter_name = args["filter_name"]
 symmetrize = args["symmetrize"]
 shift_sino = args["shift_sino"]
 avg_neighbors = args["avg_neighbors"]
-
+magnification  = args["magnification"]
+ 
 # ----------------------------------------------------------------------------------#
 # create output directory
 basename = os.path.splitext(os.path.basename(img_path))[0]
@@ -104,9 +106,15 @@ plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
 
 
 # Estimate magnification
-m = (radius * pixel_size) / (circle_diameter / 2)  # magnification
+if magnification is not None:
+    m = magnification
+    print(f"Using provided magnification: {m:.2f}x")
+else:
+    # compute from circle radius
+    m = (radius * pixel_size) / (circle_diameter / 2)
+    print(f"Estimated image magnification: {m:.2f}x")
+
 m_fs = m - 1  # fs magnification
-print(f"Estimated image magnification: {m:.2f}x")
 print(f"Estimated fs magnification: {m_fs:.2f}x")
 
 min_r = utils.eval_minimum_radius(min_n, pixel_size, m)
