@@ -7,11 +7,12 @@ from spotx import image_opening as io
 from spotx import circle_detection as circ
 from spotx import sinogram_recon as sr
 from spotx import widths_calculator as wc
-from spotx.arg_parser import get_merged_config
+from spotx.arg_parser import get_merged_config, validate_args
 
 
 def run_pipeline():
     args = get_merged_config()
+    validate_args(args)
 
     print("Arguments in use:")
     for k, v in args.items():
@@ -23,7 +24,7 @@ def run_pipeline():
     pixel_size = args["pixel_size"]
     circle_diameter = args["circle_diameter"]
     use_hough = args["use_hough"]
-    magnification  = args["magnification"]
+    magnification = args["magnification"]
     min_n = args["min_n"]
     n_angles = args["n_angles"]
     profile_half_length = args["profile_half_length"]
@@ -34,7 +35,7 @@ def run_pipeline():
     shift_sino = args["shift_sino"]
     avg_neighbors = args["avg_neighbors"]
     show_plots = args["show_plots"]
-    
+
     # ----------------------------------------------------------------------------------#
     # create output directory
     basename = os.path.splitext(os.path.basename(img_path))[0]
@@ -43,23 +44,25 @@ def run_pipeline():
     print(f"saving outputs to {out_dir}")
 
     # load the image
-    img = io.load_image(img_path)
-
+    try:
+        img = io.load_image(img_path)
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
 
     # circle detetion
     if use_hough:
         # Detect circle using Hough Transform
         hough_circle = circ.detect_circle_hough(
-            img,
-            dp=1.3,
-            min_dist=100,
-            param1=70,
-            param2=40,
-            min_radius=10,
-            max_radius=0,
-            output_path=out_dir,
-            debug=False,  # if True show the plot, but freezes the script
-        )
+        img,
+        dp=args["hough_params"]["dp"],
+        min_dist=args["hough_params"]["min_dist"],
+        param1=args["hough_params"]["param1"],
+        param2=args["hough_params"]["param2"],
+        min_radius=args["hough_params"]["min_radius"],
+        max_radius=args["hough_params"]["max_radius"],
+        output_path=out_dir,
+        debug=args["hough_params"]["debug"],
+    )
 
         if not hough_circle:
             raise ValueError(
@@ -71,9 +74,10 @@ def run_pipeline():
             img, center=(x, y), radius=r, width_factor=1.5, output_path=out_dir
         )
     else:
-        print("Caution! Hough transform not used. Using provided image as already cropped.")
+        print(
+            "Caution! Hough transform not used. Using provided image as already cropped."
+        )
         cropped = img
-
 
     cx, cy, radius = circ.estimate_circle(cropped)
 
@@ -81,9 +85,10 @@ def run_pipeline():
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
 
-    print(f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px")
+    print(
+        f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px"
+    )
     plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
-
 
     # Estimate magnification
     if magnification is not None:
@@ -98,14 +103,15 @@ def run_pipeline():
     print(f"Estimated fs magnification: {m_fs:.2f}x")
 
     min_r = utils.eval_minimum_radius(min_n, pixel_size, m)
-    if min_r > radius:
+    if min_r > radius*pixel_size:
         print(
             f"Warning: The estimated radius {radius} mm is smaller than the minimum required radius {min_r:.2f} mm."
         )
 
-
     # Extract profiles and sinogram
-    profiles, sinogram = sr.compute_profiles_and_sinogram(cropped, cx, cy, radius)
+    profiles, sinogram = sr.compute_profiles_and_sinogram(
+        cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
+    )
 
     if shift_sino:
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
@@ -130,10 +136,10 @@ def run_pipeline():
     )
 
     # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
-    axis_shifts = list(range(-10, 11))
+    shift_list = list(range(-axis_shifts,axis_shifts))
     shift_tiff_path = os.path.join(out_dir, "recon_axis_shifts.tiff")
     sr.reconstruct_with_axis_shifts(
-        sinogram, shift_tiff_path, filter_name, shifts=axis_shifts
+        sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
     wide_idx, narrow_idx, sigmas = wc.find_extreme_profiles_erf(profiles)

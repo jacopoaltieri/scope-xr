@@ -54,9 +54,10 @@ def plot_profiles_and_reconstruction(
     plt.axis("off")
 
     plt.tight_layout()
+    plt.savefig(os.path.join(out_dir,"profiles_sinogram_reconstruction.png"))
     if show_plots:
         plt.show()
-    plt.savefig(os.path.join(out_dir,"profiles_sinogram_reconstruction.png"))
+    plt.close()
     
     
 def plot_profiles_with_fwhm(
@@ -155,4 +156,4 @@ def plot_focal_spot_with_lines(
     plt.savefig(out_path, dpi=300)
     if show_plots:
         plt.show()
-    plt.close()
+    plt.close(fig)

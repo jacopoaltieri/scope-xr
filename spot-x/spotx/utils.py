@@ -3,13 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def eval_minimum_magnification(a: int, n: int, p: int) -> int:
+def eval_minimum_magnification(a: float, n: int, p: float) -> float:
     """Evaluate the minimum magnification required to obtain a focal spot image involving a reasonable number n of pixels."""
     m = (a + n * p) / a
     return m
 
 
-def eval_minimum_radius(n: int, p: int, m: int) -> int:
+def eval_minimum_radius(n: int, p: float, m: float) -> float:
     """Evaluate the minimum disk radius required to obtain a focal spot image involving a reasonable number n of pixels."""
     r = (1 + n**2) * p / (2 * m)
     return r

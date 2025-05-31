@@ -66,3 +66,24 @@ def get_merged_config():
             config[config_key] = cli_dict[cli_key]
 
     return config
+
+
+def validate_args(args):
+    if not args["img_path"]:
+        raise ValueError("Image path is required. Use --f to specify the image file.")
+    if args["pixel_size"] <= 0:
+        raise ValueError("Pixel size must be a positive number.")
+    if args["circle_diameter"] <= 0:
+        raise ValueError("Circle diameter must be a positive number.")
+    if args["magnification"] is not None and args["magnification"]<= 0:
+        raise ValueError("Magnification must be a positive number.")
+    if args["min_n"] <= 0:
+        raise ValueError("Minimum pixel count must be a positive integer.")
+    if args["n_angles"] <= 0:
+        raise ValueError("Number of angles must be a positive integer.")
+    if args["profile_half_length"] <= 0:
+        raise ValueError("Half profile length must be a positive integer.")
+    if args["derivative_step"] <= 0:
+        raise ValueError("Derivative step size must be a positive integer.")
+    if args["axis_shifts"] < 0:
+        raise ValueError("Axis shifts must be a non-negative integer.")
