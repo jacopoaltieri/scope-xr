@@ -1,7 +1,7 @@
 out_dir: "./output"
 pixel_size: 0.154
 circle_diameter: 10
-use_hough: true
+no_hough: false
 magnification: null
 min_n: 6
 n_angles: 360
