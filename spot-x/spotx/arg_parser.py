@@ -12,7 +12,7 @@ def get_merged_config():
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
-    parser.add_argument("--hough", action="store_true", help="Use Hough transform")
+    parser.add_argument("--no_hough", action="store_true", help="Skip Hough transform detection")
     parser.add_argument("--m", type=float, help="Magnification")
     parser.add_argument("--n", type=int, help="Minimum pixel count")
     parser.add_argument("--nangles", type=int, help="Number of angles")
@@ -46,7 +46,7 @@ def get_merged_config():
         "o": "out_dir",
         "p": "pixel_size",
         "d": "circle_diameter",
-        "hough": "use_hough",
+        "no_hough": "no_hough",
         "m": "magnification",
         "n": "min_n",
         "nangles": "n_angles",

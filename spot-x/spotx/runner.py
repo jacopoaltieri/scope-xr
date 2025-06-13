@@ -23,7 +23,7 @@ def run_pipeline():
     img_path = args["img_path"]
     pixel_size = args["pixel_size"]
     circle_diameter = args["circle_diameter"]
-    use_hough = args["use_hough"]
+    no_hough = args["no_hough"]
     magnification = args["magnification"]
     min_n = args["min_n"]
     n_angles = args["n_angles"]
@@ -50,7 +50,12 @@ def run_pipeline():
         raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
 
     # circle detetion
-    if use_hough:
+    if no_hough:
+        print(
+            "Caution! Hough transform not used. Using provided image as already cropped."
+        )
+        cropped = img
+    else:
         # Detect circle using Hough Transform
         hough_circle = circ.detect_circle_hough(
         img,
@@ -73,11 +78,7 @@ def run_pipeline():
         cropped = utils.crop_square_roi(
             img, center=(x, y), radius=r, width_factor=1.5, output_path=out_dir
         )
-    else:
-        print(
-            "Caution! Hough transform not used. Using provided image as already cropped."
-        )
-        cropped = img
+
 
     cx, cy, radius = circ.estimate_circle(cropped)
 
@@ -115,7 +116,10 @@ def run_pipeline():
 
     if shift_sino:
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
-        sinogram = centered_sino[applied_shift:-applied_shift, :]
+        if applied_shift == 0:
+            sinogram = centered_sino
+        else:
+            sinogram = centered_sino[applied_shift:-applied_shift, :]
         print(f"Applied axis shift: {applied_shift} px")
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)

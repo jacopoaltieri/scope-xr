@@ -123,17 +123,17 @@ def average_neighbors(sinogram: np.ndarray, angle_idx: int, line_width: int = 3)
     return np.mean(profile_stack, axis=0)
 
 
-def compute_fs_width(fwhm_px: int, pixel_size: float, magnification: float) -> float:
+def compute_fs_width(fwhm_px: int, pixel_size: float, fs_magnification: float) -> float:
     """
     Compute the focal spot width in micrometers from the FWHM in pixels.
 
     Args:
         fwhm_px: Full width at half maximum in pixels.
         pixel_size: Size of a pixel in micrometers.
-        magnification: Magnification factor of the focal spot
+        fs_magnification: Magnification factor of the focal spot
 
     Returns:
         Focal spot width in micrometers.
     """
-    return fwhm_px * pixel_size / magnification
+    return fwhm_px * pixel_size / fs_magnification
 
