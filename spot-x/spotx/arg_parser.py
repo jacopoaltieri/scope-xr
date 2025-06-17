@@ -5,7 +5,7 @@ import yaml
 def get_merged_config():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--config", type=str, default=r"spot-x\args.yaml", help="Path to YAML config file")
+    parser.add_argument("--config", type=str, default=r".\args.yaml", help="Path to YAML config file")
 
     # CLI arguments (short flags) — these will be remapped later
     parser.add_argument("--f", type=str, required=True, help="Path to the image file (.raw/.png/.tif)")
