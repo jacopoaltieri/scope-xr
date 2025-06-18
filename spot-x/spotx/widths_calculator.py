@@ -36,6 +36,7 @@ def fwhm(sinogram: np.ndarray) -> tuple[int, int, int]:
     width = right - left
     return width, left, right
 
+
 def fwhm_from_sigma(sigma: float) -> float:
     """
     Compute the FWHM from the standard deviation of an error function step.
@@ -46,7 +47,7 @@ def fwhm_from_sigma(sigma: float) -> float:
     Returns:
         FWHM value.
     """
-    return 2 * sigma * np.sqrt(2 * np.log(2)) 
+    return 2 * sigma * np.sqrt(2 * np.log(2))
 
 
 def erf_step(x: np.ndarray, A: float, x0: float, sigma: float, B: float) -> np.ndarray:
@@ -98,7 +99,10 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
     narrow_idx = int(np.argmin(sigmas))
     return wide_idx, narrow_idx, sigmas
 
-def average_neighbors(sinogram: np.ndarray, angle_idx: int, line_width: int = 3) -> np.ndarray:
+
+def average_neighbors(
+    sinogram: np.ndarray, angle_idx: int, line_width: int = 3
+) -> np.ndarray:
     """
     Compute the vertical profile at a given angle index, averaging across multiple adjacent rows.
 
@@ -137,3 +141,59 @@ def compute_fs_width(fwhm_px: int, pixel_size: float, fs_magnification: float) -
     """
     return fwhm_px * pixel_size / fs_magnification
 
+
+def gaussian(x: np.ndarray, A: float, mu: float, sigma: float, B: float) -> np.ndarray:
+    """
+    Gaussian model for fitting sinusoidal profiles.
+
+    Args:
+        x: Independent variable (e.g., pixel positions).
+        A: Amplitude of the Gaussian.
+        mu: Mean (center) of the Gaussian.
+        sigma: Standard deviation of the Gaussian.
+        B: Baseline offset.
+
+    Returns:
+        Gaussian curve evaluated at x.
+    """
+    return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
+
+
+def find_extreme_profiles_gaussian(
+    sinogram: np.ndarray,
+) -> tuple[int, int, np.ndarray, list[np.ndarray]]:
+    """
+    Fit each sinogram profile (column) to a Gaussian curve and extract the extreme profiles.
+
+    Args:
+        sinogram: 2D array of shape (n_rays, n_angles) containing line profiles.
+
+    Returns:
+        wide_idx: Index of the profile with the largest sigma (widest).
+        narrow_idx: Index of the profile with the smallest sigma (narrowest).
+        sigmas: 1D array of computed sigma values for each profile.
+        popts:  List of optimal fit parameters [A, mu, sigma, B] for each profile;
+                entries are np.array([nan, nan, nan, nan]) on fit failure.
+    """
+    n_rays, n_angles = sinogram.shape
+    x = np.arange(n_rays)
+    sigmas = np.zeros(n_angles, dtype=float)
+    popts: list[np.ndarray] = []
+
+    # Initial guess: [amplitude, mean, sigma, baseline]
+    p0 = [sinogram.max() - sinogram.min(), n_rays / 2, n_rays / 8, sinogram.min()]
+
+    for i in range(n_angles):
+        profile = average_neighbors(sinogram, i)
+        try:
+            popt, _ = curve_fit(gaussian, x, profile, p0=p0, maxfev=2000)
+            popts.append(popt)
+            sigmas[i] = popt[2]
+        except RuntimeError:
+            # Fit failed: record nan and a placeholder
+            sigmas[i] = np.nan
+            popts.append(np.array([np.nan, np.nan, np.nan, np.nan]))
+
+    wide_idx = int(np.nanargmax(sigmas))
+    narrow_idx = int(np.nanargmin(sigmas))
+    return wide_idx, narrow_idx, sigmas, popts
