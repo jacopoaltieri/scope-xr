@@ -7,7 +7,7 @@ from spotx import image_opening as io
 from spotx import circle_detection as circ
 from spotx import utils, plotters
 from spotx import sinogram_recon as sr
-
+from spotx import widths_calculator as wc
 
 if __name__ == "__main__":
     args = get_merged_config()
@@ -114,3 +114,83 @@ if __name__ == "__main__":
     plotters.plot_profiles_and_reconstruction(
         profiles, sinogram, reconstruction, out_dir, show_plots
     )
+
+    wide_idx, narrow_idx, sigmas = wc.find_extreme_profiles_erf(profiles)
+    print(f"Widest edge at angle idx {wide_idx}")
+    print(f"Narrowest edge at angle idx {narrow_idx}")
+
+
+    prof_wide_sino = sinogram[:, wide_idx]
+    prof_narrow_sino = sinogram[:, narrow_idx]
+
+    fw, lw, rw = wc.fwhm(prof_wide_sino)
+    fn, ln, rn = wc.fwhm(prof_narrow_sino)
+    print(f"Widest:   FWHM={fw}px (from {lw} to {rw})")
+    print(f"Narrowest: FWHM={fn}px (from {ln} to {rn})")
+
+    fw_erf = wc.fwhm_from_erf_sigma(sigmas[wide_idx])
+    fn_erf = wc.fwhm_from_erf_sigma(sigmas[narrow_idx])
+    print(f"Widest (ERF):   FWHM={fw_erf:.2f}px")
+    print(f"Narrowest (ERF): FWHM={fn_erf:.2f}px")
+
+    n_rays = sinogram.shape[0]
+    radial = np.arange(n_rays) - n_rays // 2
+
+    fwhm_path = os.path.join(out_dir, "fwhm_sinogram_profiles.png")
+    plotters.plot_profiles_with_fwhm(
+        radial,
+        prof_wide_sino,
+        prof_narrow_sino,
+        wide_idx,
+        narrow_idx,
+        fw,
+        lw,
+        rw,
+        fn,
+        ln,
+        rn,
+        fwhm_path,
+        show_plots,
+    )
+
+    sino_with_lines_path = os.path.join(out_dir, "sinogram_traced_profiles.png")
+    plotters.plot_sinogram_with_traced_profiles(
+        sinogram, wide_idx, narrow_idx, sino_with_lines_path, show_plots
+    )
+
+    angle_step = 360.0 / n_angles
+    angle_wide_deg = wide_idx * angle_step
+    angle_narrow_deg = narrow_idx * angle_step
+    spot_with_lines_path = os.path.join(out_dir, "focal_spot_traced_profiles.png")
+    plotters.plot_focal_spot_with_lines(
+        reconstruction,
+        angle_wide_deg,
+        angle_narrow_deg,
+        out_path=spot_with_lines_path,
+        show_plots=show_plots,
+    )
+
+
+    print(f"Widest PSF width: {fw:.3f} px")
+    print(f"Narrowest focal spot width: {fn:.3f} px")
+
+    print(f"Widest PSF width (ERF): {fw_erf:.3f} px")
+    print(f"Narrowest PSF  width (ERF): {fn_erf:.3f} px")
+
+    # Create results summary
+    summary = [
+        f"Output saved to: {out_dir}",
+        f"Arguments: {args}",
+        f"COM circle: center=({cx},{cy}), radius={radius}px",
+        f"FWHM classic: widest={fw}px (idx {wide_idx}), narrowest={fn}px (idx {narrow_idx})",
+        f"FWHM ERF:     widest={fw_erf:.2f}px, narrowest={fn_erf:.2f}px",
+        f"Spot size mm classic: widest={fw:.2f}, narrowest={fn:.2f}",
+        f"Spot size mm ERF:     widest={fw_erf:.3f}, narrowest={fn_erf:.3f}",
+        f"Angles: wide={wide_idx*angle_step:.1f}°, narrow={narrow_idx*angle_step:.1f}°",
+    ]
+
+    # Save summary to txt
+    results_path = os.path.join(out_dir, "results.txt")
+    with open(results_path, "w") as f:
+        f.write("\n".join(summary))
+    print(f"Results written to {results_path}")
