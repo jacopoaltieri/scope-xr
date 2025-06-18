@@ -36,7 +36,7 @@ def fwhm(sinogram: np.ndarray) -> tuple[int, int, int]:
     width = right - left
     return width, left, right
 
-def fwhm_from_erf_sigma(sigma: float) -> float:
+def fwhm_from_sigma(sigma: float) -> float:
     """
     Compute the FWHM from the standard deviation of an error function step.
 

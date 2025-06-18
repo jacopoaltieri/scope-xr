@@ -162,8 +162,8 @@ def run_pipeline():
     print(f"Widest:   FWHM={fw}px (from {lw} to {rw})")
     print(f"Narrowest: FWHM={fn}px (from {ln} to {rn})")
 
-    fw_erf = wc.fwhm_from_erf_sigma(sigmas[wide_idx])
-    fn_erf = wc.fwhm_from_erf_sigma(sigmas[narrow_idx])
+    fw_erf = wc.fwhm_from_sigma(sigmas[wide_idx])
+    fn_erf = wc.fwhm_from_sigma(sigmas[narrow_idx])
     print(f"Widest (ERF):   FWHM={fw_erf:.2f}px")
     print(f"Narrowest (ERF): FWHM={fn_erf:.2f}px")
 
