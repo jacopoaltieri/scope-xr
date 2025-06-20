@@ -30,6 +30,8 @@ if __name__ == "__main__":
     symmetrize = args["symmetrize"]
     shift_sino = args["shift_sino"]
     show_plots = args["show_plots"]
+    dtheta = args.get("dtheta", 5)
+    gaussian_sigma = args.get("gaussian_sigma", 0.2)
 
     # ----------------------------------------------------------------------------------#
     # create output directory
@@ -44,14 +46,13 @@ if __name__ == "__main__":
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
 
-    # circle detetion
+    # circle detection or cropping
     if no_hough:
         print(
             "Caution! Hough transform not used. Using provided image as already cropped."
         )
         cropped = img
     else:
-        # Detect circle using Hough Transform
         hough_circle = circ.detect_circle_hough(
             img,
             dp=args["hough_params"]["dp"],
@@ -63,7 +64,6 @@ if __name__ == "__main__":
             output_path=out_dir,
             debug=args["hough_params"]["debug"],
         )
-
         if not hough_circle:
             raise ValueError(
                 "Hough transform did not detect any circle. Provide a cropped image."
@@ -75,123 +75,88 @@ if __name__ == "__main__":
         )
 
     cx, cy, radius = circ.estimate_circle(cropped)
-
+    
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
-
     print(
         f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px"
     )
     plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
 
-    # Extract profiles and sinogram
+    # ------------------------------------------------------------------------#
+    # 1) Original pixel-based profiles and sinogram
     profiles, sinogram = sr.compute_profiles_and_sinogram(
-        cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
+        cropped, cx, cy, radius,
+        n_angles, profile_half_length, derivative_step
     )
+    # Save original
+    plt.imsave(os.path.join(out_dir, "profiles_px.png"), profiles, cmap="gray")
+    plt.imsave(os.path.join(out_dir, "sinogram_px.png"), sinogram, cmap="gray")
 
-    if shift_sino:
-        centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
-        if applied_shift == 0:
-            sinogram = centered_sino
-        else:
-            sinogram = centered_sino[applied_shift:-applied_shift, :]
-        print(f"Applied axis shift: {applied_shift} px")
+    # 2) Subpixel ESF-based profiles and sinogram
+    sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram(
+        cropped, cx, cy, radius,
+        n_angles,
+        profile_half_length,
+        derivative_step,
+        dtheta=dtheta,
+        gaussian_sigma=gaussian_sigma,
+    )
+    # Save subsampled
+    plt.imsave(os.path.join(out_dir, "profiles_subpx.png"), sub_profiles, cmap="gray")
+    plt.imsave(os.path.join(out_dir, "sinogram_subpx.png"), sub_sinogram, cmap="gray")
 
-    reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
+    # Apply optional centering
+    def process_sino(sino):
+        if shift_sino:
+            centered, shift = sr.auto_center_sinogram(sino)
+            if shift != 0:
+                sino = centered[shift:-shift, :]
+            else:
+                sino = centered
+        return sino
 
-    # Save images
-    saved_files = []
-    for name, arr in [
-        ("profiles.png", profiles),
-        ("sinogram.png", sinogram),
-        ("reconstruction.png", reconstruction),
-    ]:
-        path = os.path.join(out_dir, name)
-        plt.imsave(path, arr, cmap="gray")
-        saved_files.append(path)
+    print (f"Sinogram shape: {sinogram.shape}, Subpixel shape: {sub_sinogram.shape}")
 
+
+    sinogram = process_sino(sinogram)
+    sub_sinogram = process_sino(sub_sinogram)
+
+    print (f"Sinogram shape: {sinogram.shape}, Subpixel shape: {sub_sinogram.shape}")
+    
+    # Reconstructions
+    recon_px = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
+    recon_sub = sr.reconstruct_focal_spot(sub_sinogram, filter_name, symmetrize)
+    plt.imsave(os.path.join(out_dir, "reconstruction_px.png"), recon_px, cmap="gray")
+    plt.imsave(os.path.join(out_dir, "reconstruction_subpx.png"), recon_sub, cmap="gray")
+
+    # Plot combined
     plotters.plot_profiles_and_reconstruction(
-        profiles, sinogram, reconstruction, out_dir, show_plots
+        profiles, sinogram, recon_px, out_dir, show_plots
     )
 
-# find extremes using Gaussian fits
-wide_idx, narrow_idx, sigmas,gaussian_popts = wc.find_extreme_profiles_gaussian(sinogram)
-print(f"Widest edge at angle idx {wide_idx}")
-print(f"Narrowest edge at angle idx {narrow_idx}")
 
-prof_wide_sino = sinogram[:, wide_idx]
-prof_narrow_sino = sinogram[:, narrow_idx]
+    # ------------------------------------------------------------------------#
+    # Width analysis (classic and Gaussian) for both methods
+    for label, sino in [("px", sinogram), ("subpx", sub_sinogram)]:
+        w_idx, n_idx, sigmas, pops = wc.find_extreme_profiles_gaussian(sino)
+        prof_w = sino[:, w_idx]
+        prof_n = sino[:, n_idx]
+        fw, _, _ = wc.fwhm(prof_w)
+        fn, _, _ = wc.fwhm(prof_n)
+        fw_g = wc.fwhm_from_sigma(sigmas[w_idx])
+        fn_g = wc.fwhm_from_sigma(sigmas[n_idx])
+        print(f"[{label}] Wide idx {w_idx}, FWHM px={fw:.2f}, gauss={fw_g:.2f}")
+        print(f"[{label}] N  idx {n_idx}, FWHM px={fn:.2f}, gauss={fn_g:.2f}")
 
-# classic pixel‐based FWHM
-fw, lw, rw = wc.fwhm(prof_wide_sino)
-fn, ln, rn = wc.fwhm(prof_narrow_sino)
-print(f"Widest:    FWHM={fw}px (from {lw} to {rw})")
-print(f"Narrowest: FWHM={fn}px (from {ln} to {rn})")
-
-# Gaussian‐fit FWHM
-fw_gauss = wc.fwhm_from_sigma(sigmas[wide_idx])
-fn_gauss = wc.fwhm_from_sigma(sigmas[narrow_idx])
-print(f"Widest (Gaussian):    FWHM={fw_gauss:.2f}px")
-print(f"Narrowest (Gaussian): FWHM={fn_gauss:.2f}px")
-
-n_rays = sinogram.shape[0]
-radial = np.arange(n_rays) - n_rays // 2
-
-fwhm_path = os.path.join(out_dir, "fwhm_sinogram_profiles.png")
-plotters.plot_profiles_with_fwhm(
-    radial,
-    prof_wide_sino,
-    prof_narrow_sino,
-    wide_idx,
-    narrow_idx,
-    fw,
-    lw,
-    rw,
-    fn,
-    ln,
-    rn,
-    fwhm_path,
-    show_plots,
-)
-
-sino_with_lines_path = os.path.join(out_dir, "sinogram_traced_profiles.png")
-plotters.plot_sinogram_with_traced_profiles(
-    sinogram, wide_idx, narrow_idx, sino_with_lines_path, show_plots
-)
-
-angle_step = 360.0 / n_angles
-angle_wide_deg = wide_idx * angle_step
-angle_narrow_deg = narrow_idx * angle_step
-spot_with_lines_path = os.path.join(out_dir, "focal_spot_traced_profiles.png")
-plotters.plot_focal_spot_with_lines(
-    reconstruction,
-    angle_wide_deg,
-    angle_narrow_deg,
-    out_path=spot_with_lines_path,
-    show_plots=show_plots,
-)
-
-gaus_prof_wide_paths = os.path.join(out_dir, "gaussian_widest_profile.png")
-plotters.plot_profile_with_gaussian(radial,prof_wide_sino,gaussian_popts[wide_idx],gaus_prof_wide_paths)
-gaus_prof_narrow_paths = os.path.join(out_dir, "gaussian_narrowest_profile.png")
-plotters.plot_profile_with_gaussian(radial,prof_narrow_sino,gaussian_popts[narrow_idx],gaus_prof_narrow_paths)
-
-# Create results summary
-summary = [
-    f"Output saved to: {out_dir}",
-    f"Arguments: {args}",
-    f"COM circle: center=({cx},{cy}), radius={radius}px",
-    f"FWHM classic: widest={fw}px (idx {wide_idx}), narrowest={fn}px (idx {narrow_idx})",
-    f"FWHM Gaussian:     widest={fw_gauss:.2f}px, narrowest={fn_gauss:.2f}px",
-    f"Spot size mm classic: widest={fw:.2f}, narrowest={fn:.2f}",
-    f"Spot size mm Gaussian:     widest={fw_gauss:.3f}, narrowest={fn_gauss:.3f}",
-    f"Angles: wide={wide_idx*angle_step:.1f}°, narrow={narrow_idx*angle_step:.1f}°",
-]
-
-# Save summary to txt
-results_path = os.path.join(out_dir, "results.txt")
-with open(results_path, "w") as f:
-    f.write("\n".join(summary))
-print(f"Results written to {results_path}")
-
+    # ------------------------------------------------------------------------#
+    # Summary
+    summary = [
+        f"Output dir: {out_dir}",
+        f"Classic FWHM px: wide={fw:.2f}, narrow={fn:.2f}",
+        f"Subpx FWHM px:   wide={fw_g:.2f}, narrow={fn_g:.2f}",
+    ]
+    with open(os.path.join(out_dir, "results.txt"), "w") as f:
+        f.write("\n".join(summary))
+    print(f"Results written to {out_dir}/results.txt")
