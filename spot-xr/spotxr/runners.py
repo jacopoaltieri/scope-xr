@@ -439,7 +439,7 @@ def run_pipeline_psf():
         fw_n_ov = wc.fwhm_from_sigma(sigmas_ov[narrow_idx_ov]) * resample2
         print(f"Widest (oversampled):   FWHM={fw_w_ov:.2f}px")
         print(f"Narrowest (oversampled): FWHM={fw_n_ov:.2f}px")
-        radial_ov = np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2) * resample2
+        radial_ov = (np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)) * resample2
 
         plotters.plot_profile_with_gaussian(
             radial=radial_ov, sinogram_profile=prof_wide_sino_ov, popt=popt_w_ov,
