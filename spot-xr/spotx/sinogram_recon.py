@@ -1,7 +1,8 @@
 import numpy as np
 import tifffile
 from skimage.transform import iradon
-from scipy.ndimage import map_coordinates, shift
+from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
+from scipy.interpolate import interp1d
 
 
 def compute_profiles_and_sinogram(
@@ -52,6 +53,73 @@ def compute_profiles_and_sinogram(
                 profile[j] = 0  # Zero padding if outside image
 
         profiles[i, :] = profile  # Store the radial profile
+
+    # Compute the derivative to obtain the sinogram
+    sinogram = np.gradient(profiles, derivative_step, axis=1)
+    return profiles.T, -sinogram.T
+
+
+def compute_subpixel_profiles_and_sinogram(
+    img: np.ndarray,
+    cx: float,
+    cy: float,
+    radius: float,
+    n_angles: int = 360,
+    profile_half_length: int = 64,
+    derivative_step: int = 1,
+    dtheta: float = 5,
+    gaussian_sigma: float = 0.2,
+    resample1: float = 0.002,
+    resample2: float = 0.02,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Sub-pixel ESF method, with fixed radial grid matching profile_half_length.
+    """
+    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
+    profile_length = 2 * profile_half_length
+    delta = np.deg2rad(dtheta)/2
+
+
+    # 2) Precompute polar coords relative to circle edge
+    ys, xs = np.indices(img.shape)
+    xs = xs.astype(np.float32) - cx
+    ys = ys.astype(np.float32) - cy
+    phis = np.arctan2(ys, xs)
+    rs = np.hypot(xs, ys) - radius
+
+    # precompute oversampling grids
+    final_r = np.arange(-profile_half_length, profile_half_length + resample2, resample2)
+
+    # Fine grid used for interpolation/smoothing
+    fine_r = np.arange(final_r[0], final_r[-1] + resample1, resample1)
+
+    profile_length = final_r.size  # number of samples in radial direction
+    profiles = np.zeros((n_angles, profile_length), dtype=np.float32)
+    sinogram = np.zeros((n_angles, profile_length), dtype=np.float32)
+    
+    for i, theta in enumerate(angles):
+        # mask pixels in angular wedge
+        dphi = (phis - theta + np.pi) % (2*np.pi) - np.pi
+        mask = np.abs(dphi) <= delta
+        r_vals = rs[mask]
+        intens = img[mask]
+        
+
+        # sort and build non-uniform ESF
+        idx = np.argsort(r_vals)
+        r_vals = r_vals[idx]
+        intens = intens[idx]
+
+        # fine resampling
+        profile_fine = np.interp(fine_r,r_vals,intens)
+        
+        # smooth with Gaussian filter
+        smooth = gaussian_filter1d(profile_fine, gaussian_sigma/resample1)
+
+        # resampling to actual subsample grid
+        profile_oversampled = np.interp(final_r, fine_r, smooth)
+        profiles[i, :] = profile_oversampled 
+
 
     # Compute the derivative to obtain the sinogram
     sinogram = np.gradient(profiles, derivative_step, axis=1)

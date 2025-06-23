@@ -186,7 +186,17 @@ def find_extreme_profiles_gaussian(
     for i in range(n_angles):
         profile = average_neighbors(sinogram, i)
         try:
-            popt, _ = curve_fit(gaussian, x, profile, p0=p0, maxfev=2000)
+            popt, _ = curve_fit(
+                gaussian,
+                x,
+                profile,
+                p0=p0,
+                bounds=(
+                    [0, 0, 1e-6, -np.inf],  # Lower bounds: A, mu, sigma, B
+                    [np.inf, n_rays, n_rays, np.inf],  # Upper bounds
+                ),
+                maxfev=2000,
+            )
             popts.append(popt)
             sigmas[i] = popt[2]
         except RuntimeError:
