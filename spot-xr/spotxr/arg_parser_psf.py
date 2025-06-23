@@ -7,20 +7,22 @@ def get_merged_config():
 
     parser.add_argument("--config", type=str, default=r".\psf_args.yaml", help="Path to YAML config file")
 
-    # CLI arguments (short flags) — these will be remapped later
+    # CLI arguments
     parser.add_argument("--f", type=str, required=True, help="Path to the image file (.raw/.png/.tif)")
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
     parser.add_argument("--no_hough", action="store_true", help="Skip Hough transform detection")
-    # parser.add_argument("--m", type=float, help="Magnification")
-    # parser.add_argument("--n", type=int, help="Minimum pixel count")
     parser.add_argument("--nangles", type=int, help="Number of angles")
     parser.add_argument("--hl", type=int, help="Half profile length")
     parser.add_argument("--ds", type=int, help="Derivative step size")
-    # parser.add_argument("--axis_shifts", type=int, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
+    parser.add_argument("--oversample", action="store_true", help="Enable oversampling")
+    parser.add_argument("--dtheta", type=float, help="Angle of circular sector for oversampling in degrees")
+    parser.add_argument("--resample1", type=float, help="First resample factor")
+    parser.add_argument("--resample2", type=float, help="Second resample factor")
+    parser.add_argument("--gaussian_sigma", type=float, help="Sigma value for Gaussian smoothing in oversampling")
     parser.add_argument("--show", action="store_true", help="Show plots")
 
     shift_group = parser.add_mutually_exclusive_group()
@@ -28,12 +30,11 @@ def get_merged_config():
     shift_group.add_argument("--no_shift", dest="shift_sino", action="store_false", help="Disable sinogram shifting")
     parser.set_defaults(shift_sino=True)
 
-    # avg_group = parser.add_mutually_exclusive_group()
-    # avg_group.add_argument("--avg", dest="avg_neighbors", action="store_true", help="Enable averaging neighboring profiles")
-    # avg_group.add_argument("--no_avg", dest="avg_neighbors", action="store_false", help="Disable averaging neighboring profiles")
-    # parser.set_defaults(avg_neighbors=True)
+    avg_group = parser.add_mutually_exclusive_group()
+    avg_group.add_argument("--avg", dest="avg_neighbors", action="store_true", help="Enable averaging neighboring profiles")
+    avg_group.add_argument("--no_avg", dest="avg_neighbors", action="store_false", help="Disable averaging neighboring profiles")
+    parser.set_defaults(avg_neighbors=True)
 
-# Parse CLI arguments, track what was passed
     args, unknown = parser.parse_known_args()
     passed_flags = {arg.split("=")[0].lstrip('-') for arg in sys.argv[1:] if arg.startswith("--")}
 
@@ -47,17 +48,19 @@ def get_merged_config():
         "p": "pixel_size",
         "d": "circle_diameter",
         "no_hough": "no_hough",
-        # "m": "magnification",
-        # "n": "min_n",
         "nangles": "n_angles",
         "hl": "profile_half_length",
         "ds": "derivative_step",
-        # "axis_shifts": "axis_shifts",
         "filter": "filter_name",
         "sym": "symmetrize",
         "shift_sino": "shift_sino",
-        # "avg_neighbors": "avg_neighbors",
         "show": "show_plots",
+        "avg_neighbors": "avg_neighbors",
+        "oversample": "oversample",
+        "dtheta": "dtheta",
+        "resample1": "resample1",
+        "resample2": "resample2",
+        "gaussian_sigma": "gaussian_sigma",
     }
 
     cli_dict = vars(args)
@@ -75,15 +78,17 @@ def validate_args(args):
         raise ValueError("Pixel size must be a positive number.")
     if args["circle_diameter"] <= 0:
         raise ValueError("Circle diameter must be a positive number.")
-    # if args["magnification"] is not None and args["magnification"]<= 0:
-    #     raise ValueError("Magnification must be a positive number.")
-    # if args["min_n"] <= 0:
-    #     raise ValueError("Minimum pixel count must be a positive integer.")
     if args["n_angles"] <= 0:
         raise ValueError("Number of angles must be a positive integer.")
     if args["profile_half_length"] <= 0:
         raise ValueError("Half profile length must be a positive integer.")
     if args["derivative_step"] <= 0:
         raise ValueError("Derivative step size must be a positive integer.")
-    # if args["axis_shifts"] < 0:
-    #     raise ValueError("Axis shifts must be a non-negative integer.")
+    if "dtheta" in args and args["dtheta"] <= 0:
+        raise ValueError("dtheta must be a positive number.")
+    if "resample1" in args and args["resample1"] is not None and args["resample1"] <= 0:
+        raise ValueError("resample1 must be a positive number.")
+    if "resample2" in args and args["resample2"] is not None and args["resample2"] <= 0:
+        raise ValueError("resample2 must be a positive number.")
+    if "gaussian_sigma" in args and args["gaussian_sigma"] is not None and args["gaussian_sigma"] < 0:
+        raise ValueError("gaussian_sigma must be non-negative.")

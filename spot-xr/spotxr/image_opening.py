@@ -2,7 +2,6 @@ import os
 import numpy as np
 import xml.etree.ElementTree as ET
 from PIL import Image
-import argparse
 
 def load_raw_as_ndarray(img_path: str) -> np.ndarray:
     """Load a raw image as a numpy ndarray using metadata from the corresponding XML file."""

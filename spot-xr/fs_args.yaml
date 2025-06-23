@@ -1,4 +1,4 @@
-out_dir: "./output"
+out_dir: "./output_fs"
 pixel_size: 0.154
 circle_diameter: 10
 no_hough: false

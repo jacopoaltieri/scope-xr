@@ -1,9 +1,7 @@
 import os
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-from spotx.widths_calculator import gaussian
 
 
 def plot_circle_on_crop(
@@ -34,7 +32,7 @@ def plot_circle_on_crop(
 
 
 def plot_profiles_and_reconstruction(
-    profiles, sinogram, reconstruction, out_dir, show_plots
+    profiles, sinogram, reconstruction, out_dir, show_plots, suffix=""
 ):
     plt.figure(figsize=(16, 8))
 
@@ -56,7 +54,7 @@ def plot_profiles_and_reconstruction(
     plt.axis("off")
 
     plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, "profiles_sinogram_reconstruction.png"))
+    plt.savefig(os.path.join(out_dir, f"profiles_sinogram_reconstruction{suffix}.png"))
     if show_plots:
         plt.show()
     plt.close()
@@ -154,23 +152,23 @@ def plot_sinogram_with_traced_profiles(
     plt.close(fig)
 
 
-def plot_focal_spot_with_lines(
-    focal_spot_img, angle_wide, angle_narrow, out_path, show_plots=False
+def plot_recon_with_lines(
+    recon, angle_wide, angle_narrow, out_path, show_plots=False
 ):
     """
-    focal_spot_img: 2D np.ndarray image
+    recon: 2D np.ndarray image
     center: (cx, cy) tuple - center of the focal spot
     angle_wide, angle_narrow: angles in degrees where lines should be drawn
     """
 
-    img = focal_spot_img.copy()
+    img = recon.copy()
     w, h = img.shape[:2]
     cx = w / 2
     cy = h / 2
 
     fig, ax = plt.subplots(figsize=(6, 6))
     # show only the image region
-    ax.imshow(focal_spot_img, cmap="gray", extent=[0, w, 0, h])
+    ax.imshow(img, cmap="gray", extent=[0, w, 0, h])
     ax.set_xlim(0, w)
     ax.set_ylim(0, h)
     ax.set_aspect("equal")

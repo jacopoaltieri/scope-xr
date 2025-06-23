@@ -171,7 +171,6 @@ def find_extreme_profiles_gaussian(
     Returns:
         wide_idx: Index of the profile with the largest sigma (widest).
         narrow_idx: Index of the profile with the smallest sigma (narrowest).
-        sigmas: 1D array of computed sigma values for each profile.
         popts:  List of optimal fit parameters [A, mu, sigma, B] for each profile;
                 entries are np.array([nan, nan, nan, nan]) on fit failure.
     """

@@ -8,6 +8,12 @@ derivative_step: 1
 filter_name: "hann"
 symmetrize: false
 shift_sino: true
+avg_neighbors: false
+oversample: true
+dtheta: 5
+resample1: 0.002
+resample2: 0.02
+gaussian_sigma: 0.2
 show_plots: false
 
 hough_params:
