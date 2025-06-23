@@ -210,17 +210,20 @@ def plot_profile_with_gaussian(
         out_path: Path to save the plot.
         show_plots: Whether to display the plot interactively.
     """
-    A, mu, sigma, B = popt
     n = sinogram_profile.size
     center = n // 2
+    spacing = radial[1] - radial[0]
+    
+    A, mu, sigma, B = popt
+    mu_phys = (mu - center) * spacing
+    sigma_phys = sigma * spacing
 
     # Create a dense index axis for smooth curve
-    x_idx_dense = np.linspace(0, n - 1, 500)
+    radial_dense = np.linspace(radial[0], radial[-1], 500)
     # Compute fitted Gaussian in index‐space
-    fitted_dense = A * np.exp(-((x_idx_dense - mu) ** 2) / (2 * sigma**2)) + B
+    fitted_dense = A * np.exp(-((radial_dense - mu_phys) ** 2) / (2 * sigma_phys ** 2)) + B
 
     # Map those dense indices back onto the radial axis
-    radial_dense = x_idx_dense - center
 
     plt.figure(figsize=(8, 4))
     plt.plot(radial, sinogram_profile, label="Data")

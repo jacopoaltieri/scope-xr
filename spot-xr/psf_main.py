@@ -117,13 +117,10 @@ if __name__ == "__main__":
                 sino = centered
         return sino
 
-    print (f"Sinogram shape: {sinogram.shape}, Subpixel shape: {sub_sinogram.shape}")
-
 
     sinogram = process_sino(sinogram)
     sub_sinogram = process_sino(sub_sinogram)
 
-    print (f"Sinogram shape: {sinogram.shape}, Subpixel shape: {sub_sinogram.shape}")
     
     # Reconstructions
     recon_px = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
@@ -139,24 +136,91 @@ if __name__ == "__main__":
 
     # ------------------------------------------------------------------------#
     # Width analysis (classic and Gaussian) for both methods
+# Example: assume resample2 is defined earlier in your code; e.g.
+# resample2 = 0.02  # radial spacing of subpixel sinogram in detector-pixel units
+    summary_lines = [f"Output dir: {out_dir}"]
+
     for label, sino in [("px", sinogram), ("subpx", sub_sinogram)]:
+        n_radial= sino.shape[0]
+        center = n_radial // 2
+
+        # Determine spacing per sample in detector-pixel units
+        if label == "px":
+            spacing = 1.0
+        else:
+            spacing = 0.02
+
+        # Find extreme profiles and Gaussian fit params
         w_idx, n_idx, sigmas, pops = wc.find_extreme_profiles_gaussian(sino)
+        # Build radial axis arrays
+        # For “px”: each index step is 1 px → radial positions in px
+        # For “subpx”: each index step is resample2 px → radial positions in px
+        radial_indices = np.arange(n_radial) - center
+        if label == "px":
+            radial = radial_indices.astype(float)
+        else:
+            radial = radial_indices.astype(float) * spacing
+
+        # Extract profiles
         prof_w = sino[:, w_idx]
         prof_n = sino[:, n_idx]
-        fw, _, _ = wc.fwhm(prof_w)
-        fn, _, _ = wc.fwhm(prof_n)
-        fw_g = wc.fwhm_from_sigma(sigmas[w_idx])
-        fn_g = wc.fwhm_from_sigma(sigmas[n_idx])
-        print(f"[{label}] Wide idx {w_idx}, FWHM px={fw:.2f}, gauss={fw_g:.2f}")
-        print(f"[{label}] N  idx {n_idx}, FWHM px={fn:.2f}, gauss={fn_g:.2f}")
 
-    # ------------------------------------------------------------------------#
-    # Summary
-    summary = [
-        f"Output dir: {out_dir}",
-        f"Classic FWHM px: wide={fw:.2f}, narrow={fn:.2f}",
-        f"Subpx FWHM px:   wide={fw_g:.2f}, narrow={fn_g:.2f}",
-    ]
+        # Get Gaussian-fit parameters for these profiles
+        popt_w = pops[w_idx]  # expected shape (4,)
+        popt_n = pops[n_idx]
+        print(f"Fitting parameters for {label} profiles: wide={popt_w[2]}, narrow={popt_n[2]}")
+        # Plot and save figures for wide profile
+        out_path_w = os.path.join(out_dir, f"profile_{label}_wide.png")
+        plotters.plot_profile_with_gaussian(
+            radial=radial,
+            sinogram_profile=prof_w,
+            popt=popt_w,
+            out_path=out_path_w,
+            show_plots=show_plots,
+        )
+        # Plot and save figures for narrow profile
+        out_path_n = os.path.join(out_dir, f"profile_{label}_narrow.png")
+        plotters.plot_profile_with_gaussian(
+            radial=radial,
+            sinogram_profile=prof_n,
+            popt=popt_n,
+            out_path=out_path_n,
+            show_plots=show_plots,
+        )
+
+        # Compute FWHM in sample units
+        fw_samples, _, _ = wc.fwhm(prof_w)
+        fn_samples, _, _ = wc.fwhm(prof_n)
+        fw_g_samples = wc.fwhm_from_sigma(sigmas[w_idx])
+        fn_g_samples = wc.fwhm_from_sigma(sigmas[n_idx])
+
+        # Convert to detector-pixel units
+        fw_phys = fw_samples * spacing
+        fn_phys = fn_samples * spacing
+        fw_g_phys = fw_g_samples * spacing
+        fn_g_phys = fn_g_samples * spacing
+
+        sigma_w_phys = sigmas[w_idx] * spacing
+        sigma_n_phys = sigmas[n_idx] * spacing
+
+        # Print results
+        print(f"[{label}] Wide idx {w_idx}:")
+        print(f"    - FWHM (raw profile)     = {fw_samples:.2f} samples  → {fw_phys:.2f} detector px")
+        print(f"    - FWHM (Gaussian fit)    = {fw_g_samples:.2f} samples  → {fw_g_phys:.2f} detector px")
+        print(f"    - Sigma from fit         = {sigmas[w_idx]:.3f} samples  → {sigma_w_phys:.3f} detector px")
+        print(f"[{label}] Narrow idx {n_idx}:")
+        print(f"    - FWHM (raw profile)     = {fn_samples:.2f} samples  → {fn_phys:.2f} detector px")
+        print(f"    - FWHM (Gaussian fit)    = {fn_g_samples:.2f} samples  → {fn_g_phys:.2f} detector px")
+        print(f"    - Sigma from fit         = {sigmas[n_idx]:.3f} samples  → {sigma_n_phys:.3f} detector px")
+        print("-" * 60)
+
+        # Append to summary lines (you may choose which values to record)
+        if label == "px":
+            summary_lines.append(f"Classic FWHM px (wide) = {fw_phys:.2f}, (narrow) = {fn_phys:.2f}")
+        else:
+            summary_lines.append(f"Subpx FWHM px (wide) = {fw_g_phys:.2f}, (narrow) = {fn_g_phys:.2f}")
+
+    # Write summary to results.txt
     with open(os.path.join(out_dir, "results.txt"), "w") as f:
-        f.write("\n".join(summary))
+        f.write("\n".join(summary_lines))
     print(f"Results written to {out_dir}/results.txt")

@@ -68,7 +68,7 @@ def compute_subpixel_profiles_and_sinogram(
     profile_half_length: int = 64,
     derivative_step: int = 1,
     dtheta: float = 5,
-    gaussian_sigma: float = 1.0,
+    gaussian_sigma: float = 0.2,
     resample1: float = 0.002,
     resample2: float = 0.02,
 ) -> tuple[np.ndarray, np.ndarray]:
