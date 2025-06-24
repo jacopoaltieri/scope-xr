@@ -1,5 +1,5 @@
 # Introduction 
-SPOT-XR (Single-image Profiling Of Tube X-ray sources and detector Response) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of the a detector starting from a single acquisition of a circular cut-out or disk test object. This package aims to automate the image analysis process first developed by [Di Domenico et al.] https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
+SPOT-XR (Single-image Profiling Of Tube X-ray sources and detector Response) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of a detector starting from a single acquisition of a circular cut-out or disk test object. This package aims to automate the image analysis process first developed by [Di Domenico et al.] https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
 
 ## Installing spot-xr
 
