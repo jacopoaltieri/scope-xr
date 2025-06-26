@@ -5,7 +5,7 @@ no_hough: false
 n_angles: 360
 profile_half_length: 20
 derivative_step: 1
-filter_name: "hann"
+filter_name: "ramp"
 symmetrize: false
 shift_sino: true
 avg_neighbors: false

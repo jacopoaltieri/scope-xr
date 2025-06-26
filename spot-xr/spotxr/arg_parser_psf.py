@@ -20,9 +20,9 @@ def get_merged_config():
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
     parser.add_argument("--oversample", action="store_true", help="Enable oversampling")
     parser.add_argument("--dtheta", type=float, help="Angle of circular sector for oversampling in degrees")
-    parser.add_argument("--resample1", type=float, help="First resample factor")
-    parser.add_argument("--resample2", type=float, help="Second resample factor")
-    parser.add_argument("--gaussian_sigma", type=float, help="Sigma value for Gaussian smoothing in oversampling")
+    parser.add_argument("--resample1", type=float, help="First resample factor (fine grid).")
+    parser.add_argument("--resample2", type=float, help="Second resample factor (coarse grid). This will be the final oversampling factor.")
+    parser.add_argument("--gaussian_sigma", type=float, help=" Standard deviation of the gaussian blur applied between the fine and the coarse resampling.")
     parser.add_argument("--show", action="store_true", help="Show plots")
 
     shift_group = parser.add_mutually_exclusive_group()
