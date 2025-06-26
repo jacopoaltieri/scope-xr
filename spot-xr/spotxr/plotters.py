@@ -189,6 +189,39 @@ def plot_recon_with_lines(
         plt.show()
     plt.close(fig)
 
+def plot_recon_with_hv_lines(recon, out_path, show_plots=False):
+    """
+    Plots the reconstruction with a vertical and horizontal line through the center.
+    
+    recon: 2D np.ndarray image
+    angle_wide, angle_narrow: kept for interface compatibility but ignored
+    out_path: file path to save the figure
+    show_plots: if True, displays the plot
+    """
+
+    img = recon.copy()
+    h, w = img.shape  # Note: height comes first in numpy shape
+    cx = w / 2
+    cy = h / 2
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(img, cmap="gray", extent=[0, w, 0, h])
+    ax.set_xlim(0, w)
+    ax.set_ylim(0, h)
+    ax.set_aspect("equal")
+
+    # Draw horizontal and vertical lines at center
+    h_line = ax.axhline(y=cy, color='blue', linewidth=1, label="Horizontal Profile")
+    v_line = ax.axvline(x=cx, color='red', linewidth=1, label="Vertical Profile")
+
+    ax.set_title("Reconstruction with Central H/V Profiles")
+    ax.legend(handles=[h_line, v_line])
+    ax.axis("off")
+    
+    plt.savefig(out_path, dpi=300)
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
 def plot_profile_with_gaussian(
     radial: np.ndarray,

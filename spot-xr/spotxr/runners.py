@@ -284,7 +284,9 @@ def run_pipeline_psf():
 
     # Detect or use provided crop
     if no_hough:
-        print("Caution! Hough transform not used. Using provided image as already cropped.")
+        print(
+            "Caution! Hough transform not used. Using provided image as already cropped."
+        )
         cropped = img
     else:
         hough_circle = circ.detect_circle_hough(
@@ -299,17 +301,23 @@ def run_pipeline_psf():
             debug=args["hough_params"].get("debug", False),
         )
         if not hough_circle:
-            raise ValueError("Hough transform did not detect any circle. Provide a cropped image.")
+            raise ValueError(
+                "Hough transform did not detect any circle. Provide a cropped image."
+            )
         x, y, r = hough_circle
         print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
-        cropped = utils.crop_square_roi(img, center=(x, y), radius=r, width_factor=1.5, output_path=out_dir)
+        cropped = utils.crop_square_roi(
+            img, center=(x, y), radius=r, width_factor=1.5, output_path=out_dir
+        )
 
     # Estimate circle via center-of-mass
     cx, cy, radius = circ.estimate_circle(cropped)
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
-    print(f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px")
+    print(
+        f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px"
+    )
     plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
 
     # Extract profiles and sinogram
@@ -335,8 +343,9 @@ def run_pipeline_psf():
 
     # Save and plot function
     saved_files = []
+
     def save_and_plot(name, arr, plot_func=None, suffix=""):
-        fname = f"{name}{suffix}.png" if not name.endswith('.png') else name
+        fname = f"{name}{suffix}.png" if not name.endswith(".png") else name
         path = os.path.join(out_dir, fname)
         plt.imsave(path, arr, cmap="gray")
         saved_files.append(path)
@@ -348,52 +357,64 @@ def run_pipeline_psf():
     save_and_plot("profiles", profiles)
     save_and_plot("sinogram", sinogram)
     save_and_plot("reconstruction", reconstruction)
-    plotters.plot_profiles_and_reconstruction(profiles, sinogram, reconstruction, out_dir, show_plots)
+    plotters.plot_profiles_and_reconstruction(
+        profiles, sinogram, reconstruction, out_dir, show_plots
+    )
 
-    # Find extreme profiles
-    wide_idx, narrow_idx, sigmas, pops = wc.find_extreme_profiles_gaussian(sinogram)
-    print(f"Widest edge at angle idx {wide_idx}")
-    print(f"Narrowest edge at angle idx {narrow_idx}")
+    # Find horizontal and vertical profiles
+    angle_step = 360.0 / n_angles
+    angles = np.arange(n_angles) * angle_step
 
-    # Get profiles for wide and narrow angles
+    h_idx = np.argmin(np.abs(angles - 0))    # Closest to 0°
+    v_idx = np.argmin(np.abs(angles - 90))   # Closest to 90°
+
+    _, _, sigmas, pops = wc.find_extreme_profiles_gaussian(sinogram)
+    # Get profiles for h and v angles
     if avg_neighbors:
-        prof_wide_sino = wc.average_neighbors(sinogram, wide_idx)
-        prof_narrow_sino = wc.average_neighbors(sinogram, narrow_idx)
+        prof_h_sino = wc.average_neighbors(sinogram, h_idx)
+        prof_v_sino = wc.average_neighbors(sinogram, v_idx)
     else:
-        prof_wide_sino = sinogram[:, wide_idx]
-        prof_narrow_sino = sinogram[:, narrow_idx]
+        prof_h_sino = sinogram[:, h_idx]
+        prof_v_sino = sinogram[:, v_idx]
 
-    popt_w = pops[wide_idx]
-    popt_n = pops[narrow_idx]
-    fw_w = wc.fwhm_from_sigma(sigmas[wide_idx])
-    fw_n = wc.fwhm_from_sigma(sigmas[narrow_idx])
-    print(f"Widest:   FWHM={fw_w:.2f}px")
-    print(f"Narrowest: FWHM={fw_n:.2f}px")
-    
-    
+    popt_h = pops[h_idx]
+    popt_v = pops[v_idx]
+    fw_h = wc.fwhm_from_sigma(sigmas[h_idx])
+    fw_v = wc.fwhm_from_sigma(sigmas[v_idx])
+    print(f"Horizontal:   FWHM={fw_h:.2f}px")
+    print(f"Vertical: FWHM={fw_v:.2f}px")
+
     radial = np.arange(sinogram.shape[0]) - (sinogram.shape[0] // 2)
 
     # Plot profiles with Gaussian fits
     plotters.plot_profile_with_gaussian(
-        radial=radial, sinogram_profile=prof_wide_sino, popt=popt_w,
-        out_path=os.path.join(out_dir, "sinogram_profile_wide.png"), show_plots=show_plots
+        radial=radial,
+        sinogram_profile=prof_h_sino,
+        popt=popt_h,
+        out_path=os.path.join(out_dir, "sinogram_profile_horizontal.png"),
+        show_plots=show_plots,
     )
     plotters.plot_profile_with_gaussian(
-        radial=radial, sinogram_profile=prof_narrow_sino, popt=popt_n,
-        out_path=os.path.join(out_dir, "sinogram_profile_narrow.png"), show_plots=show_plots
+        radial=radial,
+        sinogram_profile=prof_v_sino,
+        popt=popt_v,
+        out_path=os.path.join(out_dir, "sinogram_profile_vertical.png"),
+        show_plots=show_plots,
     )
 
     # Plot sinogram and reconstruction with lines
     plotters.plot_sinogram_with_traced_profiles(
-        sinogram, wide_idx, narrow_idx,
-        os.path.join(out_dir, "sinogram_traced_profiles.png"), show_plots=show_plots
+        sinogram,
+        h_idx,
+        v_idx,
+        os.path.join(out_dir, "sinogram_traced_profiles.png"),
+        show_plots=show_plots,
     )
-    angle_step = 360.0 / n_angles
-    angle_wide_deg = wide_idx * angle_step
-    angle_narrow_deg = narrow_idx * angle_step
-    plotters.plot_recon_with_lines(
-        reconstruction, angle_wide_deg, angle_narrow_deg,
-        os.path.join(out_dir, "psf_traced_profiles.png"), show_plots=show_plots
+
+    plotters.plot_recon_with_hv_lines(
+        reconstruction,
+        os.path.join(out_dir, "psf_traced_profiles.png"),
+        show_plots=show_plots,
     )
 
     # Prepare summary
@@ -401,15 +422,23 @@ def run_pipeline_psf():
         f"Output saved to: {out_dir}",
         f"Arguments: {args}",
         f"COM circle: center=({cx},{cy}), radius={radius}px",
-        f"PSF size px:     widest={fw_w:.3f}, narrowest={fw_n:.3f}",
-        f"Angles: wide={angle_wide_deg:.1f}°, narrow={angle_narrow_deg:.1f}°",
+        f"PSF size px:     horizontal={fw_h:.3f}, vertical={fw_v:.3f}",
     ]
 
     # Oversample section
     if oversample:
         sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram(
-            cropped, cx, cy, radius, n_angles, profile_half_length,
-            derivative_step, dtheta, gaussian_sigma, resample1, resample2
+            cropped,
+            cx,
+            cy,
+            radius,
+            n_angles,
+            profile_half_length,
+            derivative_step,
+            dtheta,
+            gaussian_sigma,
+            resample1,
+            resample2,
         )
         if shift_sino:
             centered_sub_sino, sub_shift = center_sino(sub_sinogram)
@@ -423,54 +452,69 @@ def run_pipeline_psf():
         save_and_plot("sinogram_oversampled", sub_sinogram)
         save_and_plot("reconstruction_oversampled", recon_sub)
         plotters.plot_profiles_and_reconstruction(
-            sub_profiles, sub_sinogram, recon_sub, out_dir, show_plots, suffix="_oversampled"
+            sub_profiles,
+            sub_sinogram,
+            recon_sub,
+            out_dir,
+            show_plots,
+            suffix="_oversampled",
         )
 
         # Find extreme profiles oversampled
-        wide_idx_ov, narrow_idx_ov, sigmas_ov, pops_ov = wc.find_extreme_profiles_gaussian(sub_sinogram)
-        print(f"Widest edge at angle idx (oversampled) {wide_idx_ov}")
-        print(f"Narrowest edge at angle idx (oversampled) {narrow_idx_ov}")
-
+        _, _, sigmas_ov, pops_ov = wc.find_extreme_profiles_gaussian(sub_sinogram)
+        # Get profiles for h and v angles
         if avg_neighbors:
-            prof_wide_sino_ov = wc.average_neighbors(sub_sinogram, wide_idx_ov)
-            prof_narrow_sino_ov = wc.average_neighbors(sub_sinogram, narrow_idx_ov)
+            prof_h_sino_ov = wc.average_neighbors(sub_sinogram, h_idx)
+            prof_v_sino_ov = wc.average_neighbors(sub_sinogram, v_idx)
         else:
-            prof_wide_sino_ov = sub_sinogram[:, wide_idx_ov]
-            prof_narrow_sino_ov = sub_sinogram[:, narrow_idx_ov]
+            prof_h_sino_ov = sub_sinogram[:, h_idx]
+            prof_v_sino_ov = sub_sinogram[:, v_idx]
 
-        popt_w_ov = pops_ov[wide_idx_ov]
-        popt_n_ov = pops_ov[narrow_idx_ov]
-        fw_w_ov = wc.fwhm_from_sigma(sigmas_ov[wide_idx_ov]) * resample2
-        fw_n_ov = wc.fwhm_from_sigma(sigmas_ov[narrow_idx_ov]) * resample2
-        print(f"Widest (oversampled):   FWHM={fw_w_ov:.2f}px")
-        print(f"Narrowest (oversampled): FWHM={fw_n_ov:.2f}px")
-        radial_ov = (np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)) * resample2
+        popt_h_ov = pops_ov[h_idx]
+        popt_v_ov = pops_ov[v_idx]
+        fw_h_ov = wc.fwhm_from_sigma(sigmas_ov[h_idx])
+        fw_v_ov = wc.fwhm_from_sigma(sigmas_ov[v_idx])
+        print(f"Horizontal:   FWHM={fw_h_ov:.2f}px")
+        print(f"Vertical: FWHM={fw_v_ov:.2f}px")
+
+        radial_ov = (
+            np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)
+        ) * resample2
 
         plotters.plot_profile_with_gaussian(
-            radial=radial_ov, sinogram_profile=prof_wide_sino_ov, popt=popt_w_ov,
-            out_path=os.path.join(out_dir, "oversampled_sinogram_profile_wide.png"), show_plots=show_plots
+            radial=radial_ov,
+            sinogram_profile=prof_h_sino_ov,
+            popt=popt_h_ov,
+            out_path=os.path.join(
+                out_dir, "oversampled_sinogram_profile_horizontal.png"
+            ),
+            show_plots=show_plots,
         )
         plotters.plot_profile_with_gaussian(
-            radial=radial_ov, sinogram_profile=prof_narrow_sino_ov, popt=popt_n_ov,
-            out_path=os.path.join(out_dir, "oversampled_sinogram_profile_narrow.png"), show_plots=show_plots
+            radial=radial_ov,
+            sinogram_profile=prof_v_sino_ov,
+            popt=popt_v_ov,
+            out_path=os.path.join(out_dir, "oversampled_sinogram_profile_vertical.png"),
+            show_plots=show_plots,
         )
         plotters.plot_sinogram_with_traced_profiles(
-            sub_sinogram, wide_idx_ov, narrow_idx_ov,
-            os.path.join(out_dir, "oversampled_sinogram_traced_profiles.png"), show_plots=show_plots
+            sub_sinogram,
+            h_idx,
+            v_idx,
+            os.path.join(out_dir, "oversampled_sinogram_traced_profiles.png"),
+            show_plots=show_plots,
         )
-        angle_step_ov = 360.0 / n_angles
-        angle_wide_deg_ov = wide_idx_ov * angle_step_ov
-        angle_narrow_deg_ov = narrow_idx_ov * angle_step_ov
-        plotters.plot_recon_with_lines(
-            recon_sub, angle_wide_deg_ov, angle_narrow_deg_ov,
-            os.path.join(out_dir, "oversampled_psf_traced_profiles.png"), show_plots=show_plots
+
+        plotters.plot_recon_with_hv_lines(
+            recon_sub,
+            os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
+            show_plots=show_plots,
         )
 
         # Append oversampled summary
         summary += [
             "Oversampled results:",
-            f"PSF size px (oversampled):     widest={fw_w_ov:.3f}, narrowest={fw_n_ov:.3f}",
-            f"Angles (oversampled): wide={angle_wide_deg_ov:.1f}°, narrow={angle_narrow_deg_ov:.1f}°",
+            f"PSF size px (oversampled):     horizontal={fw_h_ov:.3f}, vertical={fw_v_ov:.3f}",
         ]
 
     # Save summary to txt
