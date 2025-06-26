@@ -147,7 +147,12 @@ def run_pipeline_fs():
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    wide_idx, narrow_idx, sigmas = wc.find_extreme_profiles_erf(profiles)
+    # wide_idx, narrow_idx, sigmas = wc.find_extreme_profiles_erf(profiles)
+    # Find narrow profile only
+    wide_idx, _, sigmas = wc.find_extreme_profiles_erf(profiles)
+    # Compute perpendicular index for wide profile
+    narrow_idx = (wide_idx + 90) % sinogram.shape[1]
+
     print(f"Widest edge at angle idx {wide_idx}")
     print(f"Narrowest edge at angle idx {narrow_idx}")
 
