@@ -153,7 +153,7 @@ The reconstruction is obtained via a Filtered Back Projection algorithm on the b
 
 ### 5.1 Focal Spot Dimension Measurement
 
-To compute the two dimensions of the focal spot, the program fits an Error Function (ERF) on each radial profile and finds the profiles with the largest and smallest slope values. It then identifies these profiles on the sinogram and the reconstruction based on their angle index.
+To compute the two dimensions of the focal spot, the program fits an ERF function on each radial profile and computes the ones with the largest slope value.; the narrow profile is taken perpendicular to the wide one. Then it identifies these profiles on the sinogram and the reconstruction based on their angle index.
 
 - **Sinogram FWHM Measurement:**  
   Direct measurement of the Full Width at Half Maximum (FWHM) of the sinogram profile. The profile can be averaged with its nearest neighbors to reduce noise. This method may be imprecise or underestimate the actual size of the focal spot due to the low number of sample points.
@@ -180,8 +180,7 @@ If the magnification `M` is not passed as a parameter by the user, the program c
 
 
 ### 5.2 PSF measurements
-To compute the two dimensions of the PSF, the program fits a Gaussian function on each sinogram profile and finds the profiles with the largest and smallest sigmas. It then identifies these profiles on the sinogram and the reconstruction based on their angle index.
-The two extreme profiles are then found by evaluating the widest and narrowest FWHM from the $\sigma$ parameter of the gaussian fit.
+For the PSF measurements, the program finds the horizontal and vertical profiles and computes their FWHM by fitting a gaussian curve on the corresponding sinogram profiles.
 
 if the *--oversample* flag is checked, the program performs subpixel resolution sampling while computing the radial profiles.
 
