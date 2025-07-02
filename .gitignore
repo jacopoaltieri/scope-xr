@@ -3,3 +3,4 @@ ATS 6 mag
 __pycache__
 output*
 spotxenv
+*.spotxvenv

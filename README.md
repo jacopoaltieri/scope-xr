@@ -1,20 +1,21 @@
 # Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
-- [Installing spot-xr](#installing-spot-xr)
+  - [Installing spot-xr](#installing-spot-xr)
 - [Usage](#usage)
-  - [Default Execution](#default-execution)
-  - [Supported Image Formats](#supported-image-formats)
-  - [Overriding Configuration Parameters](#overriding-configuration-parameters)
-- [Available CLI Flags](#available-cli-flags)
-  - [Focal Spot CLI](#focal-spot-cli)
-  - [PSF CLI](#psf-cli)
-- [Processing Pipeline](#processing-pipeline)
-  - [1. Input Image](#1-input-image)
-  - [2. Circle Detection Check](#2-circle-detection-check)
-  - [3. Sinogram and Profiles](#3-sinogram-and-profiles)
-  - [4. Reconstruction via Filtered Back Projection (FBP)](#4-reconstruction-via-filtered-back-projection-fbp)
-  - [5.1 Focal Spot Dimension Measurement](#51-focal-spot-dimension-measurement)
-  - [5.2 PSF measurements](#52-psf-measurements)
+    - [Default Execution](#default-execution)
+    - [Supported Image Formats](#supported-image-formats)
+    - [Overriding Configuration Parameters](#overriding-configuration-parameters)
+  - [Available CLI Flags](#available-cli-flags)
+    - [Focal Spot CLI](#focal-spot-cli)
+    - [PSF CLI](#psf-cli)
+  - [Processing Pipeline](#processing-pipeline)
+    - [1. Input Image](#1-input-image)
+    - [2. Circle Detection Check](#2-circle-detection-check)
+    - [3. Sinogram and Profiles](#3-sinogram-and-profiles)
+    - [4. Reconstruction via Filtered Back Projection (FBP)](#4-reconstruction-via-filtered-back-projection-fbp)
+    - [5.1 Focal Spot Dimension Measurement](#51-focal-spot-dimension-measurement)
+    - [5.2 PSF measurements](#52-psf-measurements)
 
 ---
 
@@ -79,54 +80,55 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 ## Available CLI Flags
 ### Focal Spot CLI
 
-| **Flag** | **Description** |
-|----------|-----------------|
-| `--config` (str) | Path to the YAML configuration file. |
-| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`). |
-| `--o` (str) | Output directory to store results. |
-| `--p` (float) | Pixel size in mm. |
-| `--d` (float) | Physical diameter of the circular object in mm. |
-| `--no_hough` | Skip Hough Transform for automatic circle detection. |
-| `--m` (float) | Image magnification. If not provided, estimated automatically. Providing it from geometrical considerations may lead to more precise results. |
-| `--n` (int) | Minimum number of pixels required to achieve a reasonable focal spot size. |
-| `--nangles` (int) | Number of angular projections for profile extraction. |
-| `--hl` (int) | Half length of the extracted radial profiles. |
-| `--ds` (int) | Step size used for numerical derivative calculations. |
-| `--axis_shifts` (int) | Number of steps to shift the sinogram axis. |
-| `--filter` (str) | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter. |
-| `--sym` | Symmetrize the sinogram before reconstruction. |
-| `--shift` | Enable automatic sinogram shifting. |
-| `--no_shift` | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`) |
-| `--avg` | Average neighboring sinogram profiles to improve FWHM estimation. |
-| `--no_avg` | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`) |
-| `--show` | Display plots during processing (matplotlib windows). |
+| **Flag**                | **Description**                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--config` (str)        | Path to the YAML configuration file.                                                                                                          |
+| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`).                                                                                        |
+| `--o` (str)             | Output directory to store results.                                                                                                            |
+| `--p` (float)           | Pixel size in mm.                                                                                                                             |
+| `--d` (float)           | Physical diameter of the circular object in mm.                                                                                               |
+| `--no_hough`            | Skip Hough Transform for automatic circle detection.                                                                                          |
+| `--m` (float)           | Image magnification. If not provided, estimated automatically. Providing it from geometrical considerations may lead to more precise results. |
+| `--n` (int)             | Minimum number of pixels required to achieve a reasonable focal spot size.                                                                    |
+| `--nangles` (int)       | Number of angular projections for profile extraction.                                                                                         |
+| `--hl` (int)            | Half length of the extracted radial profiles.                                                                                                 |
+| `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                         |
+| `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                                   |
+| `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter.          |
+| `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                                |
+| `--shift`               | Enable automatic sinogram shifting.                                                                                                           |
+| `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                                    |
+| `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation.                                                                             |
+| `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                                      |
+| `--show`                | Display plots during processing (matplotlib windows).                                                                                         |
 
 ### PSF CLI
 
-| **Flag** | **Description** |
-|----------|-----------------|
-| `--config` (str) | Path to the YAML configuration file. |
-| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`). |
-| `--o` (str) | Output directory to store results. |
-| `--p` (float) | Pixel size in mm. |
-| `--d` (float) | Physical diameter of the circular object in mm. |
-| `--no_hough` | Skip Hough Transform for automatic circle detection. |
-| `--nangles` (int) | Number of angular projections for profile extraction. |
-| `--hl` (int) | Half length of the extracted radial profiles. |
-| `--ds` (int) | Step size used for numerical derivative calculations. |
-| `--axis_shifts` (int) | Number of steps to shift the sinogram axis. |
-| `--filter` (str) | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter. |
-| `--sym` | Symmetrize the sinogram before reconstruction. |
-| `--oversample` | Performs oversampling. |
-| `--dtheta` | Angle of the circular sector for oversampling (in degrees). |
-| `--resample1` | First resample factor (fine grid). |
-| `--resample2` | Second resample factor (coarse grid). This will be the final oversampling factor. |
-| `--gaussian_sigma` | Standard deviation of the gaussian blur applied between the fine and the coarse resampling. |
-| `--shift` | Enable automatic sinogram shifting. |
-| `--no_shift` | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`) |
-| `--avg` | Average neighboring sinogram profiles to improve FWHM estimation. |
-| `--no_avg` | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`) |
-| `--show` | Display plots during processing (matplotlib windows). |
+| **Flag**                | **Description**                                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `--config` (str)        | Path to the YAML configuration file.                                                                                                 |
+| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`).                                                                               |
+| `--o` (str)             | Output directory to store results.                                                                                                   |
+| `--p` (float)           | Pixel size in mm.                                                                                                                    |
+| `--d` (float)           | Physical diameter of the circular object in mm.                                                                                      |
+| `--no_hough`            | Skip Hough Transform for automatic circle detection.                                                                                 |
+| `--nangles` (int)       | Number of angular projections for profile extraction.                                                                                |
+| `--hl` (int)            | Half length of the extracted radial profiles.                                                                                        |
+| `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                |
+| `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                          |
+| `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter. |
+| `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                       |
+| `--dtheta`              | Angle of the circular sector for oversampling (in degrees).                                                                          |
+| `--resample1`           | First resample factor (fine grid).                                                                                                   |
+| `--resample2`           | Second resample factor (coarse grid). This will be the final oversampling factor.                                                    |
+| `--gaussian_sigma`      | Standard deviation of the gaussian blur applied between the fine and the coarse resampling.                                          |
+| `--shift`               | Enable automatic sinogram shifting.                                                                                                  |
+| `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                           |
+| `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation.                                                                    |
+| `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                             |
+| `--oversample`          | Performs oversampling.                                                                                                               |
+| `--no_oversample`       | Disables oversampling.                                                                                                               |
+| `--show`                | Display plots during processing (matplotlib windows).                                                                                |
 
 ## Processing Pipeline
 

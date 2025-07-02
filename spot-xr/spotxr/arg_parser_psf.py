@@ -18,7 +18,6 @@ def get_merged_config():
     parser.add_argument("--ds", type=int, help="Derivative step size")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
-    parser.add_argument("--oversample", action="store_true", help="Enable oversampling")
     parser.add_argument("--dtheta", type=float, help="Angle of circular sector for oversampling in degrees")
     parser.add_argument("--resample1", type=float, help="First resample factor (fine grid).")
     parser.add_argument("--resample2", type=float, help="Second resample factor (coarse grid). This will be the final oversampling factor.")
@@ -34,6 +33,12 @@ def get_merged_config():
     avg_group.add_argument("--avg", dest="avg_neighbors", action="store_true", help="Enable averaging neighboring profiles")
     avg_group.add_argument("--no_avg", dest="avg_neighbors", action="store_false", help="Disable averaging neighboring profiles")
     parser.set_defaults(avg_neighbors=True)
+
+    oversample_group = parser.add_mutually_exclusive_group()
+    oversample_group.add_argument("--oversample",dest="oversample", action="store_true", help="Enable oversampling")
+    oversample_group.add_argument("--no_oversample",dest="oversample", action="store_false", help="Enable oversampling")
+    parser.set_defaults(oversample=True)
+
 
     args, unknown = parser.parse_known_args()
     passed_flags = {arg.split("=")[0].lstrip('-') for arg in sys.argv[1:] if arg.startswith("--")}
