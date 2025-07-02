@@ -40,13 +40,11 @@ def get_merged_config(default_config=None):
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
-    # CLI to config key mapping
     cli_to_config_keys = {
         "f": "img_path",
         "o": "out_dir",
         "p": "pixel_size",
         "d": "circle_diameter",
-        "no_hough": "no_hough",
         "m": "magnification",
         "n": "min_n",
         "nangles": "n_angles",
@@ -61,11 +59,13 @@ def get_merged_config(default_config=None):
     }
 
     cli_dict = vars(args)
+
     for cli_key, config_key in cli_to_config_keys.items():
-        if cli_key in passed_flags:
-            config[config_key] = cli_dict[cli_key]
+        # Always overwrite config with CLI value (argparse guarantees value is set)
+        config[config_key] = cli_dict[cli_key]
 
     return config
+
 
 
 def validate_args(args):

@@ -69,9 +69,13 @@ def get_merged_config():
     }
 
     cli_dict = vars(args)
+
     for cli_key, config_key in cli_to_config_keys.items():
-        if cli_key in passed_flags:
+        # Only override if the value was explicitly set in CLI
+        # We can check if it differs from the YAML value, or always prioritize CLI when not None
+        if cli_dict[cli_key] is not None:
             config[config_key] = cli_dict[cli_key]
+
 
     return config
 
