@@ -173,7 +173,12 @@ def auto_center_sinogram(
     """
     delta = find_best_center_shift(sinogram, max_shift=max_shift)
     centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
-    return centered, delta
+    if delta != 0:
+        # Crop symmetric margins
+        return centered[delta:-delta, :], delta
+    else:
+        return centered, delta
+
 
 
 def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:

@@ -117,10 +117,7 @@ def run_pipeline_fs():
 
     if shift_sino:
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
-        if applied_shift == 0:
-            sinogram = centered_sino
-        else:
-            sinogram = centered_sino[applied_shift:-applied_shift, :]
+        sinogram = centered_sino
         print(f"Applied axis shift: {applied_shift} px")
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
@@ -326,15 +323,10 @@ def run_pipeline_psf():
     )
 
     # Center sinogram if requested
-    def center_sino(sino):
-        centered, shift = sr.auto_center_sinogram(sino)
-        if shift != 0:
-            # Crop symmetric margins
-            return centered[shift:-shift, :], shift
-        return centered, shift
+
 
     if shift_sino:
-        centered_sino, applied_shift = center_sino(sinogram)
+        centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
         sinogram = centered_sino
         print(f"Applied axis shift: {applied_shift} px")
 
@@ -425,6 +417,11 @@ def run_pipeline_psf():
         f"PSF size px:     horizontal={fw_h:.3f}, vertical={fw_v:.3f}",
     ]
 
+    # import spotxr.mtf_calc as mtfc
+    # mtf2d = mtfc.compute_2d_mtf(reconstruction)
+    # mtfc.plot_2d_mtf(mtf2d)
+    # mtf1d = mtfc.compute_1d_mtf_from_lsf(reconstruction)
+    # mtfc.plot_1d_mtf(mtf1d,pixel_size)
     # Oversample section
     if oversample:
         sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram(
@@ -441,7 +438,7 @@ def run_pipeline_psf():
             resample2,
         )
         if shift_sino:
-            centered_sub_sino, sub_shift = center_sino(sub_sinogram)
+            centered_sub_sino, sub_shift = sr.auto_center_sinogram(sub_sinogram)
             sub_sinogram = centered_sub_sino
             print(f"Applied axis shift (oversampled): {sub_shift} px")
 
