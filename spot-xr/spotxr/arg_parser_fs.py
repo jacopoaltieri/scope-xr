@@ -2,7 +2,7 @@ import argparse
 import sys
 import yaml
 
-def get_merged_config(default_config=None):
+def get_merged_config():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--config", type=str, default=r".\fs_args.yaml", help="Path to YAML config file")
@@ -33,7 +33,6 @@ def get_merged_config(default_config=None):
     avg_group.add_argument("--no_avg", dest="avg_neighbors", action="store_false", help="Disable averaging neighboring profiles")
     parser.set_defaults(avg_neighbors=True)
 
-# Parse CLI arguments, track what was passed
     args, unknown = parser.parse_known_args()
     passed_flags = {arg.split("=")[0].lstrip('-') for arg in sys.argv[1:] if arg.startswith("--")}
 
@@ -61,8 +60,8 @@ def get_merged_config(default_config=None):
     cli_dict = vars(args)
 
     for cli_key, config_key in cli_to_config_keys.items():
-        # Always overwrite config with CLI value (argparse guarantees value is set)
-        config[config_key] = cli_dict[cli_key]
+        if cli_dict[cli_key] is not None:
+            config[config_key] = cli_dict[cli_key]
 
     return config
 
