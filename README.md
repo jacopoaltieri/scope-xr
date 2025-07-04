@@ -127,7 +127,7 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 | `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation.                                                                    |
 | `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                             |
 | `--oversample`          | Performs oversampling.                                                                                                               |
-| `--no_oversample`       | Disables oversampling.                                                                                                               |
+| `--no_oversample`       | Disables oversampling. (*Mutually exclusive with* `--oversample`)                                                                                                                 |
 | `--show`                | Display plots during processing (matplotlib windows).                                                                                |
 
 ## Processing Pipeline
