@@ -69,9 +69,7 @@ def detect_circle_hough(
     output = cv2.cvtColor(img_8bit, cv2.COLOR_GRAY2BGR)
     cv2.circle(output, (x, y), r, (0, 255, 0), 2)
     cv2.circle(output, (x, y), 2, (0, 0, 255), 3)
-    cv2.imwrite(
-        f"{output_path}/detected_circle.png", output
-    )
+    cv2.imwrite(f"{output_path}/detected_circle.png", output)
 
     if debug:
         display_scale = 0.5

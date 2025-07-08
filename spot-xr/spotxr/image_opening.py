@@ -3,6 +3,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from PIL import Image
 
+
 def load_raw_as_ndarray(img_path: str) -> np.ndarray:
     """Load a raw image as a numpy ndarray using metadata from the corresponding XML file."""
     xml_path = os.path.splitext(img_path)[0] + ".xml"
@@ -22,15 +23,18 @@ def load_raw_as_ndarray(img_path: str) -> np.ndarray:
         img = img.reshape(img_height, img_width)
     return img
 
+
 def load_tiff_as_ndarray(img_path: str) -> np.ndarray:
     """Load a TIFF image using PIL and convert it to a numpy array."""
     with Image.open(img_path) as img:
         return np.array(img)
 
+
 def load_png_as_ndarray(img_path: str) -> np.ndarray:
     """Load a PNG image using PIL and convert it to a numpy array."""
     with Image.open(img_path) as img:
         return np.array(img)
+
 
 def load_image(img_path: str) -> np.ndarray:
     """Load an image and dispatch to the correct loader based on file extension."""

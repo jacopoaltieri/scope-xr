@@ -2,17 +2,24 @@ import argparse
 import sys
 import yaml
 
+
 def get_merged_config():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--config", type=str, default=r".\fs_args.yaml", help="Path to YAML config file")
+    parser.add_argument(
+        "--config", type=str, default=r".\fs_args.yaml", help="Path to YAML config file"
+    )
 
     # CLI arguments (short flags) — these will be remapped later
-    parser.add_argument("--f", type=str, required=True, help="Path to the image file (.raw/.png/.tif)")
+    parser.add_argument(
+        "--f", type=str, required=True, help="Path to the image file (.raw/.png/.tif)"
+    )
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
-    parser.add_argument("--no_hough", action="store_true", help="Skip Hough transform detection")
+    parser.add_argument(
+        "--no_hough", action="store_true", help="Skip Hough transform detection"
+    )
     parser.add_argument("--m", type=float, help="Magnification")
     parser.add_argument("--n", type=int, help="Minimum pixel count")
     parser.add_argument("--nangles", type=int, help="Number of angles")
@@ -24,17 +31,39 @@ def get_merged_config():
     parser.add_argument("--show", action="store_true", help="Show plots")
 
     shift_group = parser.add_mutually_exclusive_group()
-    shift_group.add_argument("--shift", dest="shift_sino", action="store_true", help="Enable sinogram shifting")
-    shift_group.add_argument("--no_shift", dest="shift_sino", action="store_false", help="Disable sinogram shifting")
+    shift_group.add_argument(
+        "--shift",
+        dest="shift_sino",
+        action="store_true",
+        help="Enable sinogram shifting",
+    )
+    shift_group.add_argument(
+        "--no_shift",
+        dest="shift_sino",
+        action="store_false",
+        help="Disable sinogram shifting",
+    )
     parser.set_defaults(shift_sino=True)
 
     avg_group = parser.add_mutually_exclusive_group()
-    avg_group.add_argument("--avg", dest="avg_neighbors", action="store_true", help="Enable averaging neighboring profiles")
-    avg_group.add_argument("--no_avg", dest="avg_neighbors", action="store_false", help="Disable averaging neighboring profiles")
+    avg_group.add_argument(
+        "--avg",
+        dest="avg_neighbors",
+        action="store_true",
+        help="Enable averaging neighboring profiles",
+    )
+    avg_group.add_argument(
+        "--no_avg",
+        dest="avg_neighbors",
+        action="store_false",
+        help="Disable averaging neighboring profiles",
+    )
     parser.set_defaults(avg_neighbors=True)
 
     args, unknown = parser.parse_known_args()
-    passed_flags = {arg.split("=")[0].lstrip('-') for arg in sys.argv[1:] if arg.startswith("--")}
+    passed_flags = {
+        arg.split("=")[0].lstrip("-") for arg in sys.argv[1:] if arg.startswith("--")
+    }
 
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
@@ -66,7 +95,6 @@ def get_merged_config():
     return config
 
 
-
 def validate_args(args):
     if not args["img_path"]:
         raise ValueError("Image path is required. Use --f to specify the image file.")
@@ -74,7 +102,7 @@ def validate_args(args):
         raise ValueError("Pixel size must be a positive number.")
     if args["circle_diameter"] <= 0:
         raise ValueError("Circle diameter must be a positive number.")
-    if args["magnification"] is not None and args["magnification"]<= 0:
+    if args["magnification"] is not None and args["magnification"] <= 0:
         raise ValueError("Magnification must be a positive number.")
     if args["min_n"] <= 0:
         raise ValueError("Minimum pixel count must be a positive integer.")

@@ -77,8 +77,7 @@ def compute_subpixel_profiles_and_sinogram(
     """
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = 2 * profile_half_length
-    delta = np.deg2rad(dtheta)/2
-
+    delta = np.deg2rad(dtheta) / 2
 
     # 2) Precompute polar coords relative to circle edge
     ys, xs = np.indices(img.shape)
@@ -88,7 +87,9 @@ def compute_subpixel_profiles_and_sinogram(
     rs = np.hypot(xs, ys) - radius
 
     # precompute oversampling grids
-    final_r = np.arange(-profile_half_length, profile_half_length + resample2, resample2)
+    final_r = np.arange(
+        -profile_half_length, profile_half_length + resample2, resample2
+    )
 
     # Fine grid used for interpolation/smoothing
     fine_r = np.arange(final_r[0], final_r[-1] + resample1, resample1)
@@ -96,14 +97,13 @@ def compute_subpixel_profiles_and_sinogram(
     profile_length = final_r.size  # number of samples in radial direction
     profiles = np.zeros((n_angles, profile_length), dtype=np.float32)
     sinogram = np.zeros((n_angles, profile_length), dtype=np.float32)
-    
+
     for i, theta in enumerate(angles):
         # mask pixels in angular wedge
-        dphi = (phis - theta + np.pi) % (2*np.pi) - np.pi
+        dphi = (phis - theta + np.pi) % (2 * np.pi) - np.pi
         mask = np.abs(dphi) <= delta
         r_vals = rs[mask]
         intens = img[mask]
-        
 
         # sort and build non-uniform ESF
         idx = np.argsort(r_vals)
@@ -111,15 +111,14 @@ def compute_subpixel_profiles_and_sinogram(
         intens = intens[idx]
 
         # fine resampling
-        profile_fine = np.interp(fine_r,r_vals,intens)
-        
+        profile_fine = np.interp(fine_r, r_vals, intens)
+
         # smooth with Gaussian filter
-        smooth = gaussian_filter1d(profile_fine, gaussian_sigma/resample1)
+        smooth = gaussian_filter1d(profile_fine, gaussian_sigma / resample1)
 
         # resampling to actual subsample grid
         profile_oversampled = np.interp(final_r, fine_r, smooth)
-        profiles[i, :] = profile_oversampled 
-
+        profiles[i, :] = profile_oversampled
 
     # Compute the derivative to obtain the sinogram
     sinogram = np.gradient(profiles, derivative_step, axis=1)
@@ -180,7 +179,6 @@ def auto_center_sinogram(
         return centered, delta
 
 
-
 def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     """
     Takes sino360 of shape (n_rays, 360) and returns
@@ -201,7 +199,7 @@ def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
 
 
 def reconstruct_focal_spot(
-    sinogram: np.ndarray, filter_name:str, symmetrize:bool
+    sinogram: np.ndarray, filter_name: str, symmetrize: bool
 ) -> np.ndarray:
     """
     Reconstruct the focal spot from the sinogram using filtered back-projection.
@@ -229,7 +227,7 @@ def reconstruct_focal_spot(
 def reconstruct_with_axis_shifts(
     sinogram: np.ndarray,
     output_tiff_path: str,
-    filter_name:str,
+    filter_name: str,
     shifts: list,
 ) -> None:
     """

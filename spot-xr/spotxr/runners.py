@@ -3,17 +3,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from spotxr import utils, plotters
-from spotxr import image_opening as io
-from spotxr import circle_detection as circ
-from spotxr import sinogram_recon as sr
-from spotxr import widths_calculator as wc
-import spotxr.arg_parser_fs as ax
-import spotxr.arg_parser_psf as ar
+import spotxr.arg_parser_fs as afs
+import spotxr.arg_parser_psf as apsf
+import spotxr.circle_detection as circ
+import spotxr.mtf_calc as mtfc
+import spotxr.image_opening as io
+import spotxr.sinogram_recon as sr
+import spotxr.widths_calculator as wc
 
 
 def run_pipeline_fs():
-    args = ax.get_merged_config()
-    ax.validate_args(args)
+    args = afs.get_merged_config()
+    afs.validate_args(args)
 
     print("Running focal spot reconstruction pipeline.")
     print("Arguments in use:")
@@ -239,8 +240,8 @@ def run_pipeline_fs():
 
 
 def run_pipeline_psf():
-    args = ar.get_merged_config()
-    ar.validate_args(args)
+    args = apsf.get_merged_config()
+    apsf.validate_args(args)
 
     print("Running detector PSF reconstruction pipeline.")
     print("Arguments in use:")
@@ -323,8 +324,6 @@ def run_pipeline_psf():
     )
 
     # Center sinogram if requested
-
-
     if shift_sino:
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
         sinogram = centered_sino
@@ -357,8 +356,8 @@ def run_pipeline_psf():
     angle_step = 360.0 / n_angles
     angles = np.arange(n_angles) * angle_step
 
-    h_idx = np.argmin(np.abs(angles - 0))    # Closest to 0°
-    v_idx = np.argmin(np.abs(angles - 90))   # Closest to 90°
+    h_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
+    v_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
 
     _, _, sigmas, pops = wc.find_extreme_profiles_gaussian(sinogram)
     # Get profiles for h and v angles
@@ -409,19 +408,50 @@ def run_pipeline_psf():
         show_plots=show_plots,
     )
 
+    # Compute MTF in horizontal and vertical directions
+    freq_h, mtf_h, mtf10_h, mtf_nyq_h = mtfc.compute_1d_mtf(
+        reconstruction, axis=0, pixel_size=pixel_size
+    )
+    freq_v, mtf_v, mtf10_v, mtf_nyq_v = mtfc.compute_1d_mtf(
+        reconstruction, axis=1, pixel_size=pixel_size
+    )
+
+    print(f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm")
+    print(f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm")
+    print(f"MTF@Nyquist horizontal: {mtf_nyq_h:.3f} cycles/mm")
+    print(f"MTF@Nyquist vertical:   {mtf_nyq_v:.3f} cycles/mm")
+
+    plotters.plot_1d_mtf(
+        freq_h,
+        mtf_h,
+        pixel_size=pixel_size,
+        out_path=os.path.join(out_dir, "mtf_horizontal.png"),
+        mtf10_freq=mtf10_h,
+        mtf_nyquist=mtf_nyq_h,
+        show_plots=show_plots,
+    )
+    plotters.plot_1d_mtf(
+        freq_v,
+        mtf_v,
+        pixel_size=pixel_size,
+        out_path=os.path.join(out_dir, "mtf_vertical.png"),
+        mtf10_freq=mtf10_v,
+        mtf_nyquist=mtf_nyq_v,
+        show_plots=show_plots,
+    )
+
     # Prepare summary
     summary = [
         f"Output saved to: {out_dir}",
         f"Arguments: {args}",
         f"COM circle: center=({cx},{cy}), radius={radius}px",
         f"PSF size px:     horizontal={fw_h:.3f}, vertical={fw_v:.3f}",
+        f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm",
+        f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm"
+        f"MTF@Nyquist horizontal: {mtf_nyq_h:.3f} cycles/mm",
+        f"MTF@Nyquist vertical:   {mtf_nyq_v:.3f} cycles/mm",
     ]
 
-    # import spotxr.mtf_calc as mtfc
-    # mtf2d = mtfc.compute_2d_mtf(reconstruction)
-    # mtfc.plot_2d_mtf(mtf2d)
-    # mtf1d = mtfc.compute_1d_mtf_from_lsf(reconstruction)
-    # mtfc.plot_1d_mtf(mtf1d,pixel_size)
     # Oversample section
     if oversample:
         sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram(
@@ -469,8 +499,8 @@ def run_pipeline_psf():
 
         popt_h_ov = pops_ov[h_idx]
         popt_v_ov = pops_ov[v_idx]
-        fw_h_ov = wc.fwhm_from_sigma(sigmas_ov[h_idx])*resample2
-        fw_v_ov = wc.fwhm_from_sigma(sigmas_ov[v_idx])*resample2
+        fw_h_ov = wc.fwhm_from_sigma(sigmas_ov[h_idx]) * resample2
+        fw_v_ov = wc.fwhm_from_sigma(sigmas_ov[v_idx]) * resample2
         print(f"Horizontal:   FWHM={fw_h_ov:.2f}px")
         print(f"Vertical: FWHM={fw_v_ov:.2f}px")
 
@@ -508,10 +538,46 @@ def run_pipeline_psf():
             show_plots=show_plots,
         )
 
+        # Compute MTF in horizontal and vertical directions
+        freq_h_ov, mtf_h_ov, mtf10_h_ov, mtf_nyq_h_ov = mtfc.compute_1d_mtf(
+            recon_sub, axis=0, pixel_size=pixel_size * resample2
+        )
+        freq_v_ov, mtf_v_ov, mtf10_v_ov, mtf_nyq_v_ov = mtfc.compute_1d_mtf(
+            recon_sub, axis=1, pixel_size=pixel_size * resample2
+        )
+
+        print(f"MTF10 horizontal oversampled: {mtf10_h:.3f} cycles/mm")
+        print(f"MTF10 vertical oversampled:   {mtf10_v:.3f} cycles/mm")
+        print(f"MTF@Nyquist horizontal oversampled: {mtf_nyq_h_ov:.3f} cycles/mm")
+        print(f"MTF@Nyquist vertical oversampled:   {mtf_nyq_v_ov:.3f} cycles/mm")
+
+        plotters.plot_1d_mtf(
+            freq_h_ov,
+            mtf_h_ov,
+            pixel_size=pixel_size,
+            out_path=os.path.join(out_dir, "mtf_horizontal_oversampled.png"),
+            mtf10_freq=mtf10_h_ov,
+            mtf_nyquist=mtf_nyq_h_ov,
+            show_plots=show_plots,
+        )
+        plotters.plot_1d_mtf(
+            freq_v_ov,
+            mtf_v_ov,
+            pixel_size=pixel_size,
+            out_path=os.path.join(out_dir, "mtf_vertical_oversampled.png"),
+            mtf10_freq=mtf10_v_ov,
+            mtf_nyquist=mtf_nyq_v_ov,
+            show_plots=show_plots,
+        )
+
         # Append oversampled summary
         summary += [
             "Oversampled results:",
             f"PSF size px (oversampled):     horizontal={fw_h_ov:.3f}, vertical={fw_v_ov:.3f}",
+            f"MTF10 horizontal oversampled: {mtf10_h_ov:.3f} cycles/mm",
+            f"MTF10 vertical oversampled:   {mtf10_v_ov:.3f} cycles/mm",
+            f"MTF@Nyquist horizontal oversampled: {mtf_nyq_h_ov:.3f} cycles/mm",
+            f"MTF@Nyquist vertical oversampled:   {mtf_nyq_v_ov:.3f} cycles/mm",
         ]
 
     # Save summary to txt

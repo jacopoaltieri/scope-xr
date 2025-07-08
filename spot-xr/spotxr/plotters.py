@@ -152,9 +152,7 @@ def plot_sinogram_with_traced_profiles(
     plt.close(fig)
 
 
-def plot_recon_with_lines(
-    recon, angle_wide, angle_narrow, out_path, show_plots=False
-):
+def plot_recon_with_lines(recon, angle_wide, angle_narrow, out_path, show_plots=False):
     """
     recon: 2D np.ndarray image
     center: (cx, cy) tuple - center of the focal spot
@@ -189,10 +187,11 @@ def plot_recon_with_lines(
         plt.show()
     plt.close(fig)
 
+
 def plot_recon_with_hv_lines(recon, out_path, show_plots=False):
     """
     Plots the reconstruction with a vertical and horizontal line through the center.
-    
+
     recon: 2D np.ndarray image
     angle_wide, angle_narrow: kept for interface compatibility but ignored
     out_path: file path to save the figure
@@ -211,17 +210,18 @@ def plot_recon_with_hv_lines(recon, out_path, show_plots=False):
     ax.set_aspect("equal")
 
     # Draw horizontal and vertical lines at center
-    h_line = ax.axhline(y=cy, color='blue', linewidth=1, label="Horizontal Profile")
-    v_line = ax.axvline(x=cx, color='red', linewidth=1, label="Vertical Profile")
+    h_line = ax.axhline(y=cy, color="blue", linewidth=1, label="Horizontal Profile")
+    v_line = ax.axvline(x=cx, color="red", linewidth=1, label="Vertical Profile")
 
     ax.set_title("Reconstruction with Central H/V Profiles")
     ax.legend(handles=[h_line, v_line])
     ax.axis("off")
-    
+
     plt.savefig(out_path, dpi=300)
     if show_plots:
         plt.show()
     plt.close(fig)
+
 
 def plot_profile_with_gaussian(
     radial: np.ndarray,
@@ -244,7 +244,7 @@ def plot_profile_with_gaussian(
     n = sinogram_profile.size
     center = n // 2
     spacing = radial[1] - radial[0]
-    
+
     A, mu, sigma, B = popt
     mu_phys = (mu - center) * spacing
     sigma_phys = sigma * spacing
@@ -252,7 +252,9 @@ def plot_profile_with_gaussian(
     # Create a dense index axis for smooth curve
     radial_dense = np.linspace(radial[0], radial[-1], 500)
     # Compute fitted Gaussian in index‐space
-    fitted_dense = A * np.exp(-((radial_dense - mu_phys) ** 2) / (2 * sigma_phys ** 2)) + B
+    fitted_dense = (
+        A * np.exp(-((radial_dense - mu_phys) ** 2) / (2 * sigma_phys**2)) + B
+    )
 
     # Map those dense indices back onto the radial axis
 
@@ -266,6 +268,66 @@ def plot_profile_with_gaussian(
     plt.legend()
     plt.grid(True)
 
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    if show_plots:
+        plt.show()
+    plt.close()
+
+
+def plot_1d_mtf(
+    freq, mtf, pixel_size, out_path, mtf10_freq=None, mtf_nyquist=None, show_plots=False
+):
+    """
+    Plot 1D MTF with Nyquist and MTF10 reference lines.
+
+    Args:
+        freq: Array of frequencies in cycles/mm.
+        mtf: MTF values (same length as freq).
+        pixel_size: Pixel size in mm (system pixel size!).
+        mtf10_freq: Frequency at which MTF drops to 10% (cycles/mm).
+        mtf_nyquist: MTF value at Nyquist frequency (optional).
+        out_path: Path to save the figure.
+        show_plots: If True, also display plot on screen.
+    """
+    # Nyquist frequency in cycles/mm
+    nyquist_freq = 1 / (2 * pixel_size)
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(freq, mtf, label="MTF curve", lw=2)
+
+    # Vertical line at Nyquist
+    plt.axvline(
+        nyquist_freq,
+        color="r",
+        linestyle="--",
+        label=f"Nyquist = {nyquist_freq:.2f} cy/mm",
+    )
+
+    # MTF value at Nyquist marker
+    if mtf_nyquist is not None and not np.isnan(mtf_nyquist):
+        plt.plot(
+            nyquist_freq, mtf_nyquist, "ro", label=f"MTF@Nyquist = {mtf_nyquist:.2f}"
+        )
+
+    # Horizontal line at 10% until MTF10
+    if mtf10_freq is not None and not np.isnan(mtf10_freq):
+        plt.hlines(
+            0.1,
+            0,
+            mtf10_freq,
+            colors="gray",
+            linestyles=":",
+            label=f"MTF10 = {mtf10_freq:.2f} cy/mm",
+        )
+
+    plt.xlabel("Spatial frequency [cycles/mm]")
+    plt.ylabel("MTF")
+    plt.title("1D Modulation Transfer Function (MTF)")
+    plt.ylim([0, 1.05])
+    plt.xlim([0, nyquist_freq * 1.1])
+    plt.grid(True, which="both", ls=":")
+    plt.legend()
     plt.tight_layout()
     plt.savefig(out_path, dpi=300)
     if show_plots:
