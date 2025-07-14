@@ -403,8 +403,8 @@ def run_pipeline_psf():
         show_plots=show_plots,
     )
 
-    plotters.plot_recon_with_hv_lines(
-        reconstruction,
+    plotters.plot_recon_with_lines(
+        reconstruction,h_idx,v_idx,
         os.path.join(out_dir, "psf_traced_profiles.png"),
         show_plots=show_plots,
     )
@@ -552,11 +552,6 @@ def run_pipeline_psf():
             show_plots=show_plots,
         )
 
-        plotters.plot_recon_with_hv_lines(
-            recon_sub,
-            os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
-            show_plots=show_plots,
-        )
         plotters.plot_recon_with_lines(
             recon_sub,h_idx,v_idx,
             os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
