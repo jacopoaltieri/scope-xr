@@ -103,42 +103,49 @@ def compute_com_profiles(cropped: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return com_x, com_y
 
 
-def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
+        
+def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, float, float]:
     """
     Estimate the circle radius by sampling intensity profiles along
-    horizontal and vertical directions from the estimated center.
+    horizontal and vertical directions, restricted to a region around the estimated center.
     """
     h, w = cropped.shape
     com_x, com_y = compute_com_profiles(cropped)
-    cx = int(com_x.mean())
-    cy = int(com_y.mean())
+    cx_init = int(com_x.mean())
+    cy_init = int(com_y.mean())
 
     # Define threshold relative to intensity range
     threshold = np.min(cropped) + (np.max(cropped) - np.min(cropped)) / 2
 
-    # Horizontal scan
-    x_left = np.zeros(h)
-    x_right = np.zeros(h)
+    # Limit y range for horizontal scan
+    y_start = max(cy_init - region_size, 0)
+    y_end = min(cy_init + region_size, h)
 
-    for y in range(h):
+    x_left = np.zeros(y_end - y_start)
+    x_right = np.zeros(y_end - y_start)
+
+    for idx, y in enumerate(range(y_start, y_end)):
         row = cropped[y, :]
         left = np.argmax(row >= threshold)
         right = w - np.argmax(row[::-1] >= threshold) - 1
-        x_left[y] = left
-        x_right[y] = right
+        x_left[idx] = left
+        x_right[idx] = right
 
-    # Vertical scan
-    y_down = np.zeros(w)
-    y_up = np.zeros(w)
+    # Limit x range for vertical scan
+    x_start = max(cx_init - region_size, 0)
+    x_end = min(cx_init + region_size, w)
 
-    for x in range(w):
+    y_down = np.zeros(x_end - x_start)
+    y_up = np.zeros(x_end - x_start)
+
+    for idx, x in enumerate(range(x_start, x_end)):
         col = cropped[:, x]
         down = np.argmax(col >= threshold)
         up = h - np.argmax(col[::-1] >= threshold) - 1
-        y_down[x] = down
-        y_up[x] = up
+        y_down[idx] = down
+        y_up[idx] = up
 
-    # Compute center and radii
+    # Compute updated center and radii
     cx = np.round(np.mean((x_left + x_right) / 2))
     cy = np.round(np.mean((y_down + y_up) / 2))
 
