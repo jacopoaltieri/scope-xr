@@ -410,17 +410,16 @@ def run_pipeline_psf():
     )
 
     # Compute MTF in horizontal and vertical directions
-    freq_h, mtf_h, mtf10_h, mtf_nyq_h = mtfc.compute_1d_mtf(
+    freq_h, mtf_h, mtf10_h  = mtfc.compute_1d_mtf(
         reconstruction, axis=0, pixel_size=pixel_size
     )
-    freq_v, mtf_v, mtf10_v, mtf_nyq_v = mtfc.compute_1d_mtf(
+    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(
         reconstruction, axis=1, pixel_size=pixel_size
     )
 
     print(f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm")
     print(f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm")
-    print(f"MTF@Nyquist horizontal: {mtf_nyq_h:.3f} cycles/mm")
-    print(f"MTF@Nyquist vertical:   {mtf_nyq_v:.3f} cycles/mm")
+
 
     plotters.plot_1d_mtf(
         freq_h,
@@ -428,7 +427,6 @@ def run_pipeline_psf():
         pixel_size=pixel_size,
         out_path=os.path.join(out_dir, "mtf_horizontal.png"),
         mtf10_freq=mtf10_h,
-        mtf_nyquist=mtf_nyq_h,
         show_plots=show_plots,
     )
     plotters.plot_1d_mtf(
@@ -437,7 +435,6 @@ def run_pipeline_psf():
         pixel_size=pixel_size,
         out_path=os.path.join(out_dir, "mtf_vertical.png"),
         mtf10_freq=mtf10_v,
-        mtf_nyquist=mtf_nyq_v,
         show_plots=show_plots,
     )
 
@@ -449,8 +446,7 @@ def run_pipeline_psf():
         f"PSF size px:     horizontal={fw_h:.3f}, vertical={fw_v:.3f}",
         f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm",
         f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm"
-        f"MTF@Nyquist horizontal: {mtf_nyq_h:.3f} cycles/mm",
-        f"MTF@Nyquist vertical:   {mtf_nyq_v:.3f} cycles/mm",
+
     ]
 
     # Oversample section
@@ -558,17 +554,16 @@ def run_pipeline_psf():
             show_plots=show_plots,
         )
         # Compute MTF in horizontal and vertical directions
-        freq_h_ov, mtf_h_ov, mtf10_h_ov, mtf_nyq_h_ov = mtfc.compute_1d_mtf(
+        freq_h_ov, mtf_h_ov, mtf10_h_ov  = mtfc.compute_1d_mtf(
             recon_sub, axis=0, pixel_size=pixel_size * resample2
         )
-        freq_v_ov, mtf_v_ov, mtf10_v_ov, mtf_nyq_v_ov = mtfc.compute_1d_mtf(
+        freq_v_ov, mtf_v_ov, mtf10_v_ov  = mtfc.compute_1d_mtf(
             recon_sub, axis=1, pixel_size=pixel_size * resample2
         )
 
         print(f"MTF10 horizontal oversampled: {mtf10_h:.3f} cycles/mm")
         print(f"MTF10 vertical oversampled:   {mtf10_v:.3f} cycles/mm")
-        print(f"MTF@Nyquist horizontal oversampled: {mtf_nyq_h_ov:.3f} cycles/mm")
-        print(f"MTF@Nyquist vertical oversampled:   {mtf_nyq_v_ov:.3f} cycles/mm")
+
 
         plotters.plot_1d_mtf(
             freq_h_ov,
@@ -576,7 +571,6 @@ def run_pipeline_psf():
             pixel_size=pixel_size,
             out_path=os.path.join(out_dir, "mtf_horizontal_oversampled.png"),
             mtf10_freq=mtf10_h_ov,
-            mtf_nyquist=mtf_nyq_h_ov,
             show_plots=show_plots,
         )
         plotters.plot_1d_mtf(
@@ -585,7 +579,6 @@ def run_pipeline_psf():
             pixel_size=pixel_size,
             out_path=os.path.join(out_dir, "mtf_vertical_oversampled.png"),
             mtf10_freq=mtf10_v_ov,
-            mtf_nyquist=mtf_nyq_v_ov,
             show_plots=show_plots,
         )
 
@@ -595,8 +588,6 @@ def run_pipeline_psf():
             f"PSF size px (oversampled):     horizontal={fw_h_ov:.3f}, vertical={fw_v_ov:.3f}",
             f"MTF10 horizontal oversampled: {mtf10_h_ov:.3f} cycles/mm",
             f"MTF10 vertical oversampled:   {mtf10_v_ov:.3f} cycles/mm",
-            f"MTF@Nyquist horizontal oversampled: {mtf_nyq_h_ov:.3f} cycles/mm",
-            f"MTF@Nyquist vertical oversampled:   {mtf_nyq_v_ov:.3f} cycles/mm",
         ]
 
     # Save summary to txt

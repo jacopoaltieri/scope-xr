@@ -241,7 +241,7 @@ def plot_profile_with_gaussian(
 
 
 def plot_1d_mtf(
-    freq, mtf, pixel_size, out_path, mtf10_freq=None, mtf_nyquist=None, show_plots=False
+    freq, mtf, pixel_size, out_path, mtf10_freq=None,  show_plots=False
 ):
     """
     Plot 1D MTF with Nyquist and MTF10 reference lines.
@@ -251,7 +251,6 @@ def plot_1d_mtf(
         mtf: MTF values (same length as freq).
         pixel_size: Pixel size in mm (system pixel size!).
         mtf10_freq: Frequency at which MTF drops to 10% (cycles/mm).
-        mtf_nyquist: MTF value at Nyquist frequency (optional).
         out_path: Path to save the figure.
         show_plots: If True, also display plot on screen.
     """
@@ -268,12 +267,6 @@ def plot_1d_mtf(
         linestyle="--",
         label=f"Nyquist = {nyquist_freq:.2f} cy/mm",
     )
-
-    # MTF value at Nyquist marker
-    if mtf_nyquist is not None and not np.isnan(mtf_nyquist):
-        plt.plot(
-            nyquist_freq, mtf_nyquist, "ro", label=f"MTF@Nyquist = {mtf_nyquist:.2f}"
-        )
 
     # Horizontal line at 10% until MTF10
     if mtf10_freq is not None and not np.isnan(mtf10_freq):

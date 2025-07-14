@@ -74,19 +74,4 @@ def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
     else:
         mtf10_freq = np.nan  # Not reached
 
-    # Compute MTF at Nyquist frequency
-    nyquist_freq = 1 / (2 * pixel_size)
-
-    if nyquist_freq <= freq_pos[-1]:
-        # Interpolate
-        idx = np.searchsorted(freq_pos, nyquist_freq)
-        if idx == 0:
-            mtf_nyquist = mtf_pos[0]
-        else:
-            f1, f2 = freq_pos[idx - 1], freq_pos[idx]
-            m1, m2 = mtf_pos[idx - 1], mtf_pos[idx]
-            mtf_nyquist = m1 + (nyquist_freq - f1) * (m2 - m1) / (f2 - f1)
-    else:
-        mtf_nyquist = np.nan  # Beyond available frequency range
-
-    return freq_pos, mtf_pos, mtf10_freq, mtf_nyquist
+    return freq_pos, mtf_pos, mtf10_freq
