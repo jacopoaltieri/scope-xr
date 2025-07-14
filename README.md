@@ -119,16 +119,18 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 | `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter. |
 | `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                       |
 | `--dtheta`              | Angle of the circular sector for oversampling (in degrees).                                                                          |
-| `--resample1`           | First resample factor (fine grid).                                                                                                   |
+| `--resample1`           | First resample factor (fine grid), used only with 3-step oversampling.                                                                                                   |
 | `--resample2`           | Second resample factor (coarse grid). This will be the final oversampling factor.                                                    |
-| `--gaussian_sigma`      | Standard deviation of the gaussian blur applied between the fine and the coarse resampling.                                          |
+| `--gaussian_sigma`      | Standard deviation of the gaussian blur applied between the fine and the coarse resampling, used only with 3-step oversampling.                                          |
+| `--oversample_strategy` | Choose oversampling strategy: `1` or `2`. Default is `1` when oversampling is enabled. `1` is the traditional oversampling method, `2` is the 3-step method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach).                                        |
 | `--shift`               | Enable automatic sinogram shifting.                                                                                                  |
 | `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                           |
 | `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation.                                                                    |
 | `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                             |
 | `--oversample`          | Performs oversampling.                                                                                                               |
-| `--no_oversample`       | Disables oversampling. (*Mutually exclusive with* `--oversample`)                                                                                                                 |
-| `--show`                | Display plots during processing (matplotlib windows).                                                                                |
+| `--no_oversample`       | Disables oversampling. (*Mutually exclusive with* `--oversample`)                                                                     |
+| `--show`                | Display plots during processing (matplotlib windows).                                                                                 |
+                                                                     
 
 ## Processing Pipeline
 
