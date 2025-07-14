@@ -3,6 +3,7 @@ import tifffile
 from skimage.transform import iradon
 from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
 from scipy.interpolate import interp1d
+from spotxr.utils import interpolate_nans_1d
 
 
 def compute_profiles_and_sinogram(
@@ -28,8 +29,36 @@ def compute_profiles_and_sinogram(
         profiles: 2D array of extracted profiles for visualization
         sinogram: 2D array [angle_index, radial_profile]
     """
+    # Check max profile_half_length along horizontal direction (theta = 0)
+    nx = 1.0
+    ny = 0.0
+    img_h, img_w = img.shape
+
+    for direction in [-1, 1]:
+        # Check end point in each direction
+        d_edge = direction * profile_half_length
+        px = cx + (radius + d_edge) * nx
+        py = cy + (radius + d_edge) * ny
+
+        if not (0 <= px < img_w):
+            # Compute how far we can safely go in x
+            if direction > 0:
+                max_x_dist = img_w - 1 - (cx + radius * nx)
+            else:
+                max_x_dist = cx + radius * nx
+
+            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
+            # Reduce half length accordingly (minus 1 pixel for safety)
+            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
+
+            if new_half_length < profile_half_length:
+                print(
+                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
+                )
+                profile_half_length = new_half_length
+
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
-    profile_length = 2 * profile_half_length
+    profile_length = int(2 * profile_half_length)
 
     profiles = np.zeros((n_angles, profile_length), dtype=np.float32)
     sinogram = np.zeros((n_angles, profile_length), dtype=np.float32)
@@ -59,7 +88,141 @@ def compute_profiles_and_sinogram(
     return profiles.T, -sinogram.T
 
 
-def compute_subpixel_profiles_and_sinogram(
+def compute_subpixel_profiles_and_sinogram_traditional(
+    img: np.ndarray,
+    cx: float,
+    cy: float,
+    radius: float,
+    n_angles: int = 360,
+    profile_half_length: int = 64,
+    derivative_step: int = 1,
+    dtheta: float = 5,
+    resample_radial: float = 0.02,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute sub-pixel edge profiles and sinogram (radial derivative) using
+    oversampled binning of intensities around a circular edge.
+
+    Parameters:
+    -----------
+    img : np.ndarray
+        2D image array.
+    cx, cy : float
+        Center coordinates of the circular edge.
+    radius : float
+        Radius of the circular edge.
+    n_angles : int, default=360
+        Number of angular positions (samples around circle).
+    profile_half_length : int, default=64
+        Half-length of radial profile (in pixels).
+    derivative_step : int, default=1
+        Step size for computing the derivative (in pixels).
+    dtheta : float, default=5
+        Angular width (degrees) of wedge to collect samples around each angle.
+    resample_radial : float, default=0.02
+        Radial bin width for oversampling (pixel units).
+
+    Returns:
+    --------
+    profiles : np.ndarray
+        Radially oversampled edge profiles with shape (radial_bins, n_angles).
+    sinogram : np.ndarray
+        Radial derivative of profiles (shape matches profiles).
+    """
+    # Check max profile_half_length along horizontal direction (theta = 0)
+    nx = 1.0
+    ny = 0.0
+    img_h, img_w = img.shape
+
+    for direction in [-1, 1]:
+        # Check end point in each direction
+        d_edge = direction * profile_half_length
+        px = cx + (radius + d_edge) * nx
+        py = cy + (radius + d_edge) * ny
+
+        if not (0 <= px < img_w):
+            # Compute how far we can safely go in x
+            if direction > 0:
+                max_x_dist = img_w - 1 - (cx + radius * nx)
+            else:
+                max_x_dist = cx + radius * nx
+
+            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
+            # Reduce half length accordingly (minus 1 pixel for safety)
+            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
+
+            if new_half_length < profile_half_length:
+                print(
+                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
+                )
+                profile_half_length = new_half_length
+
+    # Convert angles and angular wedge width to radians
+    angles = np.deg2rad(np.linspace(0, 360, n_angles, endpoint=False))
+    half_wedge = np.deg2rad(dtheta) / 2
+
+    # Coordinates relative to center
+    ys, xs = np.indices(img.shape, dtype=np.float32)
+    xs -= cx
+    ys -= cy
+
+    # Polar coordinates
+    phis = np.arctan2(ys, xs)
+    rs = np.hypot(xs, ys) - radius
+
+    # Radial grid setup
+    min_r = -profile_half_length
+    max_r = profile_half_length
+    n_bins = int(np.ceil((max_r - min_r) / resample_radial))
+    bin_edges = np.linspace(min_r, max_r, n_bins + 1)
+
+    # Initialize profiles array (angles x radial bins)
+    profiles = np.full((n_angles, n_bins), np.nan, dtype=np.float32)
+
+    for i, theta in enumerate(angles):
+        # Angular difference wrapped to [-pi, pi]
+        dphi = (phis - theta + np.pi) % (2 * np.pi) - np.pi
+
+        # Select pixels within angular wedge
+        mask = np.abs(dphi) <= half_wedge
+        r_vals = rs[mask]
+        intensities = img[mask]
+
+        # Restrict to radial range
+        radial_mask = (r_vals >= min_r) & (r_vals <= max_r)
+        r_vals = r_vals[radial_mask]
+        intensities = intensities[radial_mask]
+
+        if r_vals.size == 0:
+            continue
+
+        # Bin radial distances
+        bin_indices = np.digitize(r_vals, bin_edges) - 1
+        valid_bins = (bin_indices >= 0) & (bin_indices < n_bins)
+        bin_indices = bin_indices[valid_bins]
+        intensities = intensities[valid_bins]
+
+        if bin_indices.size == 0:
+            continue
+
+        # Compute mean intensity per bin
+        counts = np.bincount(bin_indices, minlength=n_bins)
+        sums = np.bincount(bin_indices, weights=intensities, minlength=n_bins)
+        means = np.full(n_bins, np.nan, dtype=np.float32)
+        valid_counts = counts > 0
+        means[valid_counts] = sums[valid_counts] / counts[valid_counts]
+
+        # Interpolate NaNs linearly to fill gaps
+        profiles[i, :] = interpolate_nans_1d(means)
+
+    # Compute radial derivative along radial axis (axis=1)
+    sinogram = np.gradient(profiles, derivative_step, axis=1)
+
+    return profiles.T, -sinogram.T
+
+
+# https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach
+def compute_subpixel_profiles_and_sinogram_3step(
     img: np.ndarray,
     cx: float,
     cy: float,
@@ -75,6 +238,34 @@ def compute_subpixel_profiles_and_sinogram(
     """
     Sub-pixel ESF method, with fixed radial grid matching profile_half_length.
     """
+    # Check max profile_half_length along horizontal direction (theta = 0)
+    nx = 1.0
+    ny = 0.0
+    img_h, img_w = img.shape
+
+    for direction in [-1, 1]:
+        # Check end point in each direction
+        d_edge = direction * profile_half_length
+        px = cx + (radius + d_edge) * nx
+        py = cy + (radius + d_edge) * ny
+
+        if not (0 <= px < img_w):
+            # Compute how far we can safely go in x
+            if direction > 0:
+                max_x_dist = img_w - 1 - (cx + radius * nx)
+            else:
+                max_x_dist = cx + radius * nx
+
+            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
+            # Reduce half length accordingly (minus 1 pixel for safety)
+            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
+
+            if new_half_length < profile_half_length:
+                print(
+                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
+                )
+                profile_half_length = new_half_length
+
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = 2 * profile_half_length
     delta = np.deg2rad(dtheta) / 2

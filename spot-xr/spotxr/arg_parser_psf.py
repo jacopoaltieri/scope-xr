@@ -48,6 +48,13 @@ def get_merged_config():
     )
     parser.add_argument("--show", action="store_true", help="Show plots")
 
+    parser.add_argument(
+        "--oversample_strategy",
+        type=int,
+        choices=[1, 2],
+        help="Choose oversampling strategy: 1 or 2. Default is 1 when oversampling is enabled.",
+    )
+
     shift_group = parser.add_mutually_exclusive_group()
     shift_group.add_argument(
         "--shift",
@@ -117,6 +124,7 @@ def get_merged_config():
         "show": "show_plots",
         "avg_neighbors": "avg_neighbors",
         "oversample": "oversample",
+        "oversample_strategy": "oversample_strategy",
         "dtheta": "dtheta",
         "resample1": "resample1",
         "resample2": "resample2",
@@ -128,7 +136,9 @@ def get_merged_config():
     for cli_key, config_key in cli_to_config_keys.items():
         if cli_dict[cli_key] is not None:
             config[config_key] = cli_dict[cli_key]
-
+    if config.get("oversample", True) and config.get("oversample_strategy") is None:
+        config["oversample_strategy"] = 1
+        
     return config
 
 

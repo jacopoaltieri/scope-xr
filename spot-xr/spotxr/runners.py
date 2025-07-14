@@ -262,6 +262,7 @@ def run_pipeline_psf():
     shift_sino = args.get("shift_sino", False)
     avg_neighbors = args.get("avg_neighbors", False)
     oversample = args.get("oversample", False)
+    oversample_strategy = args.get("oversample_strategy", 1)
     dtheta = args.get("dtheta")
     resample1 = args.get("resample1")
     resample2 = args.get("resample2")
@@ -454,29 +455,48 @@ def run_pipeline_psf():
 
     # Oversample section
     if oversample:
-        sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram(
-            cropped,
-            cx,
-            cy,
-            radius,
-            n_angles,
-            profile_half_length,
-            derivative_step,
-            dtheta,
-            gaussian_sigma,
-            resample1,
-            resample2,
-        )
+        if oversample_strategy == 1:
+            sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram_traditional(
+                cropped,
+                cx,
+                cy,
+                radius,
+                n_angles,
+                profile_half_length,
+                derivative_step,
+                dtheta,
+
+                resample2,
+            )
+            print("Using oversampling strategy 1 (traditional).")
+        elif oversample_strategy == 2:
+            sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram_3step(
+                cropped,
+                cx,
+                cy,
+                radius,
+                n_angles,
+                profile_half_length,
+                derivative_step,
+                dtheta,
+                gaussian_sigma,
+                resample1,
+                resample2,
+            )
+            print("Using oversampling strategy 2 (3-step).")
+        else:
+            raise ValueError(f"Invalid oversample strategy: {oversample_strategy}")
+        
         if shift_sino:
             centered_sub_sino, sub_shift = sr.auto_center_sinogram(sub_sinogram)
             sub_sinogram = centered_sub_sino
             print(f"Applied axis shift (oversampled): {sub_shift} px")
 
+        save_and_plot("profiles_oversampled", sub_profiles)
+        save_and_plot("sinogram_oversampled", sub_sinogram)
         recon_sub = sr.reconstruct_focal_spot(sub_sinogram, filter_name, symmetrize)
 
         # Save oversampled images
-        save_and_plot("profiles_oversampled", sub_profiles)
-        save_and_plot("sinogram_oversampled", sub_sinogram)
         save_and_plot("reconstruction_oversampled", recon_sub)
         plotters.plot_profiles_and_reconstruction(
             sub_profiles,
@@ -537,7 +557,11 @@ def run_pipeline_psf():
             os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
             show_plots=show_plots,
         )
-
+        plotters.plot_recon_with_lines(
+            recon_sub,h_idx,v_idx,
+            os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
+            show_plots=show_plots,
+        )
         # Compute MTF in horizontal and vertical directions
         freq_h_ov, mtf_h_ov, mtf10_h_ov, mtf_nyq_h_ov = mtfc.compute_1d_mtf(
             recon_sub, axis=0, pixel_size=pixel_size * resample2
