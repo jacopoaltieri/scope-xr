@@ -174,7 +174,8 @@ def auto_center_sinogram(
     centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
     if delta != 0:
         # Crop symmetric margins
-        return centered[delta:-delta, :], delta
+        crop = np.abs(delta)
+        return centered[crop:-crop, :], delta
     else:
         return centered, delta
 

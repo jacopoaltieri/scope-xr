@@ -39,3 +39,15 @@ def crop_square_roi(
             cmap="gray",
         )
     return cropped
+
+
+def interpolate_nans_1d(y):
+    """
+    Linearly interpolate NaNs in a 1D array.
+    """
+    nans = np.isnan(y)
+    not_nans = ~nans
+    if np.all(nans):
+        # All NaN — leave as zeros or fill with a constant if you prefer
+        return np.zeros_like(y)
+    return np.interp(np.arange(len(y)), np.flatnonzero(not_nans), y[not_nans])
