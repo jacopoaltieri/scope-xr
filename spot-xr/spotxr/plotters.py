@@ -283,7 +283,7 @@ def plot_1d_mtf(
     plt.ylabel("MTF")
     plt.title("1D Modulation Transfer Function (MTF)")
     plt.ylim([0, 1.05])
-    plt.xlim([0, nyquist_freq * 1.1])
+    plt.xlim([0, np.max(freq) * 1.05])
     plt.grid(True, which="both", ls=":")
     plt.legend()
     plt.tight_layout()

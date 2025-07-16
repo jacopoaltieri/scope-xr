@@ -404,13 +404,15 @@ def run_pipeline_psf():
     )
 
     plotters.plot_recon_with_lines(
-        reconstruction,h_idx,v_idx,
+        reconstruction,
+        h_idx,
+        v_idx,
         os.path.join(out_dir, "psf_traced_profiles.png"),
         show_plots=show_plots,
     )
 
     # Compute MTF in horizontal and vertical directions
-    freq_h, mtf_h, mtf10_h  = mtfc.compute_1d_mtf(
+    freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf(
         reconstruction, axis=0, pixel_size=pixel_size
     )
     freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(
@@ -419,7 +421,6 @@ def run_pipeline_psf():
 
     print(f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm")
     print(f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm")
-
 
     plotters.plot_1d_mtf(
         freq_h,
@@ -445,44 +446,46 @@ def run_pipeline_psf():
         f"COM circle: center=({cx},{cy}), radius={radius}px",
         f"PSF size px:     horizontal={fw_h:.3f}, vertical={fw_v:.3f}",
         f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm",
-        f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm"
-
+        f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm",
     ]
 
     # Oversample section
     if oversample:
         if oversample_strategy == 1:
-            sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram_traditional(
-                cropped,
-                cx,
-                cy,
-                radius,
-                n_angles,
-                profile_half_length,
-                derivative_step,
-                dtheta,
-
-                resample2,
+            sub_profiles, sub_sinogram = (
+                sr.compute_subpixel_profiles_and_sinogram_traditional(
+                    cropped,
+                    cx,
+                    cy,
+                    radius,
+                    n_angles,
+                    profile_half_length,
+                    derivative_step,
+                    dtheta,
+                    resample2,
+                )
             )
             print("Using oversampling strategy 1 (traditional).")
         elif oversample_strategy == 2:
-            sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram_3step(
-                cropped,
-                cx,
-                cy,
-                radius,
-                n_angles,
-                profile_half_length,
-                derivative_step,
-                dtheta,
-                gaussian_sigma,
-                resample1,
-                resample2,
+            sub_profiles, sub_sinogram = (
+                sr.compute_subpixel_profiles_and_sinogram_3step(
+                    cropped,
+                    cx,
+                    cy,
+                    radius,
+                    n_angles,
+                    profile_half_length,
+                    derivative_step,
+                    dtheta,
+                    gaussian_sigma,
+                    resample1,
+                    resample2,
+                )
             )
             print("Using oversampling strategy 2 (3-step).")
         else:
             raise ValueError(f"Invalid oversample strategy: {oversample_strategy}")
-        
+
         if shift_sino:
             centered_sub_sino, sub_shift = sr.auto_center_sinogram(sub_sinogram)
             sub_sinogram = centered_sub_sino
@@ -549,21 +552,22 @@ def run_pipeline_psf():
         )
 
         plotters.plot_recon_with_lines(
-            recon_sub,h_idx,v_idx,
+            recon_sub,
+            h_idx,
+            v_idx,
             os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
             show_plots=show_plots,
         )
         # Compute MTF in horizontal and vertical directions
-        freq_h_ov, mtf_h_ov, mtf10_h_ov  = mtfc.compute_1d_mtf(
+        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
             recon_sub, axis=0, pixel_size=pixel_size * resample2
         )
-        freq_v_ov, mtf_v_ov, mtf10_v_ov  = mtfc.compute_1d_mtf(
+        freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
             recon_sub, axis=1, pixel_size=pixel_size * resample2
         )
 
         print(f"MTF10 horizontal oversampled: {mtf10_h:.3f} cycles/mm")
         print(f"MTF10 vertical oversampled:   {mtf10_v:.3f} cycles/mm")
-
 
         plotters.plot_1d_mtf(
             freq_h_ov,
