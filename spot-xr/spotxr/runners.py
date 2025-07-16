@@ -135,7 +135,7 @@ def run_pipeline_fs():
         saved_files.append(path)
 
     plotters.plot_profiles_and_reconstruction(
-        profiles, sinogram, reconstruction, out_dir, show_plots
+        profiles, sinogram, reconstruction, out_dir, show_plots, reconstruction_type="fs"
     )
 
     # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
@@ -193,7 +193,7 @@ def run_pipeline_fs():
 
     sino_with_lines_path = os.path.join(out_dir, "sinogram_traced_profiles.png")
     plotters.plot_sinogram_with_traced_profiles(
-        sinogram, wide_idx, narrow_idx, sino_with_lines_path, show_plots
+        sinogram, wide_idx, narrow_idx, sino_with_lines_path,reconstruction_type="fs", show_plots=show_plots
     )
 
     angle_step = 360.0 / n_angles
@@ -206,6 +206,7 @@ def run_pipeline_fs():
         angle_narrow_deg,
         out_path=spot_with_lines_path,
         show_plots=show_plots,
+        reconstruction_type="fs",
     )
 
     wide_fs = wc.compute_fs_width(fw, pixel_size, m_fs)
@@ -350,7 +351,7 @@ def run_pipeline_psf():
     save_and_plot("sinogram", sinogram)
     save_and_plot("reconstruction", reconstruction)
     plotters.plot_profiles_and_reconstruction(
-        profiles, sinogram, reconstruction, out_dir, show_plots
+        profiles, sinogram, reconstruction, out_dir, show_plots, reconstruction_type="psf"
     )
 
     # Find horizontal and vertical profiles
@@ -400,6 +401,7 @@ def run_pipeline_psf():
         h_idx,
         v_idx,
         os.path.join(out_dir, "sinogram_traced_profiles.png"),
+        reconstruction_type="psf",
         show_plots=show_plots,
     )
 
@@ -409,6 +411,7 @@ def run_pipeline_psf():
         v_idx,
         os.path.join(out_dir, "psf_traced_profiles.png"),
         show_plots=show_plots,
+        reconstruction_type="psf",
     )
 
     # Compute MTF in horizontal and vertical directions
@@ -503,6 +506,7 @@ def run_pipeline_psf():
             recon_sub,
             out_dir,
             show_plots,
+            reconstruction_type="psf",
             suffix="_oversampled",
         )
 
@@ -548,6 +552,7 @@ def run_pipeline_psf():
             h_idx,
             v_idx,
             os.path.join(out_dir, "oversampled_sinogram_traced_profiles.png"),
+            reconstruction_type="psf",
             show_plots=show_plots,
         )
 
@@ -557,6 +562,7 @@ def run_pipeline_psf():
             v_idx,
             os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
             show_plots=show_plots,
+            reconstruction_type="psf",
         )
         # Compute MTF in horizontal and vertical directions
         freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(

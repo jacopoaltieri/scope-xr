@@ -22,7 +22,7 @@ def plot_circle_on_crop(
     # Draw center
     ax.plot(cx, cy, "ro", markersize=5)
 
-    ax.set_title("Estimated Radius with Center")
+    ax.set_title("Cropped ROI around circle")
     ax.axis("off")
     plt.tight_layout()
     plt.savefig(output_path + "/circle_on_crop.png", dpi=300)
@@ -32,7 +32,13 @@ def plot_circle_on_crop(
 
 
 def plot_profiles_and_reconstruction(
-    profiles, sinogram, reconstruction, out_dir, show_plots, suffix=""
+    profiles,
+    sinogram,
+    reconstruction,
+    out_dir,
+    show_plots,
+    reconstruction_type,
+    suffix="",
 ):
     plt.figure(figsize=(16, 8))
 
@@ -50,7 +56,13 @@ def plot_profiles_and_reconstruction(
 
     plt.subplot(1, 3, 3)
     plt.imshow(reconstruction, cmap="gray")
-    plt.title("Reconstructed Focal Spot")
+    if reconstruction_type == "psf":
+        title = "Reconstructed PSF"
+    elif reconstruction_type == "fs":
+        title = "Reconstructed Focal Spot"
+    else:
+        title = "Reconstruction"
+    plt.title(title)
     plt.axis("off")
 
     plt.tight_layout()
@@ -120,29 +132,51 @@ def plot_profiles_with_fwhm(
 
 
 def plot_sinogram_with_traced_profiles(
-    sinogram, wide_idx, narrow_idx, out_path, show_plots=False
+    sinogram,
+    wide_idx,
+    narrow_idx,
+    out_path,
+    reconstruction_type,
+    show_plots,
 ):
     fig, ax = plt.subplots(figsize=(8, 6))
     im = ax.imshow(sinogram, cmap="gray", aspect="auto")
-    ax.set_title("Sinogram with Widest & Narrowest Profiles")
+
+    if reconstruction_type == "psf":
+        ax.set_title("Sinogram with Horizontal & Vertical Profiles")
+        ax.axvline(
+            wide_idx,
+            color="red",
+            linestyle="--",
+            linewidth=2,
+            label=f"Horizontal (idx={wide_idx})",
+        )
+        ax.axvline(
+            narrow_idx,
+            color="blue",
+            linestyle="--",
+            linewidth=2,
+            label=f"Vertical (idx={narrow_idx})",
+        )
+    else:
+        ax.set_title("Sinogram with Widest & Narrowest Profiles")
+        ax.axvline(
+            wide_idx,
+            color="red",
+            linestyle="--",
+            linewidth=2,
+            label=f"Widest (idx={wide_idx})",
+        )
+        ax.axvline(
+            narrow_idx,
+            color="blue",
+            linestyle="--",
+            linewidth=2,
+            label=f"Narrowest (idx={narrow_idx})",
+        )
+
     ax.set_xlabel("Angle Index")
     ax.set_ylabel("Radial Offset (px)")
-
-    ax.axvline(
-        wide_idx,
-        color="red",
-        linestyle="--",
-        linewidth=2,
-        label=f"Widest (idx={wide_idx})",
-    )
-    ax.axvline(
-        narrow_idx,
-        color="blue",
-        linestyle="--",
-        linewidth=2,
-        label=f"Narrowest (idx={narrow_idx})",
-    )
-
     ax.legend(loc="upper right")
     plt.tight_layout()
 
@@ -152,10 +186,16 @@ def plot_sinogram_with_traced_profiles(
     plt.close(fig)
 
 
-def plot_recon_with_lines(recon, angle_wide, angle_narrow, out_path, show_plots=False):
+def plot_recon_with_lines(
+    recon,
+    angle_wide,
+    angle_narrow,
+    out_path,
+    show_plots=False,
+    reconstruction_type="fs",
+):
     """
     recon: 2D np.ndarray image
-    center: (cx, cy) tuple - center of the focal spot
     angle_wide, angle_narrow: angles in degrees where lines should be drawn
     """
 
@@ -165,13 +205,11 @@ def plot_recon_with_lines(recon, angle_wide, angle_narrow, out_path, show_plots=
     cy = h / 2
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    # show only the image region
     ax.imshow(img, cmap="gray", extent=[0, w, 0, h])
     ax.set_xlim(0, w)
     ax.set_ylim(0, h)
     ax.set_aspect("equal")
 
-    # now draw the lines
     half_diag = int(np.sqrt(h**2 + w**2) / 2) + 10
     for angle, color in [(angle_wide, "red"), (angle_narrow, "blue")]:
         theta = np.deg2rad(angle)
@@ -179,9 +217,19 @@ def plot_recon_with_lines(recon, angle_wide, angle_narrow, out_path, show_plots=
         dy = half_diag * np.sin(theta)
         ax.plot([cx - dx, cx + dx], [cy - dy, cy + dy], color=color, linewidth=2)
 
-    ax.set_title("Focal Spot with Widest & Narrowest Profiles")
-    ax.legend([f"Widest (angle={angle_wide})", f"Narrowest (angle={angle_narrow})"])
+    if reconstruction_type == "psf":
+        ax.set_title("PSF with Horizontal & Vertical Profiles")
+        legend_labels = [f"Horizontal (0°)", f"Vertical (90°)"]
+    else:
+        ax.set_title("Focal Spot with Widest & Narrowest Profiles")
+        legend_labels = [
+            f"Widest (angle={angle_wide}°)",
+            f"Narrowest (angle={angle_narrow}°)",
+        ]
+
+    ax.legend(legend_labels)
     ax.axis("off")
+
     plt.savefig(out_path, dpi=300)
     if show_plots:
         plt.show()
@@ -240,9 +288,7 @@ def plot_profile_with_gaussian(
     plt.close()
 
 
-def plot_1d_mtf(
-    freq, mtf, pixel_size, out_path, mtf10_freq=None,  show_plots=False
-):
+def plot_1d_mtf(freq, mtf, pixel_size, out_path, mtf10_freq=None, show_plots=False):
     """
     Plot 1D MTF with Nyquist and MTF10 reference lines.
 
