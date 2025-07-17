@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.special import erf
 from scipy.optimize import curve_fit
+from scipy.special import erf
 
 
 def fwhm(sinogram: np.ndarray) -> tuple[int, int, int]:

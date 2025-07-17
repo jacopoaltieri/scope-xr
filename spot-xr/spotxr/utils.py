@@ -1,6 +1,6 @@
-import os
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 
 
 def eval_minimum_magnification(a: float, n: int, p: float) -> float:

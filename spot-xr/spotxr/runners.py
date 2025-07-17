@@ -1,13 +1,13 @@
-import os
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 
 from spotxr import utils, plotters
 import spotxr.arg_parser_fs as afs
 import spotxr.arg_parser_psf as apsf
 import spotxr.circle_detection as circ
-import spotxr.mtf_calc as mtfc
 import spotxr.image_opening as io
+import spotxr.mtf_calc as mtfc
 import spotxr.sinogram_recon as sr
 import spotxr.widths_calculator as wc
 
@@ -40,19 +40,19 @@ def run_pipeline_fs():
     show_plots = args["show_plots"]
 
     # ----------------------------------------------------------------------------------#
-    # create output directory
+    # Create output directory
     basename = os.path.splitext(os.path.basename(img_path))[0]
     out_dir = os.path.join(args["out_dir"], basename)
     os.makedirs(out_dir, exist_ok=True)
     print(f"saving outputs to {out_dir}")
 
-    # load the image
+    # Load image
     try:
         img = io.load_image(img_path)
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
 
-    # circle detetion
+    # Circle detetion
     if no_hough:
         print(
             "Caution! Hough transform not used. Using provided image as already cropped."
@@ -98,12 +98,12 @@ def run_pipeline_fs():
         m = magnification
         print(f"Using provided magnification: {m:.2f}x")
     else:
-        # compute from circle radius
+        # Compute from circle radius
         m = (radius * pixel_size) / (circle_diameter / 2)
         print(f"Estimated image magnification: {m:.2f}x")
 
     m_fs = m - 1  # fs magnification
-    print(f"Estimated fs magnification: {m_fs:.2f}x")
+    print(f"Estimated Focal Spot magnification: {m_fs:.2f}x")
 
     min_r = utils.eval_minimum_radius(min_n, pixel_size, m)
     if min_r > radius * pixel_size:
@@ -123,19 +123,30 @@ def run_pipeline_fs():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
-    # Save images
+    # Save and plot function
     saved_files = []
-    for name, arr in [
-        ("profiles.png", profiles),
-        ("sinogram.png", sinogram),
-        ("reconstruction.png", reconstruction),
-    ]:
-        path = os.path.join(out_dir, name)
+
+    def save_and_plot(name, arr, plot_func=None, suffix=""):
+        fname = f"{name}{suffix}.png" if not name.endswith(".png") else name
+        path = os.path.join(out_dir, fname)
         plt.imsave(path, arr, cmap="gray")
         saved_files.append(path)
+        if plot_func:
+            plot_func(arr, out_dir, show_plots)
+        return path
+
+    # Base saving
+    save_and_plot("profiles", profiles)
+    save_and_plot("sinogram", sinogram)
+    save_and_plot("reconstruction", reconstruction)
 
     plotters.plot_profiles_and_reconstruction(
-        profiles, sinogram, reconstruction, out_dir, show_plots, reconstruction_type="fs"
+        profiles,
+        sinogram,
+        reconstruction,
+        out_dir,
+        show_plots,
+        reconstruction_type="fs",
     )
 
     # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
@@ -146,9 +157,8 @@ def run_pipeline_fs():
     )
 
     # wide_idx, narrow_idx, sigmas = wc.find_extreme_profiles_erf(profiles)
-    # Find narrow profile only
+    # Find narrow profile only, then compute the wide profile as perpendicular
     wide_idx, _, sigmas = wc.find_extreme_profiles_erf(profiles)
-    # Compute perpendicular index for wide profile
     narrow_idx = (wide_idx + 90) % sinogram.shape[1]
 
     print(f"Widest edge at angle idx {wide_idx}")
@@ -193,7 +203,12 @@ def run_pipeline_fs():
 
     sino_with_lines_path = os.path.join(out_dir, "sinogram_traced_profiles.png")
     plotters.plot_sinogram_with_traced_profiles(
-        sinogram, wide_idx, narrow_idx, sino_with_lines_path,reconstruction_type="fs", show_plots=show_plots
+        sinogram,
+        wide_idx,
+        narrow_idx,
+        sino_with_lines_path,
+        reconstruction_type="fs",
+        show_plots=show_plots,
     )
 
     angle_step = 360.0 / n_angles
@@ -233,7 +248,7 @@ def run_pipeline_fs():
         f"Angles: wide={wide_idx*angle_step:.1f}°, narrow={narrow_idx*angle_step:.1f}°",
     ]
 
-    # Save summary to txt
+    # Save summary to .txt
     results_path = os.path.join(out_dir, "fs_results.txt")
     with open(results_path, "w") as f:
         f.write("\n".join(summary))
@@ -250,7 +265,7 @@ def run_pipeline_psf():
         if k != "hough_params":
             print(f"  {k:18}: {v}")
 
-    # Extract arguments
+    # ----------------------------------------------------------------------------------#
     img_path = args["img_path"]
     pixel_size = args.get("pixel_size")  # in mm
     circle_diameter = args.get("circle_diameter")  # in mm
@@ -270,6 +285,7 @@ def run_pipeline_psf():
     gaussian_sigma = args.get("gaussian_sigma")
     show_plots = args.get("show_plots", False)
 
+    # ----------------------------------------------------------------------------------#
     # Create output directory
     basename = os.path.splitext(os.path.basename(img_path))[0]
     out_dir = os.path.join(args.get("out_dir", "."), basename)
@@ -282,7 +298,7 @@ def run_pipeline_psf():
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
 
-    # Detect or use provided crop
+    # Circle detection
     if no_hough:
         print(
             "Caution! Hough transform not used. Using provided image as already cropped."
@@ -310,8 +326,8 @@ def run_pipeline_psf():
             img, center=(x, y), radius=r, width_factor=1.5, output_path=out_dir
         )
 
-    # Estimate circle via center-of-mass
     cx, cy, radius = circ.estimate_circle(cropped)
+
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
@@ -331,7 +347,6 @@ def run_pipeline_psf():
         sinogram = centered_sino
         print(f"Applied axis shift: {applied_shift} px")
 
-    # Reconstruction
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
     # Save and plot function
@@ -350,8 +365,14 @@ def run_pipeline_psf():
     save_and_plot("profiles", profiles)
     save_and_plot("sinogram", sinogram)
     save_and_plot("reconstruction", reconstruction)
+
     plotters.plot_profiles_and_reconstruction(
-        profiles, sinogram, reconstruction, out_dir, show_plots, reconstruction_type="psf"
+        profiles,
+        sinogram,
+        reconstruction,
+        out_dir,
+        show_plots,
+        reconstruction_type="psf",
     )
 
     # Find horizontal and vertical profiles
@@ -404,7 +425,6 @@ def run_pipeline_psf():
         reconstruction_type="psf",
         show_plots=show_plots,
     )
-
     plotters.plot_recon_with_lines(
         reconstruction,
         h_idx,
@@ -452,7 +472,8 @@ def run_pipeline_psf():
         f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm",
     ]
 
-    # Oversample section
+    # ----------------------------------------------------------------------------------#
+    # Oversampling section
     if oversample:
         if oversample_strategy == 1:
             sub_profiles, sub_sinogram = (
@@ -469,6 +490,7 @@ def run_pipeline_psf():
                 )
             )
             print("Using oversampling strategy 1 (traditional).")
+
         elif oversample_strategy == 2:
             sub_profiles, sub_sinogram = (
                 sr.compute_subpixel_profiles_and_sinogram_3step(
@@ -547,6 +569,7 @@ def run_pipeline_psf():
             out_path=os.path.join(out_dir, "oversampled_sinogram_profile_vertical.png"),
             show_plots=show_plots,
         )
+
         plotters.plot_sinogram_with_traced_profiles(
             sub_sinogram,
             h_idx,
@@ -555,7 +578,6 @@ def run_pipeline_psf():
             reconstruction_type="psf",
             show_plots=show_plots,
         )
-
         plotters.plot_recon_with_lines(
             recon_sub,
             h_idx,
@@ -564,6 +586,7 @@ def run_pipeline_psf():
             show_plots=show_plots,
             reconstruction_type="psf",
         )
+
         # Compute MTF in horizontal and vertical directions
         freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
             recon_sub, axis=0, pixel_size=pixel_size * resample2

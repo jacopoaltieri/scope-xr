@@ -1,5 +1,5 @@
-import os
 import numpy as np
+import os
 import xml.etree.ElementTree as ET
 from PIL import Image
 
