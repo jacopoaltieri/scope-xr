@@ -37,6 +37,7 @@ def run_pipeline_fs():
     symmetrize = args["symmetrize"]
     shift_sino = args["shift_sino"]
     avg_neighbors = args["avg_neighbors"]
+    avg_number = args["avg_number"]
     show_plots = args["show_plots"]
 
     # ----------------------------------------------------------------------------------#
@@ -165,8 +166,8 @@ def run_pipeline_fs():
     print(f"Narrowest edge at angle idx {narrow_idx}")
 
     if avg_neighbors:
-        prof_wide_sino = wc.average_neighbors(sinogram, wide_idx)
-        prof_narrow_sino = wc.average_neighbors(sinogram, narrow_idx)
+        prof_wide_sino = wc.average_neighbors(sinogram, wide_idx, avg_number)
+        prof_narrow_sino = wc.average_neighbors(sinogram, narrow_idx, avg_number)
     else:
         prof_wide_sino = sinogram[:, wide_idx]
         prof_narrow_sino = sinogram[:, narrow_idx]
@@ -269,21 +270,22 @@ def run_pipeline_psf():
     img_path = args["img_path"]
     pixel_size = args.get("pixel_size")  # in mm
     circle_diameter = args.get("circle_diameter")  # in mm
-    no_hough = args.get("no_hough", False)
+    no_hough = args.get("no_hough")
     n_angles = args.get("n_angles")
     profile_half_length = args.get("profile_half_length")
     derivative_step = args.get("derivative_step")
     filter_name = args.get("filter_name")
-    symmetrize = args.get("symmetrize", False)
-    shift_sino = args.get("shift_sino", False)
-    avg_neighbors = args.get("avg_neighbors", False)
-    oversample = args.get("oversample", False)
-    oversample_strategy = args.get("oversample_strategy", 1)
+    symmetrize = args.get("symmetrize")
+    shift_sino = args.get("shift_sino")
+    avg_neighbors = args.get("avg_neighbors")
+    avg_number = args.get("avg_number")
+    oversample = args.get("oversample")
+    oversample_strategy = args.get("oversample_strategy")
     dtheta = args.get("dtheta")
     resample1 = args.get("resample1")
     resample2 = args.get("resample2")
     gaussian_sigma = args.get("gaussian_sigma")
-    show_plots = args.get("show_plots", False)
+    show_plots = args.get("show_plots")
 
     # ----------------------------------------------------------------------------------#
     # Create output directory
@@ -385,8 +387,8 @@ def run_pipeline_psf():
     _, _, sigmas, pops = wc.find_extreme_profiles_gaussian(sinogram)
     # Get profiles for h and v angles
     if avg_neighbors:
-        prof_h_sino = wc.average_neighbors(sinogram, h_idx)
-        prof_v_sino = wc.average_neighbors(sinogram, v_idx)
+        prof_h_sino = wc.average_neighbors(sinogram, h_idx, avg_number)
+        prof_v_sino = wc.average_neighbors(sinogram, v_idx, avg_number)
     else:
         prof_h_sino = sinogram[:, h_idx]
         prof_v_sino = sinogram[:, v_idx]
@@ -536,8 +538,8 @@ def run_pipeline_psf():
         _, _, sigmas_ov, pops_ov = wc.find_extreme_profiles_gaussian(sub_sinogram)
         # Get profiles for h and v angles
         if avg_neighbors:
-            prof_h_sino_ov = wc.average_neighbors(sub_sinogram, h_idx)
-            prof_v_sino_ov = wc.average_neighbors(sub_sinogram, v_idx)
+            prof_h_sino_ov = wc.average_neighbors(sub_sinogram, h_idx, avg_number)
+            prof_v_sino_ov = wc.average_neighbors(sub_sinogram, v_idx, avg_number)
         else:
             prof_h_sino_ov = sub_sinogram[:, h_idx]
             prof_v_sino_ov = sub_sinogram[:, v_idx]

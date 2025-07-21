@@ -12,6 +12,7 @@ filter_name: "hann"
 symmetrize: false
 shift_sino: true
 avg_neighbors: true
+avg_number: 3
 show_plots: false
 
 hough_params:

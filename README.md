@@ -95,6 +95,7 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 | `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                         |
 | `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                                   |
 | `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter.          |
+| `--avg_number` (int)    | Number of profiles to average, must be odd. Only used if `--avg` is true
 | `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                                |
 | `--shift`               | Enable automatic sinogram shifting.                                                                                                           |
 | `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                                    |
@@ -117,6 +118,7 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 | `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                |
 | `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                          |
 | `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter. |
+| `--avg_number` (int)    | Number of profiles to average, must be odd. Only used if `--avg` is true
 | `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                       |
 | `--dtheta`              | Angle of the circular sector for oversampling (in degrees).                                                                          |
 | `--resample1`           | First resample factor (fine grid), used only with 3-step oversampling.                                                                                                   |

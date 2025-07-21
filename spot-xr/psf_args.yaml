@@ -9,6 +9,7 @@ filter_name: "ramp"
 symmetrize: false
 shift_sino: true
 avg_neighbors: false
+avg_number: 3
 oversample: true
 oversample_strategy: 1 # 1 for traditional, 2 for 3-step method 
 dtheta: 3

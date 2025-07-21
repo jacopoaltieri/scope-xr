@@ -27,6 +27,7 @@ def get_merged_config():
     parser.add_argument("--hl", type=int, help="Half profile length")
     parser.add_argument("--ds", type=int, help="Derivative step size")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
+    parser.add_argument("--avg_number", type=int, help="Number of profiles to average")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
     parser.add_argument(
         "--dtheta",
@@ -123,6 +124,7 @@ def get_merged_config():
         "shift_sino": "shift_sino",
         "show": "show_plots",
         "avg_neighbors": "avg_neighbors",
+        "avg_number": "avg_number",
         "oversample": "oversample",
         "oversample_strategy": "oversample_strategy",
         "dtheta": "dtheta",
@@ -138,7 +140,7 @@ def get_merged_config():
             config[config_key] = cli_dict[cli_key]
     if config.get("oversample", True) and config.get("oversample_strategy") is None:
         config["oversample_strategy"] = 1
-        
+
     return config
 
 
@@ -155,6 +157,8 @@ def validate_args(args):
         raise ValueError("Half profile length must be a positive integer.")
     if args["derivative_step"] <= 0:
         raise ValueError("Derivative step size must be a positive integer.")
+    if args["avg_number"] <= 0 and args["avg_number"] % 2 == 1:
+        raise ValueError("Average number must be a odd positive integer.")
     if "dtheta" in args and args["dtheta"] <= 0:
         raise ValueError("dtheta must be a positive number.")
     if "resample1" in args and args["resample1"] is not None and args["resample1"] <= 0:

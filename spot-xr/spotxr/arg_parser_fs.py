@@ -27,6 +27,7 @@ def get_merged_config():
     parser.add_argument("--ds", type=int, help="Derivative step size")
     parser.add_argument("--axis_shifts", type=int, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
+    parser.add_argument("--avg_number", type=int, help="Number of profiles to average")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
     parser.add_argument("--show", action="store_true", help="Show plots")
 
@@ -83,6 +84,7 @@ def get_merged_config():
         "sym": "symmetrize",
         "shift_sino": "shift_sino",
         "avg_neighbors": "avg_neighbors",
+        "avg_number": "avg_number",
         "show": "show_plots",
     }
 
@@ -114,3 +116,5 @@ def validate_args(args):
         raise ValueError("Derivative step size must be a positive integer.")
     if args["axis_shifts"] < 0:
         raise ValueError("Axis shifts must be a non-negative integer.")
+    if args["avg_number"] <= 0 and args["avg_number"] % 2 == 1:
+        raise ValueError("Average number must be a odd positive integer.")
