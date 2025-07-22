@@ -9,8 +9,16 @@ def _check_phl(
     img: np.ndarray, cx: float, radius: float, profile_half_length: int
 ) -> int:
     """
-    Check the maximum profile_half_length along the horizontal direction (theta = 0).
-    Adjusts profile_half_length if it exceeds image boundaries.
+    Adjusts profile_half_length to avoid crossing image boundaries along the horizontal direction (theta = 0).
+
+    Args:
+        img: 2D grayscale image array.
+        cx: X-coordinate of the circle center.
+        radius: Radius of the circle.
+        profile_half_length: Desired half-length of the sampling profile.
+
+    Returns:
+        adjusted_phl: Adjusted profile_half_length that fits within image bounds.
     """
     nx = 1.0
     _, img_w = img.shape
@@ -32,9 +40,10 @@ def _check_phl(
                 print(
                     f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
                 )
-                return new_half_length
-
-    return profile_half_length
+                adjusted_phl = new_half_length
+            else:
+                adjusted_phl = profile_half_length
+    return adjusted_phl
 
 
 def compute_profiles_and_sinogram(
@@ -42,23 +51,25 @@ def compute_profiles_and_sinogram(
     cx: float,
     cy: float,
     radius: float,
-    n_angles: int = 360,
-    profile_half_length: int = 64,
-    derivative_step: int = 1,
+    n_angles: int,
+    profile_half_length: int,
+    derivative_step: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Extract edge profiles around a circle and compute the sinogram.
+    Extracts radial edge profiles around a circle and computes the sinogram via derivative.
 
     Args:
-        cropped: 2D ndarray (grayscale image)
-        cx, cy: center of the circle
-        radius: radius of the circle
-        n_angles: number of angles to sample (default 360)
-        profile_half_length: number of pixels to sample on either side of the edge (default 64)
-        derivative_step: step size for computing the derivative (default 1)
+        img: 2D grayscale image array.
+        cx: X-coordinate of the circle center.
+        cy: Y-coordinate of the circle center.
+        radius: Radius of the circle.
+        n_angles: Number of angular samples around the circle.
+        profile_half_length: Half-length (in pixels) of the radial sampling profile.
+        derivative_step: Step size for computing the radial derivative.
+
     Returns:
-        profiles: 2D array of extracted profiles for visualization
-        sinogram: 2D array [angle_index, radial_profile]
+        profiles: 2D array of shape (profile_length, n_angles), radial profiles.
+        sinogram: 2D array of shape (profile_length, n_angles), negative radial derivative profiles.
     """
     profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
@@ -98,41 +109,29 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     cx: float,
     cy: float,
     radius: float,
-    n_angles: int = 360,
-    profile_half_length: int = 64,
-    derivative_step: int = 1,
-    dtheta: float = 5,
-    resample_radial: float = 0.02,
+    n_angles: int,
+    profile_half_length: int,
+    derivative_step: int,
+    dtheta: float,
+    resample_radial: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Compute sub-pixel edge profiles and sinogram (radial derivative) using
-    oversampled binning of intensities around a circular edge.
+    Computes sub-pixel edge profiles and sinogram by oversampled binning in angular wedges.
 
-    Parameters:
-    -----------
-    img : np.ndarray
-        2D image array.
-    cx, cy : float
-        Center coordinates of the circular edge.
-    radius : float
-        Radius of the circular edge.
-    n_angles : int, default=360
-        Number of angular positions (samples around circle).
-    profile_half_length : int, default=64
-        Half-length of radial profile (in pixels).
-    derivative_step : int, default=1
-        Step size for computing the derivative (in pixels).
-    dtheta : float, default=5
-        Angular width (degrees) of wedge to collect samples around each angle.
-    resample_radial : float, default=0.02
-        Radial bin width for oversampling (pixel units).
+    Args:
+        img: 2D grayscale image array.
+        cx: X-coordinate of the circle center.
+        cy: Y-coordinate of the circle center.
+        radius: Radius of the circle.
+        n_angles: Number of angular samples (in full 360°).
+        profile_half_length: Half-length (in pixels) of radial sampling.
+        derivative_step: Step size for derivative computation.
+        dtheta: Angular width (degrees) of wedge around each angle.
+        resample_radial: Radial bin width for oversampling (in pixels).
 
     Returns:
-    --------
-    profiles : np.ndarray
-        Radially oversampled edge profiles with shape (radial_bins, n_angles).
-    sinogram : np.ndarray
-        Radial derivative of profiles (shape matches profiles).
+        profiles: 2D array of shape (profile_bins, n_angles), radial profiles.
+        sinogram: 2D array of shape (profile_bins, n_angles), negative radial derivatives.
     """
     profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
@@ -206,16 +205,32 @@ def compute_subpixel_profiles_and_sinogram_3step(
     cx: float,
     cy: float,
     radius: float,
-    n_angles: int = 360,
-    profile_half_length: int = 64,
-    derivative_step: int = 1,
-    dtheta: float = 5,
-    gaussian_sigma: float = 0.2,
-    resample1: float = 0.002,
-    resample2: float = 0.02,
+    n_angles: int,
+    profile_half_length: int,
+    derivative_step: int,
+    dtheta: float,
+    gaussian_sigma: float,
+    resample1: float,
+    resample2: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Sub-pixel ESF method, with fixed radial grid matching profile_half_length.
+    Computes sub-pixel edge profiles and sinogram by 3step oversampled binning in angular wedges.
+    Args:
+        img: 2D grayscale image array.
+        cx: X-coordinate of the circle center.
+        cy: Y-coordinate of the circle center.
+        radius: Radius of the circle.
+        n_angles: Number of angular samples around the circle.
+        profile_half_length: Half-length (in pixels) of radial sampling.
+        derivative_step: Step size for derivative computation.
+        dtheta: Angular wedge width (degrees).
+        gaussian_sigma: Sigma for Gaussian smoothing on fine grid.
+        resample1: Radial step for fine sampling (in pixels).
+        resample2: Radial step for final subsampling (in pixels).
+
+    Returns:
+        profiles: 2D array of shape (profile_length, n_angles), oversampled radial profiles.
+        sinogram: 2D array of shape (profile_length, n_angles), negative radial derivatives.
     """
     profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
@@ -271,17 +286,14 @@ def compute_subpixel_profiles_and_sinogram_3step(
 
 def find_best_center_shift(sinogram: np.ndarray, max_shift=None) -> int:
     """
-    Find the vertical shift (in rows) that best centers the sinogram,
-    by minimizing the symmetry error between the first 180° and flipped 180°.
+    Determines the vertical shift that best centers a sinogram by symmetry minimization.
 
-    Parameters
-    ----------
-    sinogram: 2D ndarray, shape (n_rays, n_angles)
-    max_shift: Maximum absolute shift (in rows) to try. Defaults to n_rays//4.
+    Args:
+        sinogram: 2D array of shape (n_rays, n_angles) representing the sinogram.
+        max_shift: Maximum absolute shift (in rows) to test. Defaults to n_rays // 4.
 
-    Returns
-    -------
-    best_delta: The integer vertical shift that yields lowest symmetry error.
+    Returns:
+        best_delta: Integer shift value minimizing symmetry error.
     """
     n_rays, n_angles = sinogram.shape
     if max_shift is None:
@@ -310,9 +322,15 @@ def auto_center_sinogram(
     sinogram: np.ndarray, max_shift=None
 ) -> tuple[np.ndarray, int]:
     """
-    Auto center the sinogram by shifting it by the best symmetry based offset.
+    Automatically centers a sinogram by shifting it to minimize asymmetry.
 
-    Returns the centered sinogram and the applied shift.
+    Args:
+        sinogram: 2D array of shape (n_rays, n_angles).
+        max_shift: Maximum absolute shift to consider. Defaults to n_rays // 4.
+
+    Returns:
+        centered: Centered sinogram array, possibly cropped symmetrically.
+        delta: Applied integer shift value.
     """
     delta = find_best_center_shift(sinogram, max_shift=max_shift)
     centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
@@ -326,8 +344,13 @@ def auto_center_sinogram(
 
 def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     """
-    Takes sino360 of shape (n_rays, 360) and returns
-    sino180 of shape (n_rays, 180) after averaging θ with θ+180.
+    Averages a full 360° sinogram into 180° by pairing angles θ and θ+180°.
+
+    Args:
+        sino360: 2D array of shape (n_rays, 360).
+
+    Returns:
+        sino180: 2D array of shape (n_rays, 180), symmetrized sinogram.
     """
     n_rays, n_angles = sino360.shape
     assert n_angles % 2 == 0, "Need an even number of angles"
@@ -347,13 +370,15 @@ def reconstruct_focal_spot(
     sinogram: np.ndarray, filter_name: str, symmetrize: bool
 ) -> np.ndarray:
     """
-    Reconstruct the focal spot from the sinogram using filtered back-projection.
+    Reconstructs the focal spot image from sinogram via filtered back-projection.
 
     Args:
-        sinogram: 2D array [angle_index, radial_profile]
-        symmetrize: If True, symmetrize the sinogram before reconstruction.
+        sinogram: 2D array of shape (n_rays, n_angles).
+        filter_name: Name of the filter to use in the inverse radon transform.
+        symmetrize: If True, average sinogram over 180° before reconstruction.
+
     Returns:
-        reconstruction: 2D array representing the focal spot
+        reconstruction: 2D array representing the reconstructed focal spot.
     """
     if symmetrize:
         sinogram = symmetrize_sinogram(sinogram)
@@ -376,16 +401,13 @@ def reconstruct_with_axis_shifts(
     shifts: list,
 ) -> None:
     """
-    For each vertical shift in `shifts`, shift the sinogram, reconstruct,
-    and save all reconstructions in a single multi-page TIFF.
+    Applies multiple vertical shifts to a sinogram, reconstructs each, and saves as a multi-page TIFF.
 
-    Parameters
-    ----------
-    sinogram: 2D array [angle_index, radial_profile]
-    output_tiff_path: Path to the output multi-page TIFF.
-    shifts: Amounts (in rows) to shift the sinogram: positive shifts move the axis downward.
-    filter_name: Filter to use in iradon.
-    circle: Pass-through to skimage.transform.iradon.
+    Args:
+        sinogram: 2D array of shape (n_rays, n_angles).
+        output_tiff_path: Path for the output multi-page TIFF file.
+        filter_name: Filter name for the inverse radon transform.
+        shifts: List of integer shifts (rows) to apply to sinogram.
     """
     reconstructions = []
     # Prepare angles for full 360° sinogram
