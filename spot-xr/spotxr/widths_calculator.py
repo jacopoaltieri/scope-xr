@@ -86,7 +86,7 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
     p0 = [profiles.max() - profiles.min(), n_rays / 2, n_rays / 8, profiles.min()]
 
     for i in range(n_angles):
-        profile = average_neighbors(profiles, i)
+        profile = average_neighbors(profiles, i, 3)
         try:
             popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=2000)
             A, x0, sigma, B = popt
@@ -101,7 +101,7 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
 
 
 def average_neighbors(
-    sinogram: np.ndarray, angle_idx: int, line_width: int = 3
+    sinogram: np.ndarray, angle_idx: int, line_width: int
 ) -> np.ndarray:
     """
     Compute the vertical profile at a given angle index, averaging across multiple adjacent rows.
@@ -183,7 +183,7 @@ def find_extreme_profiles_gaussian(
     p0 = [sinogram.max() - sinogram.min(), n_rays / 2, n_rays / 8, sinogram.min()]
 
     for i in range(n_angles):
-        profile = average_neighbors(sinogram, i)
+        profile = average_neighbors(sinogram, i, 3)
         try:
             popt, _ = curve_fit(
                 gaussian,
