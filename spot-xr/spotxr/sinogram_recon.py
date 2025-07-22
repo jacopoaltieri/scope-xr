@@ -4,6 +4,35 @@ from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
 from skimage.transform import iradon
 from spotxr.utils import interpolate_nans_1d
 
+def _check_phl(img: np.ndarray, cx: float, cy: float, radius: float, profile_half_length: int) -> int:
+    """
+    Check the maximum profile_half_length along the horizontal direction (theta = 0).
+    Adjusts profile_half_length if it exceeds image boundaries.
+    """
+    nx = 1.0
+    ny = 0.0
+    _, img_w = img.shape
+
+    for direction in [-1, 1]:
+        d_edge = direction * profile_half_length
+        px = cx + (radius + d_edge) * nx
+
+        if not (0 <= px < img_w):
+            if direction > 0:
+                max_x_dist = img_w - 1 - (cx + radius * nx)
+            else:
+                max_x_dist = cx + radius * nx
+
+            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
+            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
+
+            if new_half_length < profile_half_length:
+                print(
+                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
+                )
+                return new_half_length
+
+    return profile_half_length
 
 def compute_profiles_and_sinogram(
     img: np.ndarray,
@@ -28,33 +57,7 @@ def compute_profiles_and_sinogram(
         profiles: 2D array of extracted profiles for visualization
         sinogram: 2D array [angle_index, radial_profile]
     """
-    # Check max profile_half_length along horizontal direction (theta = 0)
-    nx = 1.0
-    ny = 0.0
-    img_h, img_w = img.shape
-
-    for direction in [-1, 1]:
-        # Check end point in each direction
-        d_edge = direction * profile_half_length
-        px = cx + (radius + d_edge) * nx
-        py = cy + (radius + d_edge) * ny
-
-        if not (0 <= px < img_w):
-            # Compute how far we can safely go in x
-            if direction > 0:
-                max_x_dist = img_w - 1 - (cx + radius * nx)
-            else:
-                max_x_dist = cx + radius * nx
-
-            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
-            # Reduce half length accordingly (minus 1 pixel for safety)
-            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
-
-            if new_half_length < profile_half_length:
-                print(
-                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
-                )
-                profile_half_length = new_half_length
+    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = int(2 * profile_half_length)
@@ -128,33 +131,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     sinogram : np.ndarray
         Radial derivative of profiles (shape matches profiles).
     """
-    # Check max profile_half_length along horizontal direction (theta = 0)
-    nx = 1.0
-    ny = 0.0
-    img_h, img_w = img.shape
-
-    for direction in [-1, 1]:
-        # Check end point in each direction
-        d_edge = direction * profile_half_length
-        px = cx + (radius + d_edge) * nx
-        py = cy + (radius + d_edge) * ny
-
-        if not (0 <= px < img_w):
-            # Compute how far we can safely go in x
-            if direction > 0:
-                max_x_dist = img_w - 1 - (cx + radius * nx)
-            else:
-                max_x_dist = cx + radius * nx
-
-            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
-            # Reduce half length accordingly (minus 1 pixel for safety)
-            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
-
-            if new_half_length < profile_half_length:
-                print(
-                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
-                )
-                profile_half_length = new_half_length
+    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     # Convert angles and angular wedge width to radians
     angles = np.deg2rad(np.linspace(0, 360, n_angles, endpoint=False))
@@ -237,33 +214,7 @@ def compute_subpixel_profiles_and_sinogram_3step(
     """
     Sub-pixel ESF method, with fixed radial grid matching profile_half_length.
     """
-    # Check max profile_half_length along horizontal direction (theta = 0)
-    nx = 1.0
-    ny = 0.0
-    img_h, img_w = img.shape
-
-    for direction in [-1, 1]:
-        # Check end point in each direction
-        d_edge = direction * profile_half_length
-        px = cx + (radius + d_edge) * nx
-        py = cy + (radius + d_edge) * ny
-
-        if not (0 <= px < img_w):
-            # Compute how far we can safely go in x
-            if direction > 0:
-                max_x_dist = img_w - 1 - (cx + radius * nx)
-            else:
-                max_x_dist = cx + radius * nx
-
-            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
-            # Reduce half length accordingly (minus 1 pixel for safety)
-            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
-
-            if new_half_length < profile_half_length:
-                print(
-                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
-                )
-                profile_half_length = new_half_length
+    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = 2 * profile_half_length
