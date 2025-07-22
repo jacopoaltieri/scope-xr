@@ -4,13 +4,15 @@ from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
 from skimage.transform import iradon
 from spotxr.utils import interpolate_nans_1d
 
-def _check_phl(img: np.ndarray, cx: float, cy: float, radius: float, profile_half_length: int) -> int:
+
+def _check_phl(
+    img: np.ndarray, cx: float, radius: float, profile_half_length: int
+) -> int:
     """
     Check the maximum profile_half_length along the horizontal direction (theta = 0).
     Adjusts profile_half_length if it exceeds image boundaries.
     """
     nx = 1.0
-    ny = 0.0
     _, img_w = img.shape
 
     for direction in [-1, 1]:
@@ -33,6 +35,7 @@ def _check_phl(img: np.ndarray, cx: float, cy: float, radius: float, profile_hal
                 return new_half_length
 
     return profile_half_length
+
 
 def compute_profiles_and_sinogram(
     img: np.ndarray,
@@ -57,7 +60,7 @@ def compute_profiles_and_sinogram(
         profiles: 2D array of extracted profiles for visualization
         sinogram: 2D array [angle_index, radial_profile]
     """
-    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
+    profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = int(2 * profile_half_length)
@@ -131,7 +134,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     sinogram : np.ndarray
         Radial derivative of profiles (shape matches profiles).
     """
-    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
+    profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
     # Convert angles and angular wedge width to radians
     angles = np.deg2rad(np.linspace(0, 360, n_angles, endpoint=False))
@@ -214,7 +217,7 @@ def compute_subpixel_profiles_and_sinogram_3step(
     """
     Sub-pixel ESF method, with fixed radial grid matching profile_half_length.
     """
-    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
+    profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = 2 * profile_half_length
