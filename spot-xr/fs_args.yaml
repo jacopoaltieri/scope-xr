@@ -8,7 +8,7 @@ n_angles: 360
 profile_half_length: 64
 derivative_step: 1
 axis_shifts: 10
-filter_name: "hann"
+filter_name: "ramp"
 symmetrize: false
 shift_sino: true
 avg_neighbors: true
