@@ -40,10 +40,8 @@ def _check_phl(
                 print(
                     f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
                 )
-                adjusted_phl = new_half_length
-            else:
-                adjusted_phl = profile_half_length
-    return adjusted_phl
+                return new_half_length
+    return profile_half_length
 
 
 def compute_profiles_and_sinogram(
@@ -116,7 +114,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     resample_radial: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Computes sub-pixel edge profiles and sinogram by oversampled binning in angular wedges.
+    Computes sub-pixel edge profiles and sinogram by interpolating in angular wedges.
 
     Args:
         img: 2D grayscale image array.
@@ -127,7 +125,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
         profile_half_length: Half-length (in pixels) of radial sampling.
         derivative_step: Step size for derivative computation.
         dtheta: Angular width (degrees) of wedge around each angle.
-        resample_radial: Radial bin width for oversampling (in pixels).
+        resample_radial: Radial step for interpolation grid (in pixels).
 
     Returns:
         profiles: 2D array of shape (profile_bins, n_angles), radial profiles.
@@ -146,20 +144,18 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     phis = np.arctan2(ys, xs)
     rs = np.hypot(xs, ys) - radius
 
-    # Radial grid setup
+    # Set up radial grid for interpolation
     min_r = -profile_half_length
     max_r = profile_half_length
-    n_bins = int(np.ceil((max_r - min_r) / resample_radial))
-    bin_edges = np.linspace(min_r, max_r, n_bins + 1)
+    r_grid = np.arange(min_r, max_r + resample_radial, resample_radial)
+    n_bins = r_grid.size
 
-    # Initialize profiles array (angles x radial bins)
+    # Initialize profiles array (angles x radial positions)
     profiles = np.full((n_angles, n_bins), np.nan, dtype=np.float32)
 
     for i, theta in enumerate(angles):
-        # Angular difference wrapped to [-pi, pi]
+        # mask pixels in angular wedge
         dphi = (phis - theta + np.pi) % (2 * np.pi) - np.pi
-
-        # Select pixels within angular wedge
         mask = np.abs(dphi) <= half_wedge
         r_vals = rs[mask]
         intensities = img[mask]
@@ -169,29 +165,16 @@ def compute_subpixel_profiles_and_sinogram_traditional(
         r_vals = r_vals[radial_mask]
         intensities = intensities[radial_mask]
 
-        if r_vals.size == 0:
-            continue
+        # Sort for interpolation
+        idx = np.argsort(r_vals)
+        r_vals = r_vals[idx]
+        intensities = intensities[idx]
 
-        # Bin radial distances
-        bin_indices = np.digitize(r_vals, bin_edges) - 1
-        valid_bins = (bin_indices >= 0) & (bin_indices < n_bins)
-        bin_indices = bin_indices[valid_bins]
-        intensities = intensities[valid_bins]
+        # Interpolate to uniform grid
+        interp_vals = np.interp(r_grid, r_vals, intensities)
+        profiles[i, :] = interp_vals
 
-        if bin_indices.size == 0:
-            continue
-
-        # Compute mean intensity per bin
-        counts = np.bincount(bin_indices, minlength=n_bins)
-        sums = np.bincount(bin_indices, weights=intensities, minlength=n_bins)
-        means = np.full(n_bins, np.nan, dtype=np.float32)
-        valid_counts = counts > 0
-        means[valid_counts] = sums[valid_counts] / counts[valid_counts]
-
-        # Interpolate NaNs linearly to fill gaps
-        profiles[i, :] = interpolate_nans_1d(means)
-
-    # Compute radial derivative along radial axis (axis=1)
+    # Compute radial derivative
     sinogram = np.gradient(profiles, derivative_step, axis=1)
 
     return profiles.T, -sinogram.T
@@ -232,11 +215,11 @@ def compute_subpixel_profiles_and_sinogram_3step(
     """
     profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
+    # Convert angles and angular wedge width to radians
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
-    profile_length = 2 * profile_half_length
-    delta = np.deg2rad(dtheta) / 2
+    half_wedge = np.deg2rad(dtheta) / 2
 
-    # 2) Precompute polar coords relative to circle edge
+    # Coordinates relative to center
     ys, xs = np.indices(img.shape)
     xs = xs.astype(np.float32) - cx
     ys = ys.astype(np.float32) - cy
@@ -244,21 +227,22 @@ def compute_subpixel_profiles_and_sinogram_3step(
     rs = np.hypot(xs, ys) - radius
 
     # precompute oversampling grids
-    final_r = np.arange(
-        -profile_half_length, profile_half_length + resample2, resample2
-    )
+    min_r = -profile_half_length
+    max_r = profile_half_length
+    n_bins_final = int(np.ceil((max_r - min_r) / resample2))
+    final_r = np.linspace(min_r, max_r, n_bins_final )
 
     # Fine grid used for interpolation/smoothing
-    fine_r = np.arange(final_r[0], final_r[-1] + resample1, resample1)
+    n_bins_fine = int(np.ceil((max_r - min_r) / resample1))
+    fine_r = np.linspace(final_r[0], final_r[-1], n_bins_fine)
 
     profile_length = final_r.size  # number of samples in radial direction
-    profiles = np.zeros((n_angles, profile_length), dtype=np.float32)
-    sinogram = np.zeros((n_angles, profile_length), dtype=np.float32)
+    profiles = np.full((n_angles, profile_length), np.nan, dtype=np.float32)
 
     for i, theta in enumerate(angles):
         # mask pixels in angular wedge
         dphi = (phis - theta + np.pi) % (2 * np.pi) - np.pi
-        mask = np.abs(dphi) <= delta
+        mask = np.abs(dphi) <= half_wedge
         r_vals = rs[mask]
         intens = img[mask]
 
