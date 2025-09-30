@@ -136,15 +136,13 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     profile_half_length = _check_phl(img, cx, radius, profile_half_length)
 
     # Convert angles and angular wedge width to radians
-    angles = np.deg2rad(np.linspace(0, 360, n_angles, endpoint=False))
+    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     half_wedge = np.deg2rad(dtheta) / 2
 
     # Coordinates relative to center
-    ys, xs = np.indices(img.shape, dtype=np.float32)
-    xs -= cx
-    ys -= cy
-
-    # Polar coordinates
+    ys, xs = np.indices(img.shape)
+    xs = xs.astype(np.float32) - cx
+    ys = ys.astype(np.float32) - cy
     phis = np.arctan2(ys, xs)
     rs = np.hypot(xs, ys) - radius
 

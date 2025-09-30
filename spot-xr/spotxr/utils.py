@@ -51,3 +51,11 @@ def interpolate_nans_1d(y):
         # All NaN — leave as zeros or fill with a constant if you prefer
         return np.zeros_like(y)
     return np.interp(np.arange(len(y)), np.flatnonzero(not_nans), y[not_nans])
+
+
+def suggest_os_angle(p: float, n: int, r: float) -> float:
+    """Suggest the optimal oversampling angle (in degrees) to ensure that the cross-talk between neighboring profiles is negligible."""
+
+    dtheta = 2*np.arccos(1-p/(n*r))
+    dtheta = np.degrees(dtheta)
+    return dtheta

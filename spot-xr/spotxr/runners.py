@@ -477,7 +477,15 @@ def run_pipeline_psf():
     # ----------------------------------------------------------------------------------#
     # Oversampling section
     if oversample:
+        max_os_angle = utils.suggest_os_angle(pixel_size, profile_half_length, radius*pixel_size)
+        print(f"Suggested maximum oversampling angle to avoid cross-talk: {max_os_angle:.2f}°")
+        if dtheta >= max_os_angle:
+            print(
+                f"Caution!: The provided oversampling angle {dtheta}° is larger than the suggested maximum {max_os_angle:.2f}°. This may cause cross-talk between neighboring profiles."
+            )
+            
         if oversample_strategy == 1:
+            print("Using oversampling strategy 1 (traditional).")
             sub_profiles, sub_sinogram = (
                 sr.compute_subpixel_profiles_and_sinogram_traditional(
                     cropped,
@@ -491,9 +499,9 @@ def run_pipeline_psf():
                     resample2,
                 )
             )
-            print("Using oversampling strategy 1 (traditional).")
 
         elif oversample_strategy == 2:
+            print("Using oversampling strategy 2 (3-step).")
             sub_profiles, sub_sinogram = (
                 sr.compute_subpixel_profiles_and_sinogram_3step(
                     cropped,
@@ -509,7 +517,6 @@ def run_pipeline_psf():
                     resample2,
                 )
             )
-            print("Using oversampling strategy 2 (3-step).")
         else:
             raise ValueError(f"Invalid oversample strategy: {oversample_strategy}")
 
