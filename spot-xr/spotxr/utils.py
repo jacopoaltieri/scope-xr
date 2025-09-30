@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import imageio.v3 as iio
 
 
 def eval_minimum_magnification(a: float, n: int, p: float) -> float:
@@ -39,6 +40,29 @@ def crop_square_roi(
             cmap="gray",
         )
     return cropped
+
+
+def save_16bit_tiff(data: np.ndarray, path: str):
+    """Scales and saves a NumPy array as a 16-bit grayscale TIFF."""
+    # 1. Normalize the data to the 0-1 range
+    data_min = data.min()
+    data_max = data.max()
+    
+    if data_max == data_min:
+        # Handle constant images (scale to 0 or 65535, depending on value)
+        if data_min == 0:
+            normalized_data = np.zeros_like(data)
+        else:
+            normalized_data = np.ones_like(data)
+    else:
+        normalized_data = (data - data_min) / (data_max - data_min)
+    
+    # 2. Scale to 0-65535 and convert to uint16
+    # Rounding is important before conversion
+    scaled_data = np.round(normalized_data * 65535).astype(np.uint16)
+    
+    # 3. Save using imageio with lossless compression
+    iio.imwrite(path, scaled_data, compression='deflate')
 
 
 def interpolate_nans_1d(y):

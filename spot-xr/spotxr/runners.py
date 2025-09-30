@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+
 from spotxr import utils, plotters
 import spotxr.arg_parser_fs as afs
 import spotxr.arg_parser_psf as apsf
@@ -128,9 +129,9 @@ def run_pipeline_fs():
     saved_files = []
 
     def save_and_plot(name, arr, plot_func=None, suffix=""):
-        fname = f"{name}{suffix}.png" if not name.endswith(".png") else name
+        fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
         path = os.path.join(out_dir, fname)
-        plt.imsave(path, arr, cmap="gray")
+        utils.save_16bit_tiff(arr, path)
         saved_files.append(path)
         if plot_func:
             plot_func(arr, out_dir, show_plots)
@@ -355,9 +356,9 @@ def run_pipeline_psf():
     saved_files = []
 
     def save_and_plot(name, arr, plot_func=None, suffix=""):
-        fname = f"{name}{suffix}.png" if not name.endswith(".png") else name
+        fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
         path = os.path.join(out_dir, fname)
-        plt.imsave(path, arr, cmap="gray")
+        utils.save_16bit_tiff(arr, path)
         saved_files.append(path)
         if plot_func:
             plot_func(arr, out_dir, show_plots)
