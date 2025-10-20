@@ -20,7 +20,7 @@
 ---
 
 # Introduction 
-SPOT-XR (Single-image Profiling Of Tube X-ray sources and detector Response) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of a detector starting from a single acquisition of a circular cut-out or disk test object. This package aims to:
+SCOPE-XR (Single-image Characterization Of PErformance in X-Rays) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of a detector starting from a single acquisition of a circular cut-out or disk test object. This package aims to:
 - Focal Spot: automate the image analysis process first developed by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins)
 - PSF: provide the code for the method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach)
 
