@@ -2,13 +2,14 @@
 - [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
   - [Installing scope-xr](#installing-scope-xr)
+  - [Supported Image Formats](#supported-image-formats)
 - [Usage](#usage)
-    - [Default Execution](#default-execution)
-    - [Supported Image Formats](#supported-image-formats)
-    - [Overriding Configuration Parameters](#overriding-configuration-parameters)
-  - [Available CLI Flags](#available-cli-flags)
-    - [Focal Spot CLI](#focal-spot-cli)
-    - [PSF CLI](#psf-cli)
+    - [GUI Execution](#gui-execution)
+    - [CLI Execution](#cli-execution)
+      - [Overriding Configuration Parameters](#overriding-configuration-parameters)
+      - [Available CLI Flags](#available-cli-flags)
+        - [Focal Spot CLI](#focal-spot-cli)
+        - [PSF CLI](#psf-cli)
   - [Processing Pipeline](#processing-pipeline)
     - [1. Input Image](#1-input-image)
     - [2. Circle Detection Check](#2-circle-detection-check)
@@ -19,7 +20,7 @@
 
 ---
 
-# Introduction 
+# Introduction
 SCOPE-XR (Single-image Characterization Of PErformance in X-Rays) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of a detector starting from a single acquisition of a circular cut-out or disk test object. This package aims to:
 - Focal Spot: automate the image analysis process first developed by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins)
 - PSF: provide the code for the method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach)
@@ -31,21 +32,47 @@ Since this package is not distributed yet, users will need to clone the GitHub r
 Run the command:
 
 ```bash
-git clone "https://github.com/jacopoaltieri/scope-xr"
+git clone "[https://github.com/jacopoaltieri/scope-xr](https://github.com/jacopoaltieri/scope-xr)"
 ```
 
-Then install the dependencies:
+Then install the dependencies. 
 
 ```bash
 pip install -r requirements.txt
 ```
 
+## Supported Image Formats
+
+The supported input image formats are:
+
+- `.png`
+- `.tif`
+- `.raw` (must be accompanied by a corresponding `.xml` metadata file)
+
 # Usage
 
-The program supports configurable execution via a YAML configuration file. For each method (**Focal Spot** and **PSF**), a different YAML file is used, each containing its own set of parameters. By default, the program loads the respective file and uses the defined parameters. Additionally, command-line arguments (CLI) can be used to override specific settings at runtime. This allows for setup-specific configuration without the need to repeatedly pass the same arguments.
+The program supports configurable execution via a YAML configuration file. For each method (**Focal Spot** and **PSF**), a different YAML file is used, each containing its own set of parameters. By default, the program loads the respective file and uses the defined parameters. Additionally specific settings can be overwritten at runtime. This allows for setup-specific configuration without the need to repeatedly pass the same arguments.
 
-### Default Execution
+For an easier use, the GUI can be used and the parameters are edited directly from there.
+Alternatively, the program can be run from terminal with the corresponding CLI flags.
 
+### GUI Execution
+The GUI provides an easy-to-use interface with all settings and parameters available in one window. It is the recommended way to use SCOPE-XR.
+To run the GUI, execute the following command from the repository's root directory:
+```bash
+python gui.py
+```
+
+GUI Features:
+- **Easy Mode Selection**: Separate tabs for "Focal Spot (FS)" and "PSF" analysis.
+- **Automatic Configuration**: The GUI automatically loads all default parameters from `fs_args.yaml` or `psf_args.yaml` on startup.
+- **Image Preview**: Load any .png or .tif image to see a preview directly in the app.
+- **Full Parameter Control**: All CLI flags are represented by interactive widgets (spin boxes, checkboxes, etc.).
+- **Edit Config Files**: A button allows you to directly open and edit the default .yaml config file for the active tab.
+- **Live Output**: All console output from the analysis script is printed directly to a text box within the GUI.
+  
+### CLI Execution
+For advanced users or for integrating into scripts, the CLI remains fully functional.
 To run the program with the default settings (as defined in `fs_args.yaml` or `psf_args.yaml`), use the following commands:
 
 - **Focal Spot:**
@@ -58,15 +85,8 @@ To run the program with the default settings (as defined in `fs_args.yaml` or `p
   python psf_main.py --f "path/to/img.png"
   ```
 
-### Supported Image Formats
 
-The supported input image formats are:
-
-- `.png`
-- `.tif`
-- `.raw` (must be accompanied by a corresponding `.xml` metadata file)
-
-### Overriding Configuration Parameters
+#### Overriding Configuration Parameters
 
 You can override any configuration value directly from the command line by adding the corresponding flag. For example:
 
@@ -77,8 +97,8 @@ python fs_main.py --f "path/to/img.png" --p 0.2
 In this case, the pixel size will be set to `0.2 mm` instead of the default value specified in the YAML file.
 
 
-## Available CLI Flags
-### Focal Spot CLI
+#### Available CLI Flags
+##### Focal Spot CLI
 
 | **Flag**                | **Description**                                                                                                                               |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -95,7 +115,7 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 | `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                         |
 | `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                                   |
 | `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter.          |
-| `--avg_number` (int)    | Number of profiles to average, must be odd. Only used if `--avg` is true
+| `--avg_number` (int)    | Number of profiles to average, must be odd. Only used if `--avg` is true                                                                      |
 | `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                                |
 | `--shift`               | Enable automatic sinogram shifting.                                                                                                           |
 | `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                                    |
@@ -103,35 +123,35 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 | `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                                      |
 | `--show`                | Display plots during processing (matplotlib windows).                                                                                         |
 
-### PSF CLI
+##### PSF CLI
 
-| **Flag**                | **Description**                                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `--config` (str)        | Path to the YAML configuration file.                                                                                                 |
-| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`).                                                                               |
-| `--o` (str)             | Output directory to store results.                                                                                                   |
-| `--p` (float)           | Pixel size in mm.                                                                                                                    |
-| `--d` (float)           | Physical diameter of the circular object in mm.                                                                                      |
-| `--no_hough`            | Skip Hough Transform for automatic circle detection.                                                                                 |
-| `--nangles` (int)       | Number of angular projections for profile extraction.                                                                                |
-| `--hl` (int)            | Half length of the extracted radial profiles.                                                                                        |
-| `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                |
-| `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                          |
-| `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter. |
-| `--avg_number` (int)    | Number of profiles to average, must be odd. Only used if `--avg` is true
-| `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                       |
-| `--dtheta`              | Angle of the circular sector for oversampling (in degrees).                                                                          |
-| `--resample1`           | First resample factor (fine grid), used only with 3-step oversampling.                                                                                                   |
-| `--resample2`           | Second resample factor (coarse grid). This will be the final oversampling factor.                                                    |
-| `--gaussian_sigma`      | Standard deviation of the gaussian blur applied between the fine and the coarse resampling, used only with 3-step oversampling.                                          |
-| `--oversample_strategy` | Choose oversampling strategy: `1` or `2`. Default is `1` when oversampling is enabled. `1` is the traditional oversampling method, `2` is the 3-step method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach).                                        |
-| `--shift`               | Enable automatic sinogram shifting.                                                                                                  |
-| `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                           |
-| `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation.                                                                    |
-| `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                             |
-| `--oversample`          | Performs oversampling.                                                                                                               |
-| `--no_oversample`       | Disables oversampling. (*Mutually exclusive with* `--oversample`)                                                                     |
-| `--show`                | Display plots during processing (matplotlib windows).                                                                                 |
+| **Flag**                | **Description**                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--config` (str)        | Path to the YAML configuration file.                                                                                                                                                                                                                                                                                                                              |
+| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`).                                                                                                                                                                                                                                                                                                            |
+| `--o` (str)             | Output directory to store results.                                                                                                                                                                                                                                                                                                                                |
+| `--p` (float)           | Pixel size in mm.                                                                                                                                                                                                                                                                                                                                                 |
+| `--d` (float)           | Physical diameter of the circular object in mm.                                                                                                                                                                                                                                                                                                                   |
+| `--no_hough`            | Skip Hough Transform for automatic circle detection.                                                                                                                                                                                                                                                                                                              |
+| `--nangles` (int)       | Number of angular projections for profile extraction.                                                                                                                                                                                                                                                                                                             |
+| `--hl` (int)            | Half length of the extracted radial profiles.                                                                                                                                                                                                                                                                                                                     |
+| `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                                                                                                                                                                                                                                             |
+| `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                                                                                                                                                                                                                                                       |
+| `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter.                                                                                                                                                                                                                              |
+| `--avg_number` (int)    | Number of profiles to average, must be odd. Only used if `--avg` is true                                                                                                                                                                                                                                                                                          |
+| `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                                                                                                                                                                                                                                                    |
+| `--dtheta`              | Angle of the circular sector for oversampling (in degrees).                                                                                                                                                                                                                                                                                                       |
+| `--resample1`           | First resample factor (fine grid), used only with 3-step oversampling.                                                                                                                                                                                                                                                                                            |
+| `--resample2`           | Second resample factor (coarse grid). This will be the final oversampling factor.                                                                                                                                                                                                                                                                                 |
+| `--gaussian_sigma`      | Standard deviation of the gaussian blur applied between the fine and the coarse resampling, used only with 3-step oversampling.                                                                                                                                                                                                                                   |
+| `--oversample_strategy` | Choose oversampling strategy: `1` or `2`. Default is `1` when oversampling is enabled. `1` is the traditional oversampling method, `2` is the 3-step method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach). |
+| `--shift`               | Enable automatic sinogram shifting.                                                                                                                                                                                                                                                                                                                               |
+| `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                                                                                                                                                                                                                                                        |
+| `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation.                                                                                                                                                                                                                                                                                                 |
+| `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                                                                                                                                                                                                                                                          |
+| `--oversample`          | Performs oversampling.                                                                                                                                                                                                                                                                                                                                            |
+| `--no_oversample`       | Disables oversampling. (*Mutually exclusive with* `--oversample`)                                                                                                                                                                                                                                                                                                 |
+| `--show`                | Display plots during processing (matplotlib windows).                                                                                                                                                                                                                                                                                                             |
                                                                      
 
 ## Processing Pipeline
