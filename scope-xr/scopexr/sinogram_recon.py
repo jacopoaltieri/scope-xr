@@ -2,7 +2,7 @@ import numpy as np
 import tifffile
 from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
 from skimage.transform import iradon
-from spotxr.utils import interpolate_nans_1d
+from scopexr.utils import interpolate_nans_1d
 
 
 def _check_phl(

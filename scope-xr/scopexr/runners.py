@@ -3,14 +3,14 @@ import numpy as np
 import os
 
 
-from spotxr import utils, plotters
-import spotxr.arg_parser_fs as afs
-import spotxr.arg_parser_psf as apsf
-import spotxr.circle_detection as circ
-import spotxr.image_opening as io
-import spotxr.mtf_calc as mtfc
-import spotxr.sinogram_recon as sr
-import spotxr.widths_calculator as wc
+from scopexr import utils, plotters
+import scopexr.arg_parser_fs as afs
+import scopexr.arg_parser_psf as apsf
+import scopexr.circle_detection as circ
+import scopexr.image_opening as io
+import scopexr.mtf_calc as mtfc
+import scopexr.sinogram_recon as sr
+import scopexr.widths_calculator as wc
 
 
 def run_pipeline_fs():
