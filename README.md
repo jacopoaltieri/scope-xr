@@ -1,7 +1,7 @@
 # Table of Contents
 - [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
-  - [Installing spot-xr](#installing-spot-xr)
+  - [Installing scope-xr](#installing-scope-xr)
 - [Usage](#usage)
     - [Default Execution](#default-execution)
     - [Supported Image Formats](#supported-image-formats)
@@ -24,14 +24,14 @@ SCOPE-XR (Single-image Characterization Of PErformance in X-Rays) is a Python pa
 - Focal Spot: automate the image analysis process first developed by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins)
 - PSF: provide the code for the method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach)
 
-## Installing spot-xr
+## Installing scope-xr
 
 Since this package is not distributed yet, users will need to clone the GitHub repository and install the required packages before using it.
 
 Run the command:
 
 ```bash
-git clone "https://github.com/jacopoaltieri/spot-xr"
+git clone "https://github.com/jacopoaltieri/scope-xr"
 ```
 
 Then install the dependencies:
