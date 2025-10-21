@@ -74,6 +74,7 @@ def get_merged_config():
         "o": "out_dir",
         "p": "pixel_size",
         "d": "circle_diameter",
+        "no_hough": "no_hough",
         "m": "magnification",
         "n": "min_n",
         "nangles": "n_angles",
