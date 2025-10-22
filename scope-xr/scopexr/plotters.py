@@ -72,6 +72,7 @@ def plot_profiles_and_reconstruction(
     plt.close()
 
 
+
 def plot_profiles_with_fwhm(
     radial,
     prof_wide_sino,
@@ -90,29 +91,36 @@ def plot_profiles_with_fwhm(
     fig, ax = plt.subplots(figsize=(8, 4))
 
     # Plot the two sinogram profiles
-    ax.plot(radial, prof_wide_sino, label=f"Widest (idx={wide_idx})")
-    ax.plot(radial, prof_narrow_sino, label=f"Narrowest (idx={narrow_idx})")
+    ax.plot(radial, prof_wide_sino, label=f"Widest (idx={wide_idx})",color='teal')
+    ax.plot(radial, prof_narrow_sino, label=f"Narrowest (idx={narrow_idx})", color='orange')
 
     # Compute half-max levels
     half_w = (prof_wide_sino.max() + prof_wide_sino.min()) / 2.0
     half_n = (prof_narrow_sino.max() + prof_narrow_sino.min()) / 2.0
 
+    # Interpolate radial coordinates at fractional indices
+    idx = np.arange(len(radial))
+    lw_val = np.interp(lw, idx, radial)
+    rw_val = np.interp(rw, idx, radial)
+    ln_val = np.interp(ln, idx, radial)
+    rn_val = np.interp(rn, idx, radial)
+
     # Draw the half-max horizontal lines spanning between left/right edges
     ax.hlines(
         half_w,
-        radial[lw],
-        radial[rw],
-        linestyles="--",
-        color="red",
-        label=f"Widest FWHM = {fw}px",
+        lw_val,
+        rw_val,
+        linestyles="-.",
+        color="teal",
+        label=f"Widest FWHM = {fw:.2f}px",
     )
     ax.hlines(
         half_n,
-        radial[ln],
-        radial[rn],
+        ln_val,
+        rn_val,
         linestyles="--",
-        color="red",
-        label=f"Narrowest FWHM = {fn}px",
+        color="orange",
+        label=f"Narrowest FWHM = {fn:.2f}px",
     )
 
     ax.grid(which="major", linestyle="-", linewidth=0.8, alpha=0.7)

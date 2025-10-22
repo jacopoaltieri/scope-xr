@@ -3,39 +3,82 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 
 
-def fwhm(sinogram: np.ndarray) -> tuple[int, int, int]:
+# def fwhm(sinogram: np.ndarray) -> tuple[int, int, int]:
+#     """
+#     Compute the full width at half maximum (FWHM) of a 1D sinogram profile.
+
+#     Args:
+#         sinogram: 1D array representing a single profile from the sinogram.
+
+#     Returns:
+#         width_px: Width in pixels between half-maximum crossings.
+#         left_idx: Index of the left half-maximum crossing.
+#         right_idx: Index of the right half-maximum crossing.
+#     """
+#     half_max = (sinogram.max() + sinogram.min()) / 2.0
+#     n = len(sinogram)
+#     center = n // 2
+
+#     left_edge = None
+#     for i in range(center, -1, -1):
+#         if sinogram[i] < half_max:
+#             left_edge = i
+#             break
+#     left = (left_edge + 1) if left_edge is not None else 0
+
+#     right_edge = None
+#     for i in range(center, n):
+#         if sinogram[i] < half_max:
+#             right_edge = i
+#             break
+#     right = (right_edge - 1) if right_edge is not None else (n - 1)
+
+#     width = right - left
+#     return width, left, right
+def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     """
-    Compute the full width at half maximum (FWHM) of a 1D sinogram profile.
+    Compute the Full Width at Half Maximum (FWHM) of a 1D profile using
+    linear interpolation between half-maximum crossings.
 
     Args:
-        sinogram: 1D array representing a single profile from the sinogram.
+        profile: 1D array representing a single profile (e.g. from a sinogram).
 
     Returns:
-        width_px: Width in pixels between half-maximum crossings.
-        left_idx: Index of the left half-maximum crossing.
-        right_idx: Index of the right half-maximum crossing.
+        width: Width in pixels between half-maximum crossings (float, interpolated)
+        left_idx: Fractional index of left half-maximum crossing
+        right_idx: Fractional index of right half-maximum crossing
     """
-    half_max = (sinogram.max() + sinogram.min()) / 2.0
-    n = len(sinogram)
-    center = n // 2
+    profile = np.asarray(profile)
+    n = len(profile)
 
-    left_edge = None
-    for i in range(center, -1, -1):
-        if sinogram[i] < half_max:
-            left_edge = i
+    # Find peak and half-maximum
+    peak_idx = np.argmax(profile)
+    peak_val = profile[peak_idx]
+    min_val = np.min(profile)
+    half_max = min_val + 0.5 * (peak_val - min_val)
+
+    # --- Find left half-maximum crossing ---
+    left_idx = None
+    for i in range(peak_idx, 0, -1):
+        if profile[i] < half_max <= profile[i + 1]:
+            # Linear interpolation between i and i+1
+            frac = (half_max - profile[i]) / (profile[i + 1] - profile[i])
+            left_idx = i + frac
             break
-    left = (left_edge + 1) if left_edge is not None else 0
 
-    right_edge = None
-    for i in range(center, n):
-        if sinogram[i] < half_max:
-            right_edge = i
+    # --- Find right half-maximum crossing ---
+    right_idx = None
+    for i in range(peak_idx, n - 1):
+        if profile[i] >= half_max > profile[i + 1]:
+            frac = (half_max - profile[i]) / (profile[i + 1] - profile[i])
+            right_idx = i + frac
             break
-    right = (right_edge - 1) if right_edge is not None else (n - 1)
 
-    width = right - left
-    return width, left, right
+    if left_idx is None or right_idx is None:
+        return np.nan, np.nan, np.nan  # no valid FWHM found
 
+    width = right_idx - left_idx
+    return width, left_idx, right_idx
 
 def fwhm_from_sigma(sigma: float) -> float:
     """
