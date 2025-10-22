@@ -26,6 +26,7 @@ def get_merged_config():
     parser.add_argument("--nangles", type=int, help="Number of angles")
     parser.add_argument("--hl", type=int, help="Half profile length")
     parser.add_argument("--ds", type=int, help="Derivative step size")
+    parser.add_argument("--axis_shifts", type=int, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--avg_number", type=int, help="Number of profiles to average")
     parser.add_argument("--sym", action="store_true", help="Symmetrize the sinogram")
@@ -119,6 +120,7 @@ def get_merged_config():
         "nangles": "n_angles",
         "hl": "profile_half_length",
         "ds": "derivative_step",
+        "axis_shifts": "axis_shifts",
         "filter": "filter_name",
         "sym": "symmetrize",
         "shift_sino": "shift_sino",
