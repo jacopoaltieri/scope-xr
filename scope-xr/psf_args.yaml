@@ -5,6 +5,7 @@ no_hough: false
 n_angles: 360
 profile_half_length: 50
 derivative_step: 1
+axis_shifts: 10
 filter_name: "ramp"
 symmetrize: false
 shift_sino: true
