@@ -45,7 +45,7 @@ class RunThread(QThread):
                 capture_output=True,
                 text=True,
                 check=True,
-                encoding='utf-8',
+                encoding='cp1252' if is_windows else 'utf-8',
                 shell=is_windows
             )
             self.output.emit(process.stdout)
