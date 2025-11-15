@@ -478,9 +478,9 @@ def run_pipeline_psf():
     # ----------------------------------------------------------------------------------#
     # Oversampling section
     if oversample:
-        max_os_angle = utils.suggest_os_angle(pixel_size, profile_half_length, radius*pixel_size)
+        max_os_angle = utils.suggest_os_angle(pixel_size, resample2, radius)
         print(f"Suggested maximum oversampling angle to avoid cross-talk: {max_os_angle:.2f}°")
-        if dtheta >= max_os_angle:
+        if dtheta > max_os_angle:
             print(
                 f"Caution!: The provided oversampling angle {dtheta}° is larger than the suggested maximum {max_os_angle:.2f}°. This may cause cross-talk between neighboring profiles."
             )
@@ -599,10 +599,10 @@ def run_pipeline_psf():
 
         # Compute MTF in horizontal and vertical directions
         freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
-            recon_sub, axis=0, pixel_size=pixel_size * resample2
+            recon_sub, axis=0, pixel_size=pixel_size / resample2
         )
         freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
-            recon_sub, axis=1, pixel_size=pixel_size * resample2
+            recon_sub, axis=1, pixel_size=pixel_size / resample2
         )
 
         print(f"MTF10 horizontal oversampled: {mtf10_h:.3f} cycles/mm")

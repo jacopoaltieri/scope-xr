@@ -45,7 +45,7 @@ def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
     # Compute FFT and frequencies
     otf_1d = np.fft.fft(lsf)
     mtf_1d = np.abs(otf_1d)
-    mtf_1d = mtf_1d / np.max(mtf_1d)
+    mtf_1d = mtf_1d / mtf_1d[0]  # Normalize to 1 at zero frequency
 
     freq = np.fft.fftfreq(lsf.size, d=pixel_size)
 
@@ -73,3 +73,17 @@ def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
         mtf10_freq = np.nan  # Not reached
 
     return freq_pos, mtf_pos, mtf10_freq
+
+if __name__ == "__main__":
+    psf_path = r"C:\Users\jacop\Desktop\PhD\Focal Spot\Input images\virtual_images\psf\PSF-downsampled.png"
+    from imageio import imread
+    from scopexr.plotters import plot_1d_mtf
+    psf = imread(psf_path, )
+    psf = psf / np.sum(psf)
+    pixel_size = 0.154  # mm
+    freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
+    print(f"MTF10 frequency: {mtf10} cycles/mm")
+    plot_1d_mtf(
+        freq,mtf_1d, pixel_size,
+        out_path="mtf_1d_example.png",mtf10_freq=mtf10, show_plots=True
+    )

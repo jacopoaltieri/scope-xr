@@ -147,7 +147,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     # Set up radial grid for interpolation
     min_r = -profile_half_length
     max_r = profile_half_length
-    r_grid = np.arange(min_r, max_r + resample_radial, resample_radial)
+    r_grid = np.arange(min_r, max_r + 1/resample_radial, 1/resample_radial)
     n_bins = r_grid.size
 
     # Initialize profiles array (angles x radial positions)
@@ -229,11 +229,11 @@ def compute_subpixel_profiles_and_sinogram_3step(
     # precompute oversampling grids
     min_r = -profile_half_length
     max_r = profile_half_length
-    n_bins_final = int(np.ceil((max_r - min_r) / resample2))
+    n_bins_final = int(np.ceil((max_r - min_r) * resample2))
     final_r = np.linspace(min_r, max_r, n_bins_final )
 
     # Fine grid used for interpolation/smoothing
-    n_bins_fine = int(np.ceil((max_r - min_r) / resample1))
+    n_bins_fine = int(np.ceil((max_r - min_r) * resample1))
     fine_r = np.linspace(final_r[0], final_r[-1], n_bins_fine)
 
     profile_length = final_r.size  # number of samples in radial direction
@@ -255,7 +255,7 @@ def compute_subpixel_profiles_and_sinogram_3step(
         profile_fine = np.interp(fine_r, r_vals, intens)
 
         # smooth with Gaussian filter
-        smooth = gaussian_filter1d(profile_fine, gaussian_sigma / resample1)
+        smooth = gaussian_filter1d(profile_fine, gaussian_sigma * resample1)
 
         # resampling to actual subsample grid
         profile_oversampled = np.interp(final_r, fine_r, smooth)

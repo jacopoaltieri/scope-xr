@@ -36,11 +36,11 @@ def get_merged_config():
         help="Angle of circular sector for oversampling in degrees",
     )
     parser.add_argument(
-        "--resample1", type=float, help="First resample factor (fine grid)."
+        "--resample1", type=int, help="First resample factor (fine grid)."
     )
     parser.add_argument(
         "--resample2",
-        type=float,
+        type=int,
         help="Second resample factor (coarse grid). This will be the final oversampling factor.",
     )
     parser.add_argument(

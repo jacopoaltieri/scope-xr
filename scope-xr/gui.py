@@ -377,13 +377,11 @@ class ScopeXRApp(QMainWindow):
         layout.addRow("Oversample Angle (deg) [--dtheta]:", self.psf_dtheta)
 
         self.psf_resample1 = QDoubleSpinBox()
-        self.psf_resample1.setDecimals(3) # Increased precision for 0.002
-        self.psf_resample1.setValue(config_data.get('resample1', 5.0))
+        self.psf_resample1.setValue(config_data.get('resample1', 5))
         layout.addRow("Resample 1 (fine) [--resample1]:", self.psf_resample1)
 
         self.psf_resample2 = QDoubleSpinBox()
-        self.psf_resample2.setDecimals(2)
-        self.psf_resample2.setValue(config_data.get('resample2', 2.0))
+        self.psf_resample2.setValue(config_data.get('resample2', 2))
         layout.addRow("Resample 2 (coarse) [--resample2]:", self.psf_resample2)
 
         self.psf_gaussian_sigma = QDoubleSpinBox()
