@@ -220,12 +220,13 @@ class ScopeXRApp(QMainWindow):
         layout.addRow("Output Dir [--o]:", self.fs_output_dir)
         
         self.fs_pixel_size = QDoubleSpinBox()
-        self.fs_pixel_size.setDecimals(4)
+        self.fs_pixel_size.setDecimals(10)
         self.fs_pixel_size.setValue(config_data.get('pixel_size', 0.1))
         layout.addRow("Pixel Size (mm) [--p]:", self.fs_pixel_size)
 
         self.fs_diameter = QDoubleSpinBox()
         self.fs_diameter.setDecimals(2)
+        self.fs_diameter.setRange(0.01, 1000.0)
         self.fs_diameter.setValue(config_data.get('circle_diameter', 1.0))
         layout.addRow("Object Diameter (mm) [--d]:", self.fs_diameter)
 
@@ -252,7 +253,7 @@ class ScopeXRApp(QMainWindow):
         layout.addRow("Num. Angles [--nangles]:", self.fs_nangles)
         
         self.fs_half_length = QSpinBox()
-        self.fs_half_length.setRange(10, 1000)
+        self.fs_half_length.setRange(1, 10_000)
         self.fs_half_length.setValue(config_data.get('profile_half_length', 100)) # Key was 'profile_half_length'
         layout.addRow("Profile Half-Length [--hl]:", self.fs_half_length)
 
@@ -324,12 +325,13 @@ class ScopeXRApp(QMainWindow):
         layout.addRow("Output Dir [--o]:", self.psf_output_dir)
         
         self.psf_pixel_size = QDoubleSpinBox()
-        self.psf_pixel_size.setDecimals(4)
+        self.psf_pixel_size.setDecimals(10)
         self.psf_pixel_size.setValue(config_data.get('pixel_size', 0.1)) # Key was 'pixel_size'
         layout.addRow("Pixel Size (mm) [--p]:", self.psf_pixel_size)
 
         self.psf_diameter = QDoubleSpinBox()
         self.psf_diameter.setDecimals(2)
+        self.psf_diameter.setRange(0.01, 1000.0)
         self.psf_diameter.setValue(config_data.get('circle_diameter', 1.0)) # Key was 'circle_diameter'
         layout.addRow("Object Diameter (mm) [--d]:", self.psf_diameter)
 
@@ -343,7 +345,7 @@ class ScopeXRApp(QMainWindow):
         layout.addRow("Num. Angles [--nangles]:", self.psf_nangles)
         
         self.psf_half_length = QSpinBox()
-        self.psf_half_length.setRange(10, 1000)
+        self.psf_half_length.setRange(1, 10_000)
         self.psf_half_length.setValue(config_data.get('profile_half_length', 100)) # Key was 'profile_half_length'
         layout.addRow("Profile Half-Length [--hl]:", self.psf_half_length)
 
