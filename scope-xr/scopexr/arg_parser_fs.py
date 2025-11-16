@@ -44,7 +44,7 @@ def get_merged_config():
         action="store_false",
         help="Disable sinogram shifting",
     )
-    parser.set_defaults(shift_sino=True)
+    parser.set_defaults(shift_sino=None)
 
     avg_group = parser.add_mutually_exclusive_group()
     avg_group.add_argument(
@@ -59,7 +59,7 @@ def get_merged_config():
         action="store_false",
         help="Disable averaging neighboring profiles",
     )
-    parser.set_defaults(avg_neighbors=True)
+    parser.set_defaults(avg_neighbors=None)
 
     args, unknown = parser.parse_known_args()
     passed_flags = {
