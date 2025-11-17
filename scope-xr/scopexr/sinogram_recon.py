@@ -1,6 +1,7 @@
 import numpy as np
 import tifffile
 from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
+from scipy.stats import binned_statistic
 from skimage.transform import iradon
 from scopexr.utils import interpolate_nans_1d
 
@@ -169,9 +170,37 @@ def compute_subpixel_profiles_and_sinogram_traditional(
         idx = np.argsort(r_vals)
         r_vals = r_vals[idx]
         intensities = intensities[idx]
+        bin_edges = np.append(r_grid, r_grid[-1] + (1/resample_radial))
 
         # Interpolate to uniform grid
-        interp_vals = np.interp(r_grid, r_vals, intensities)
+        # Handle empty wedge case to avoid interp error
+        if r_vals.size > 0:
+            # 'statistic="mean"': averages all intensities in each bin
+            # 'bins=bin_edges': uses your high-res grid as the bins
+            # 'x=r_vals': the positions of the blue dots
+            # 'values=intensities': the values of the blue dots
+            bin_means, _, _ = binned_statistic(
+                r_vals,
+                intensities,
+                statistic='mean',
+                bins=bin_edges
+            )
+            
+            # bin_means will have NaN for any bin that had 0 points.
+            # We must fill these small gaps.
+            nan_mask = np.isnan(bin_means)
+            if np.any(nan_mask) and not np.all(nan_mask):
+                # Create an x-coordinate array for interpolation
+                x = np.arange(bin_means.size)
+                # Interpolate ONLY the nan values
+                bin_means[nan_mask] = np.interp(
+                    x[nan_mask], # points to interpolate
+                    x[~nan_mask], # known x's
+                    bin_means[~nan_mask] # known y's
+                )
+            interp_vals = bin_means
+        else:
+            interp_vals = np.full(r_grid.shape, np.nan)
         profiles[i, :] = interp_vals
 
     # Compute radial derivative
