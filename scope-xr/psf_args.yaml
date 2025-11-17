@@ -24,7 +24,7 @@ hough_params: # Hough transform parameters (typically do not need to be changed)
   min_dist: 100 # Minimum distance between detected centers
   param1: 70 # Upper threshold for Canny edge detector
   param2: 40 # Threshold for center detection
-  min_radius: 1 # Minimum circle radius
-  max_radius: 100 # Maximum circle radius (0 to use no maximum)
+  min_radius: 100 # Minimum circle radius
+  max_radius: 0 # Maximum circle radius (0 to use no maximum)
   debug: false # Whether to show hough transform debug plots
 
