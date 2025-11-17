@@ -554,8 +554,8 @@ def run_pipeline_psf():
 
         popt_h_ov = pops_ov[h_idx]
         popt_v_ov = pops_ov[v_idx]
-        fw_h_ov = wc.fwhm_from_sigma(sigmas_ov[h_idx]) * resample2
-        fw_v_ov = wc.fwhm_from_sigma(sigmas_ov[v_idx]) * resample2
+        fw_h_ov = wc.fwhm_from_sigma(sigmas_ov[h_idx]) / resample2
+        fw_v_ov = wc.fwhm_from_sigma(sigmas_ov[v_idx]) / resample2
         print(f"Horizontal:   FWHM={fw_h_ov:.2f}px")
         print(f"Vertical: FWHM={fw_v_ov:.2f}px")
 
@@ -605,8 +605,8 @@ def run_pipeline_psf():
             recon_sub, axis=1, pixel_size=pixel_size / resample2
         )
 
-        print(f"MTF10 horizontal oversampled: {mtf10_h:.3f} cycles/mm")
-        print(f"MTF10 vertical oversampled:   {mtf10_v:.3f} cycles/mm")
+        print(f"MTF10 horizontal oversampled: {mtf10_h_ov:.3f} cycles/mm")
+        print(f"MTF10 vertical oversampled:   {mtf10_v_ov:.3f} cycles/mm")
 
         plotters.plot_1d_mtf(
             freq_h_ov,
