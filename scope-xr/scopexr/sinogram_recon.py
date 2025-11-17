@@ -82,18 +82,18 @@ def compute_profiles_and_sinogram(
         nx = np.cos(theta)
         ny = np.sin(theta)
 
-        # Sample points along the normal direction
-        profile = np.zeros(profile_length)
-        for j in range(profile_length):
-            d = j - profile_half_length
-            px = cx + (radius + d) * nx
-            py = cy + (radius + d) * ny
+        # Create radial coordinates
+        d_coords = np.arange(profile_length) - profile_half_length
 
-            # Interpolate pixel value
-            if 0 <= int(py) < img.shape[0] and 0 <= int(px) < img.shape[1]:
-                profile[j] = map_coordinates(img, [[py], [px]], order=1)[0]
-            else:
-                profile[j] = 0  # Zero padding if outside image
+        # Create 2D sample coordinates
+        px = cx + (radius + d_coords) * nx
+        py = cy + (radius + d_coords) * ny
+
+        # Sample all points at once
+        # mode='constant' and cval=0.0 fills out-of-bounds pixels with 0
+        profile = map_coordinates(
+            img, [py, px], order=1, mode='constant', cval=0.0
+        )
 
         profiles[i, :] = profile  # Store the radial profile
 
