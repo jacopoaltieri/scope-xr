@@ -60,10 +60,14 @@ def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     # --- Find left half-maximum crossing ---
     left_idx = None
     for i in range(peak_idx, 0, -1):
-        if profile[i] < half_max <= profile[i + 1]:
-            # Linear interpolation between i and i+1
-            frac = (half_max - profile[i]) / (profile[i + 1] - profile[i])
-            left_idx = i + frac
+        if profile[i] >= half_max > profile[i-1]: 
+            denominator = (profile[i] - profile[i-1])
+            if denominator == 0:
+                frac = 0.5 # avoid division by zero
+            else:
+                frac = (half_max - profile[i-1]) / denominator
+            
+            left_idx = (i - 1) + frac
             break
 
     # --- Find right half-maximum crossing ---
@@ -71,6 +75,56 @@ def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     for i in range(peak_idx, n - 1):
         if profile[i] >= half_max > profile[i + 1]:
             frac = (half_max - profile[i]) / (profile[i + 1] - profile[i])
+            right_idx = i + frac
+            break
+
+    if left_idx is None or right_idx is None:
+        return np.nan, np.nan, np.nan  # no valid FWHM found
+
+    width = right_idx - left_idx
+    return width, left_idx, right_idx
+
+def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
+    """
+    Compute the Full Width at Tenth Maximum (FWTM / 10% max) of a 1D profile
+    using linear interpolation between crossings.
+
+    Args:
+        profile: 1D array representing a single profile (e.g. from a sinogram).
+
+    Returns:
+        width: Width in pixels between 10% maximum crossings (float, interpolated)
+        left_idx: Fractional index of left 10% maximum crossing
+        right_idx: Fractional index of right 10% maximum crossing
+    """
+    profile = np.asarray(profile)
+    n = len(profile)
+
+    # Find peak and 10-maximum
+    peak_idx = np.argmax(profile)
+    peak_val = profile[peak_idx]
+    min_val = np.min(profile)
+    print(min_val)
+    ten_max = min_val + 0.1 * (peak_val - min_val)
+    print(ten_max)
+    # --- Find left half-maximum crossing ---
+    left_idx = None
+    for i in range(peak_idx, 0, -1):
+        if profile[i] >= ten_max > profile[i-1]: 
+            denominator = (profile[i] - profile[i-1])
+            if denominator == 0:
+                frac = 0.5 # avoid division by zero
+            else:
+                frac = (ten_max - profile[i-1]) / denominator
+            
+            left_idx = (i - 1) + frac
+            break
+
+    # --- Find right half-maximum crossing ---
+    right_idx = None
+    for i in range(peak_idx, n - 1):
+        if profile[i] >= ten_max > profile[i + 1]:
+            frac = (ten_max - profile[i]) / (profile[i + 1] - profile[i])
             right_idx = i + frac
             break
 

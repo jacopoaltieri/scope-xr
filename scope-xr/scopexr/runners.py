@@ -81,7 +81,7 @@ def run_pipeline_fs():
         x, y, r = hough_circle
         print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
         cropped = utils.crop_square_roi(
-            img, center=(x, y), radius=r, width_factor=1.5, output_path=out_dir
+            img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
         )
 
     cx, cy, radius = circ.estimate_circle(cropped)
@@ -178,10 +178,14 @@ def run_pipeline_fs():
     print(f"Widest:   FWHM={fw}px (from {lw} to {rw})")
     print(f"Narrowest: FWHM={fn}px (from {ln} to {rn})")
 
-    fw_erf = wc.fwhm_from_sigma(sigmas[wide_idx])
-    fn_erf = wc.fwhm_from_sigma(sigmas[narrow_idx])
-    print(f"Widest (ERF):   FWHM={fw_erf:.2f}px")
-    print(f"Narrowest (ERF): FWHM={fn_erf:.2f}px")
+    f10w,l10w,r10w = wc.fw10m(prof_wide_sino)
+    f10n,l10n,r10n = wc.fw10m(prof_narrow_sino)
+    print(f"Widest:   FW10M={f10w}px (from {l10w} to {r10w})")
+    print(f"Narrowest: FW10M={f10n}px (from {l10n} to {r10n})")
+    # fw_erf = wc.fwhm_from_sigma(sigmas[wide_idx])
+    # fn_erf = wc.fwhm_from_sigma(sigmas[narrow_idx])
+    # print(f"Widest (ERF):   FWHM={fw_erf:.2f}px")
+    # print(f"Narrowest (ERF): FWHM={fn_erf:.2f}px")
 
     n_rays = sinogram.shape[0]
     radial = np.arange(n_rays) - n_rays // 2
@@ -193,6 +197,7 @@ def run_pipeline_fs():
         prof_narrow_sino,
         wide_idx,
         narrow_idx,
+        0.5,
         fw,
         lw,
         rw,
@@ -200,6 +205,24 @@ def run_pipeline_fs():
         ln,
         rn,
         fwhm_path,
+        show_plots,
+    )
+    
+    fw10m_path = os.path.join(out_dir, "fw10m_sinogram_profiles.png")
+    plotters.plot_profiles_with_fwhm(
+        radial,
+        prof_wide_sino,
+        prof_narrow_sino,
+        wide_idx,
+        narrow_idx,
+        0.1,
+        f10w,
+        l10w,
+        r10w,
+        f10n,
+        l10n,
+        r10n,
+        fw10m_path,
         show_plots,
     )
 
@@ -230,11 +253,15 @@ def run_pipeline_fs():
     narrow_fs = wc.compute_fs_width(fn, pixel_size, m_fs)
     print(f"Widest focal spot width: {wide_fs:.3f} mm")
     print(f"Narrowest focal spot width: {narrow_fs:.3f} mm")
-
-    wide_fs_erf = wc.compute_fs_width(fw_erf, pixel_size, m_fs)
-    narrow_fs_erf = wc.compute_fs_width(fn_erf, pixel_size, m_fs)
-    print(f"Widest focal spot width (ERF): {wide_fs_erf:.3f} mm")
-    print(f"Narrowest focal spot width (ERF): {narrow_fs_erf:.3f} mm")
+    wide_fs10m = wc.compute_fs_width(f10w, pixel_size, m_fs)
+    narrow_fs10m = wc.compute_fs_width(f10n, pixel_size, m_fs)
+    print(f"Widest focal spot width (FW10M): {wide_fs10m:.3f} mm")
+    print(f"Narrowest focal spot width (FW10M): {narrow_fs10m:.3f} mm")
+    
+    # wide_fs_erf = wc.compute_fs_width(fw_erf, pixel_size, m_fs)
+    # narrow_fs_erf = wc.compute_fs_width(fn_erf, pixel_size, m_fs)
+    # print(f"Widest focal spot width (ERF): {wide_fs_erf:.3f} mm")
+    # print(f"Narrowest focal spot width (ERF): {narrow_fs_erf:.3f} mm")
 
     # Create results summary
     summary = [
@@ -244,9 +271,9 @@ def run_pipeline_fs():
         f"Magnification: image={m:.2f}x, focal spot={m_fs:.2f}x",
         f"Applied shift: {applied_shift}px ({axis_shifts})",
         f"FWHM classic: widest={fw}px (idx {wide_idx}), narrowest={fn}px (idx {narrow_idx})",
-        f"FWHM ERF:     widest={fw_erf:.2f}px, narrowest={fn_erf:.2f}px",
-        f"Spot size mm classic: widest={wide_fs:.2f}, narrowest={narrow_fs:.2f}",
-        f"Spot size mm ERF:     widest={wide_fs_erf:.3f}, narrowest={narrow_fs_erf:.3f}",
+        f"FW10M:     widest={f10w:.2f}px, narrowest={f10n:.2f}px",
+        f"Spot size mm (FWHM): widest={wide_fs:.2f}, narrowest={narrow_fs:.2f}",
+        f"Spot size mm (FW10M):     widest={wide_fs10m:.3f}, narrowest={narrow_fs10m:.3f}",
         f"Angles: wide={wide_idx*angle_step:.1f}°, narrow={narrow_idx*angle_step:.1f}°",
     ]
 
@@ -326,7 +353,7 @@ def run_pipeline_psf():
         x, y, r = hough_circle
         print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
         cropped = utils.crop_square_roi(
-            img, center=(x, y), radius=r, width_factor=1.5, output_path=out_dir
+            img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
         )
 
     cx, cy, radius = circ.estimate_circle(cropped)

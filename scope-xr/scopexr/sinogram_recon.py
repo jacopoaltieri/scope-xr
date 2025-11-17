@@ -283,16 +283,25 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift=None) -> int:
 
     half = n_angles // 2
     errors = {}
+    
     for delta in range(-max_shift, max_shift + 1):
         # shift the sinogram up/down
         sino_shifted = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
 
-        first = sino_shifted[:, :half]
-        second = sino_shifted[:, half:]
+
+        if delta > 0:
+            sino_valid = sino_shifted[delta:, :]
+        elif delta < 0:
+            sino_valid = sino_shifted[:delta, :]
+        else:
+            sino_valid = sino_shifted
+
+        # Now, calculate symmetry error only on the valid data
+        first = sino_valid[:, :half]
+        second = sino_valid[:, half:]
         second_flipped = np.flip(second, axis=0)  # flip top<->bottom
 
-        # compute mean squared difference
-        err = np.mean((first - second_flipped[:, ::-1]) ** 2)
+        err = np.mean((first - second_flipped) ** 2)
         errors[delta] = err
 
     # pick the delta with minimum error
@@ -316,11 +325,18 @@ def auto_center_sinogram(
     """
     delta = find_best_center_shift(sinogram, max_shift=max_shift)
     centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
-    if delta != 0:
-        # Crop symmetric margins
+    if delta > 0:
+            # Shift was DOWN, fill values are at the TOP. Crop the top.
+            crop = delta
+            return centered[crop:, :], delta
+            
+    elif delta < 0:
+        # Shift was UP, fill values are at the BOTTOM. Crop the bottom.
         crop = np.abs(delta)
-        return centered[crop:-crop, :], delta
+        return centered[:-crop, :], delta
+            
     else:
+        # No shift, no crop
         return centered, delta
 
 
