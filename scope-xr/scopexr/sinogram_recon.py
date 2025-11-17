@@ -285,7 +285,7 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift=None) -> int:
     errors = {}
     for delta in range(-max_shift, max_shift + 1):
         # shift the sinogram up/down
-        sino_shifted = shift(sinogram, shift=[delta, 0], order=1, mode="nearest")
+        sino_shifted = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
 
         first = sino_shifted[:, :half]
         second = sino_shifted[:, half:]
@@ -329,22 +329,25 @@ def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     Averages a full 360° sinogram into 180° by pairing angles θ and θ+180°.
 
     Args:
-        sino360: 2D array of shape (n_rays, 360).
+        sino360: 2D array of shape (n_rays, n_angles).
 
     Returns:
-        sino180: 2D array of shape (n_rays, 180), symmetrized sinogram.
+        sino180: 2D array of shape (n_rays, n_angles // 2), symmetrize_sinogram.
     """
     n_rays, n_angles = sino360.shape
     assert n_angles % 2 == 0, "Need an even number of angles"
     half = n_angles // 2
 
     # Split into first half [0..half-1] and second half [half..]
-    first = sino360[:, :half]
-    second = sino360[:, half:]
-    # Flip second in the angular axis so that θ+180 lines up with θ
-    second_flipped = np.flip(second, axis=1)
+    first = sino360[:, :half]    # This is theta = 0° to 179°
+    second = sino360[:, half:] # This is theta = 180° to 359°
+
+    # We need to average sino(r, theta) with sino(-r, theta + 180)
+    # Flipping axis 0 flips r -> -r
+    second_flipped_radially = np.flip(second, axis=0)
+
     # Average
-    sino180 = 0.5 * (first + second_flipped)
+    sino180 = 0.5 * (first + second_flipped_radially)
     return sino180
 
 
@@ -399,7 +402,7 @@ def reconstruct_with_axis_shifts(
     for delta in shifts:
         # shift sinogram vertically:
         #   shifting by +delta moves content down, so the effective axis moves up
-        shifted_sino = shift(sinogram, shift=[delta, 0], order=1, mode="nearest")
+        shifted_sino = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
 
         # reconstruct
         rec = iradon(shifted_sino, theta=theta, filter_name=filter_name)
