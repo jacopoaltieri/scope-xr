@@ -43,7 +43,7 @@ def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
     lsf = lsf / np.sum(lsf)
 
     # Compute FFT and frequencies
-    otf_1d = np.fft.fft(lsf)
+    otf_1d = np.fft.fft(np.fft.ifftshift(lsf))    
     mtf_1d = np.abs(otf_1d)
     mtf_1d = mtf_1d / mtf_1d[0]  # Normalize to 1 at zero frequency
 
