@@ -1,6 +1,6 @@
 out_dir: "./output_psf" # Directory to save results
-pixel_size: 0.154 # Pixel size in mm
-circle_diameter: 15 # Diameter of the circle in mm
+pixel_size: 0.1465 # Pixel size in mm
+circle_diameter: 100 # Diameter of the circle in mm
 no_hough: false # Whether to skip Hough transform
 n_angles: 360 # Number of projection angles
 profile_half_length: 50 # Half-length of the profile in pixels
@@ -8,7 +8,7 @@ derivative_step: 1 # Step size for derivative calculation
 axis_shifts: 10 # Number of axis shifts to produce
 filter_name: "ramp" # Filter name for reconstruction (ram, shepp-logan, cosine, hamming, hann, none)
 symmetrize: false # Whether to symmetrize the sinogram
-shift_sino: true # Whether to shift the sinogram
+shift_sino: true # Whether to automatically shift the sinogram
 avg_neighbors: false # Whether to average neighboring pixels
 avg_number: 3 # Number of neighboring pixels to average
 oversample: true # Whether to oversample the PSF

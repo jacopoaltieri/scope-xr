@@ -1,5 +1,5 @@
 out_dir: "./output_fs" # Directory to save results
-pixel_size: 0.154 # Pixel size in mm
+pixel_size: 0.1465 # Pixel size in mm
 circle_diameter: 10 # Diameter of the circle in mm
 no_hough: false # Whether to skip Hough transform
 magnification: null # Magnification factor (null to auto-calculate)
@@ -10,7 +10,7 @@ derivative_step: 1 # Step size for derivative calculation
 axis_shifts: 10 # Number of axis shifts to produce
 filter_name: "ramp" # Filter name for reconstruction (ram, shepp-logan, cosine, hamming, hann, none)
 symmetrize: false # Whether to symmetrize the sinogram
-shift_sino: true # Whether to shift the sinogram
+shift_sino: true # Whether to automatically shift the sinogram
 avg_neighbors: true # Whether to average neighboring pixels
 avg_number: 3 # Number of neighboring pixels to average
 show_plots: false # Whether to display plots
