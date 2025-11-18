@@ -427,6 +427,13 @@ def run_pipeline_psf():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
+    # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
+    shift_list = list(range(-axis_shifts, axis_shifts))
+    shift_tiff_path = os.path.join(out_dir, "recon_axis_shifts.tiff")
+    sr.reconstruct_with_axis_shifts(
+        sinogram, shift_tiff_path, filter_name, shifts=shift_list
+    )
+
     # Save and plot function
     saved_files = []
 
@@ -643,23 +650,27 @@ def run_pipeline_psf():
         else:
             raise ValueError(f"Invalid oversample strategy: {oversample_strategy}")
 
-    if manual_shift is not None:
-        print(f"Applying manual shift: {manual_shift} px")
-        centered_sino, applied_shift = sr.manual_center_sinogram(
-            sinogram, manual_shift * resample2
-        )  # Adjust shift for oversampled sinogram
-        sinogram = centered_sino
-    elif auto_shift:
-        print("Running automatic sinogram centering...")
-        centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
-        sinogram = centered_sino
-        print(f"Applied automatic axis shift: {applied_shift} px")
-
-    else:
-        # 3. No shift is applied (no_shift: True or all are False)
-        applied_shift = 0
-        print("Sinogram shifting is disabled.")
-        
+        applied_shift_ov = 0 # New variable for oversampled shift
+        if manual_shift is not None:
+            # Scale the manual shift (which is in 'normal' pixels)
+            manual_shift_ov = int(manual_shift * resample2)
+            print(f"Applying manual shift to oversampled sinogram: {manual_shift_ov} px")
+            # Apply shift to sub_sinogram
+            centered_sino, applied_shift_ov = sr.manual_center_sinogram(
+                sub_sinogram, manual_shift_ov 
+            )
+            sub_sinogram = centered_sino
+        elif auto_shift:
+            print("Running automatic sinogram centering (oversampled)...")
+            # Apply auto-shift to sub_sinogram
+            centered_sino, applied_shift_ov = sr.auto_center_sinogram(sub_sinogram)
+            sub_sinogram = centered_sino
+            print(f"Applied automatic axis shift: {applied_shift_ov} px (oversampled)")
+        else:
+            # No shift is applied
+            applied_shift_ov = 0
+            print("Sinogram shifting is disabled (oversampled).")
+            
         
         save_and_plot("profiles_oversampled", sub_profiles)
         save_and_plot("sinogram_oversampled", sub_sinogram)
@@ -689,14 +700,21 @@ def run_pipeline_psf():
 
         popt_h_ov = pops_ov[h_idx]
         popt_v_ov = pops_ov[v_idx]
-        fw_h_ov = wc.fwhm_from_sigma(sigmas_ov[h_idx]) / resample2
-        fw_v_ov = wc.fwhm_from_sigma(sigmas_ov[v_idx]) / resample2
-        print(f"Horizontal:   FWHM={fw_h_ov:.2f}px")
-        print(f"Vertical: FWHM={fw_v_ov:.2f}px")
+        
+        # FWHM value from oversampled (in 'oversampled pixels')
+        fw_h_ov_native = wc.fwhm_from_sigma(sigmas_ov[h_idx]) 
+        fw_v_ov_native = wc.fwhm_from_sigma(sigmas_ov[v_idx])
+        # Convert FWHM to 'normal' pixel-equivalent
+        fw_h_ov = fw_h_ov_native / resample2 
+        fw_v_ov = fw_v_ov_native / resample2
+        
+        print(f"Horizontal (Oversampled):  FWHM={fw_h_ov:.2f} px")
+        print(f"Vertical (Oversampled): FWHM={fw_v_ov:.2f} px")
 
+        # The radial axis for oversampled plot
         radial_ov = (
             np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)
-        ) * resample2
+        )
 
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
@@ -732,15 +750,7 @@ def run_pipeline_psf():
             reconstruction_type="psf",
         )
 
-        # Compute MTF in horizontal and vertical directions
-
-        # NOTE: The reconstruction introduces a filtering effect, so we compute MTF directly from sinogram
-        # freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
-        #     reconstruction, axis=0, pixel_size=pixel_size
-        # )
-        # freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
-        #     reconstruction, axis=1, pixel_size=pixel_size
-        # )
+        # Compute MTF
         freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf_from_sino(
             sub_sinogram, pixel_size / resample2, h_idx
         )
@@ -762,7 +772,7 @@ def run_pipeline_psf():
         print(f"Horizontal oversampled MTF(2.0 c/mm) = {mtf2_h_ov:.3f}")
         print(f"Horizontal oversampled MTF(3.0 c/mm) = {mtf3_h_ov:.3f}")
 
-        print(f"Vertical oversampled MTF10:   {mtf10_v_ov:.3f} cycles/mm")
+        print(f"Vertical oversampled MTF10:  {mtf10_v_ov:.3f} cycles/mm")
         print(f"Vertical oversampled MTF(1.0 c/mm) = {mtf1_v_ov:.3f}")
         print(f"Vertical oversampled MTF(2.0 c/mm) = {mtf2_v_ov:.3f}")
         print(f"Vertical oversampled MTF(3.0 c/mm) = {mtf3_v_ov:.3f}")
@@ -770,7 +780,7 @@ def run_pipeline_psf():
         plotters.plot_1d_mtf(
             freq_h_ov,
             mtf_h_ov,
-            pixel_size=pixel_size,
+            pixel_size=pixel_size, # Plot against original Nyquist
             out_path=os.path.join(out_dir, "mtf_horizontal_oversampled.png"),
             mtf10_freq=mtf10_h_ov,
             show_plots=show_plots,
@@ -778,7 +788,7 @@ def run_pipeline_psf():
         plotters.plot_1d_mtf(
             freq_v_ov,
             mtf_v_ov,
-            pixel_size=pixel_size,
+            pixel_size=pixel_size, # Plot against original Nyquist
             out_path=os.path.join(out_dir, "mtf_vertical_oversampled.png"),
             mtf10_freq=mtf10_v_ov,
             show_plots=show_plots,
@@ -788,8 +798,8 @@ def run_pipeline_psf():
         summary += [
             "",
             "--- PSF Size (Oversampled FWHM) ---",
-            f"{'FWHM Horizontal:': <{label_width}} {fw_h_ov:.3f} px",
-            f"{'FWHM Vertical:': <{label_width}} {fw_v_ov:.3f} px",
+            f"{'FWHM Horizontal:': <{label_width}} {fw_h_ov:.3f} px (native: {fw_h_ov_native:.3f})",
+            f"{'FWHM Vertical:': <{label_width}} {fw_v_ov:.3f} px (native: {fw_v_ov_native:.3f})",
             "",
             "--- MTF Horizontal (Oversampled) ---",
             f"{'MTF10:': <{label_width}} {mtf10_h_ov:.3f} cycles/mm",
@@ -804,7 +814,7 @@ def run_pipeline_psf():
             f"{'MTF @ 3.0 cy/mm:': <{label_width}} {mtf3_v_ov:.3f}",
         ]
 
-    # Save summary to txt
+    # Save summary to txt (this line is now *outside* the if block)
     results_path = os.path.join(out_dir, "psf_results.txt")
     with open(results_path, "w") as f:
         f.write("\n".join(summary))

@@ -6,9 +6,10 @@ n_angles: 360 # Number of projection angles
 profile_half_length: 50 # Half-length of the profile in pixels
 derivative_step: 1 # Step size for derivative calculation
 axis_shifts: 10 # Number of axis shifts to produce
+manual_shift: null # Manual shift to apply to the sinogram (if null, no shift or auto-shift is applied)
 filter_name: "ramp" # Filter name for reconstruction (ram, shepp-logan, cosine, hamming, hann, none)
 symmetrize: false # Whether to symmetrize the sinogram
-shift_sino: true # Whether to automatically shift the sinogram
+auto_shift: true # Whether to automatically shift the sinogram
 avg_neighbors: false # Whether to average neighboring pixels
 avg_number: 3 # Number of neighboring pixels to average
 oversample: true # Whether to oversample the PSF
