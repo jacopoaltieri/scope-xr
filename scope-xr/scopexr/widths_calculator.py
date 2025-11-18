@@ -104,9 +104,7 @@ def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
     peak_idx = np.argmax(profile)
     peak_val = profile[peak_idx]
     min_val = np.min(profile)
-    print(min_val)
     ten_max = min_val + 0.1 * (peak_val - min_val)
-    print(ten_max)
     # --- Find left half-maximum crossing ---
     left_idx = None
     for i in range(peak_idx, 0, -1):

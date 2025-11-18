@@ -7,41 +7,57 @@ from scopexr.utils import interpolate_nans_1d
 
 
 def _check_phl(
-    img: np.ndarray, cx: float, radius: float, profile_half_length: int
+    img: np.ndarray, cx: float, cy: float, radius: float, profile_half_length: int
 ) -> int:
     """
-    Adjusts profile_half_length to avoid crossing image boundaries along the horizontal direction (theta = 0).
+    Adjusts profile_half_length to avoid crossing *any* image boundary,
+    considering the center's true position.
 
     Args:
         img: 2D grayscale image array.
         cx: X-coordinate of the circle center.
+        cy: Y-coordinate of the circle center.
         radius: Radius of the circle.
         profile_half_length: Desired half-length of the sampling profile.
 
     Returns:
         adjusted_phl: Adjusted profile_half_length that fits within image bounds.
     """
-    nx = 1.0
-    _, img_w = img.shape
+    img_h, img_w = img.shape
 
-    for direction in [-1, 1]:
-        d_edge = direction * profile_half_length
-        px = cx + (radius + d_edge) * nx
+    # Find the shortest distance from the center (cx, cy) to any of the 4 edges.
+    dist_to_left = cx
+    dist_to_right = img_w - 1 - cx
+    dist_to_top = cy
+    dist_to_bottom = img_h - 1 - cy
 
-        if not (0 <= px < img_w):
-            if direction > 0:
-                max_x_dist = img_w - 1 - (cx + radius * nx)
-            else:
-                max_x_dist = cx + radius * nx
+    # The minimum of these is the largest radius we can *ever* sample
+    # from the center without going out of bounds.
+    max_sample_radius = min(dist_to_left, dist_to_right, dist_to_top, dist_to_bottom)
 
-            max_extra_length = max_x_dist / abs(nx) if abs(nx) > 1e-6 else np.inf
-            new_half_length = int(min(profile_half_length, max_extra_length) - 1)
+    # The outermost point we sample is at (radius + profile_half_length).
+    # This must be less than our maximum allowed sample radius.
 
-            if new_half_length < profile_half_length:
-                print(
-                    f"Warning: profile_half_length reduced from {profile_half_length} to {new_half_length} to avoid crossing image border."
-                )
-                return new_half_length
+    # Calculate the maximum possible profile_half_length
+    # We subtract 1 as a safety margin (to avoid being exactly on the edge pixel)
+    max_allowed_phl = int(max_sample_radius - radius - 1)
+
+    if max_allowed_phl <= 0:
+        # This means the circle radius itself is larger than the distance to an edge
+        raise ValueError(
+            f"Circle (radius={radius}) is too close to the edge. "
+            f"Max allowed sample radius from center is {max_sample_radius:.2f} px. "
+            f"Crop your image with more margin."
+        )
+
+    if profile_half_length > max_allowed_phl:
+        print(
+            f"Warning: profile_half_length reduced from {profile_half_length} "
+            f"to {max_allowed_phl} to avoid crossing image border."
+        )
+        return max_allowed_phl
+
+    # If the requested phl is already fine, return it
     return profile_half_length
 
 
@@ -70,7 +86,7 @@ def compute_profiles_and_sinogram(
         profiles: 2D array of shape (profile_length, n_angles), radial profiles.
         sinogram: 2D array of shape (profile_length, n_angles), negative radial derivative profiles.
     """
-    profile_half_length = _check_phl(img, cx, radius, profile_half_length)
+    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = int(2 * profile_half_length)
@@ -92,9 +108,7 @@ def compute_profiles_and_sinogram(
 
         # Sample all points at once
         # mode='constant' and cval=0.0 fills out-of-bounds pixels with 0
-        profile = map_coordinates(
-            img, [py, px], order=1, mode='constant', cval=0.0
-        )
+        profile = map_coordinates(img, [py, px], order=1, mode="constant", cval=0.0)
 
         profiles[i, :] = profile  # Store the radial profile
 
@@ -132,7 +146,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
         profiles: 2D array of shape (profile_bins, n_angles), radial profiles.
         sinogram: 2D array of shape (profile_bins, n_angles), negative radial derivatives.
     """
-    profile_half_length = _check_phl(img, cx, radius, profile_half_length)
+    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     # Convert angles and angular wedge width to radians
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
@@ -148,7 +162,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     # Set up radial grid for interpolation
     min_r = -profile_half_length
     max_r = profile_half_length
-    r_grid = np.arange(min_r, max_r + 1/resample_radial, 1/resample_radial)
+    r_grid = np.arange(min_r, max_r + 1 / resample_radial, 1 / resample_radial)
     n_bins = r_grid.size
 
     # Initialize profiles array (angles x radial positions)
@@ -170,7 +184,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
         idx = np.argsort(r_vals)
         r_vals = r_vals[idx]
         intensities = intensities[idx]
-        bin_edges = np.append(r_grid, r_grid[-1] + (1/resample_radial))
+        bin_edges = np.append(r_grid, r_grid[-1] + (1 / resample_radial))
 
         # Interpolate to uniform grid
         # Handle empty wedge case to avoid interp error
@@ -180,12 +194,9 @@ def compute_subpixel_profiles_and_sinogram_traditional(
             # 'x=r_vals': the positions of the blue dots
             # 'values=intensities': the values of the blue dots
             bin_means, _, _ = binned_statistic(
-                r_vals,
-                intensities,
-                statistic='mean',
-                bins=bin_edges
+                r_vals, intensities, statistic="mean", bins=bin_edges
             )
-            
+
             # bin_means will have NaN for any bin that had 0 points.
             # We must fill these small gaps.
             nan_mask = np.isnan(bin_means)
@@ -194,9 +205,9 @@ def compute_subpixel_profiles_and_sinogram_traditional(
                 x = np.arange(bin_means.size)
                 # Interpolate ONLY the nan values
                 bin_means[nan_mask] = np.interp(
-                    x[nan_mask], # points to interpolate
-                    x[~nan_mask], # known x's
-                    bin_means[~nan_mask] # known y's
+                    x[nan_mask],  # points to interpolate
+                    x[~nan_mask],  # known x's
+                    bin_means[~nan_mask],  # known y's
                 )
             interp_vals = bin_means
         else:
@@ -242,7 +253,7 @@ def compute_subpixel_profiles_and_sinogram_3step(
         profiles: 2D array of shape (profile_length, n_angles), oversampled radial profiles.
         sinogram: 2D array of shape (profile_length, n_angles), negative radial derivatives.
     """
-    profile_half_length = _check_phl(img, cx, radius, profile_half_length)
+    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     # Convert angles and angular wedge width to radians
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
@@ -259,7 +270,7 @@ def compute_subpixel_profiles_and_sinogram_3step(
     min_r = -profile_half_length
     max_r = profile_half_length
     n_bins_final = int(np.ceil((max_r - min_r) * resample2))
-    final_r = np.linspace(min_r, max_r, n_bins_final )
+    final_r = np.linspace(min_r, max_r, n_bins_final)
 
     # Fine grid used for interpolation/smoothing
     n_bins_fine = int(np.ceil((max_r - min_r) * resample1))
@@ -312,11 +323,10 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift=None) -> int:
 
     half = n_angles // 2
     errors = {}
-    
+
     for delta in range(-max_shift, max_shift + 1):
         # shift the sinogram up/down
         sino_shifted = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
-
 
         if delta > 0:
             sino_valid = sino_shifted[delta:, :]
@@ -338,9 +348,7 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift=None) -> int:
     return best_delta
 
 
-def manual_center_sinogram(
-    sinogram: np.ndarray, delta: int
-) -> tuple[np.ndarray, int]:
+def manual_center_sinogram(sinogram: np.ndarray, delta: int) -> tuple[np.ndarray, int]:
     """
     Manually centers a sinogram by applying a specified vertical shift.
 
@@ -354,18 +362,19 @@ def manual_center_sinogram(
     """
     centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
     if delta > 0:
-            # Shift was DOWN, fill values are at the TOP. Crop the top.
-            crop = delta
-            return centered[crop:, :], delta
-            
+        # Shift was DOWN, fill values are at the TOP. Crop the top.
+        crop = delta
+        return centered[crop:, :], delta
+
     elif delta < 0:
         # Shift was UP, fill values are at the BOTTOM. Crop the bottom.
         crop = np.abs(delta)
         return centered[:-crop, :], delta
-            
+
     else:
         # No shift, no crop
         return centered, delta
+
 
 def auto_center_sinogram(
     sinogram: np.ndarray, max_shift=None
@@ -384,15 +393,15 @@ def auto_center_sinogram(
     delta = find_best_center_shift(sinogram, max_shift=max_shift)
     centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
     if delta > 0:
-            # Shift was DOWN, fill values are at the TOP. Crop the top.
-            crop = delta
-            return centered[crop:, :], delta
-            
+        # Shift was DOWN, fill values are at the TOP. Crop the top.
+        crop = delta
+        return centered[crop:, :], delta
+
     elif delta < 0:
         # Shift was UP, fill values are at the BOTTOM. Crop the bottom.
         crop = np.abs(delta)
         return centered[:-crop, :], delta
-            
+
     else:
         # No shift, no crop
         return centered, delta
@@ -413,8 +422,8 @@ def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     half = n_angles // 2
 
     # Split into first half [0..half-1] and second half [half..]
-    first = sino360[:, :half]    # This is theta = 0° to 179°
-    second = sino360[:, half:] # This is theta = 180° to 359°
+    first = sino360[:, :half]  # This is theta = 0° to 179°
+    second = sino360[:, half:]  # This is theta = 180° to 359°
 
     # We need to average sino(r, theta) with sino(-r, theta + 180)
     # Flipping axis 0 flips r -> -r
