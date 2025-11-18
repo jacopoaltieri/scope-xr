@@ -178,8 +178,8 @@ def run_pipeline_fs():
     print(f"Widest:   FWHM={fw}px (from {lw} to {rw})")
     print(f"Narrowest: FWHM={fn}px (from {ln} to {rn})")
 
-    f10w,l10w,r10w = wc.fw10m(prof_wide_sino)
-    f10n,l10n,r10n = wc.fw10m(prof_narrow_sino)
+    f10w, l10w, r10w = wc.fw10m(prof_wide_sino)
+    f10n, l10n, r10n = wc.fw10m(prof_narrow_sino)
     print(f"Widest:   FW10M={f10w}px (from {l10w} to {r10w})")
     print(f"Narrowest: FW10M={f10n}px (from {l10n} to {r10n})")
     # fw_erf = wc.fwhm_from_sigma(sigmas[wide_idx])
@@ -207,7 +207,7 @@ def run_pipeline_fs():
         fwhm_path,
         show_plots,
     )
-    
+
     fw10m_path = os.path.join(out_dir, "fw10m_sinogram_profiles.png")
     plotters.plot_profiles_with_fwhm(
         radial,
@@ -257,24 +257,49 @@ def run_pipeline_fs():
     narrow_fs10m = wc.compute_fs_width(f10n, pixel_size, m_fs)
     print(f"Widest focal spot width (FW10M): {wide_fs10m:.3f} mm")
     print(f"Narrowest focal spot width (FW10M): {narrow_fs10m:.3f} mm")
-    
+
     # wide_fs_erf = wc.compute_fs_width(fw_erf, pixel_size, m_fs)
     # narrow_fs_erf = wc.compute_fs_width(fn_erf, pixel_size, m_fs)
     # print(f"Widest focal spot width (ERF): {wide_fs_erf:.3f} mm")
     # print(f"Narrowest focal spot width (ERF): {narrow_fs_erf:.3f} mm")
 
     # Create results summary
+    label_width = 24
+
     summary = [
-        f"Output saved to: {out_dir}",
-        f"Arguments: {args}",
-        f"COM circle: center=({cx},{cy}), radius={radius}px",
-        f"Magnification: image={m:.2f}x, focal spot={m_fs:.2f}x",
-        f"Applied shift: {applied_shift}px ({axis_shifts})",
-        f"FWHM classic: widest={fw}px (idx {wide_idx}), narrowest={fn}px (idx {narrow_idx})",
-        f"FW10M:     widest={f10w:.2f}px, narrowest={f10n:.2f}px",
-        f"Spot size mm (FWHM): widest={wide_fs:.2f}, narrowest={narrow_fs:.2f}",
-        f"Spot size mm (FW10M):     widest={wide_fs10m:.3f}, narrowest={narrow_fs10m:.3f}",
-        f"Angles: wide={wide_idx*angle_step:.1f}°, narrow={narrow_idx*angle_step:.1f}°",
+        "========================================",
+        "  SCOPE-XR Focal Spot Analysis Results",
+        "========================================",
+        "",
+        f"Full arguments: {args}",  # For traceability
+        "--- General Info ---",
+        f"{'Output Directory:': <{label_width}} {out_dir}",
+        "",
+        "--- Setup Parameters ---",
+        f"{'COM Circle Center:': <{label_width}} ({cx:.2f}, {cy:.2f}) px",
+        f"{'COM Circle Radius:': <{label_width}} {radius:.2f} px",
+        f"{'Image Magnification:': <{label_width}} {m:.2f}x",
+        f"{'Focal Spot Mag:': <{label_width}} {m_fs:.2f}x",
+        f"{'Applied Axis Shift:': <{label_width}} {applied_shift} px (Search Range: +/-{axis_shifts})",
+        "",
+        # --- Group by Widest Profile ---
+        "--- Widest Profile Results ---",
+        f"{'Angle Index:': <{label_width}} {wide_idx}",
+        f"{'Angle (Degrees):': <{label_width}} {wide_idx*angle_step:.1f}°",
+        f"{'FWHM:': <{label_width}} {fw:.3f} px",
+        f"{'FW10M:': <{label_width}} {f10w:.3f} px",
+        f"{'Spot Size (FWHM):': <{label_width}} {wide_fs:.3f} mm",
+        f"{'Spot Size (FW10M):': <{label_width}} {wide_fs10m:.3f} mm",
+        "",
+        # --- Group by Narrowest Profile ---
+        "--- Narrowest Profile Results ---",
+        f"{'Angle Index:': <{label_width}} {narrow_idx}",
+        f"{'Angle (Degrees):': <{label_width}} {narrow_idx*angle_step:.1f}°",
+        f"{'FWHM:': <{label_width}} {fn:.3f} px",
+        f"{'FW10M:': <{label_width}} {f10n:.3f} px",
+        f"{'Spot Size (FWHM):': <{label_width}} {narrow_fs:.3f} mm",
+        f"{'Spot Size (FW10M):': <{label_width}} {narrow_fs10m:.3f} mm",
+        "",
     ]
 
     # Save summary to .txt
@@ -465,15 +490,35 @@ def run_pipeline_psf():
     )
 
     # Compute MTF in horizontal and vertical directions
-    freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf(
-        reconstruction, axis=0, pixel_size=pixel_size
-    )
-    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(
-        reconstruction, axis=1, pixel_size=pixel_size
-    )
 
-    print(f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm")
-    print(f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm")
+    # NOTE: The reconstruction introduces a filtering effect, so we compute MTF directly from sinogram
+    # freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf(
+    #     reconstruction, axis=0, pixel_size=pixel_size
+    # )
+    # freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(
+    #     reconstruction, axis=1, pixel_size=pixel_size
+    # )
+    freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf_from_sino(sinogram, pixel_size, h_idx)
+
+    mtf1_h = mtfc.get_mtf_at_freq(1.0, freq_h, mtf_h)
+    mtf2_h = mtfc.get_mtf_at_freq(2.0, freq_h, mtf_h)
+    mtf3_h = mtfc.get_mtf_at_freq(3.0, freq_h, mtf_h)
+
+    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf_from_sino(sinogram, pixel_size, v_idx)
+
+    mtf1_v = mtfc.get_mtf_at_freq(1.0, freq_v, mtf_v)
+    mtf2_v = mtfc.get_mtf_at_freq(2.0, freq_v, mtf_v)
+    mtf3_v = mtfc.get_mtf_at_freq(3.0, freq_v, mtf_v)
+
+    print(f"Horizontal MTF10: {mtf10_h:.3f} cycles/mm")
+    print(f"Horizontal MTF(1.0 c/mm) = {mtf1_h:.3f}")
+    print(f"Horizontal MTF(2.0 c/mm) = {mtf2_h:.3f}")
+    print(f"Horizontal MTF(3.0 c/mm) = {mtf3_h:.3f}")
+
+    print(f"Vertical MTF10:   {mtf10_v:.3f} cycles/mm")
+    print(f"Vertical MTF(1.0 c/mm) = {mtf1_v:.3f}")
+    print(f"Vertical MTF(2.0 c/mm) = {mtf2_v:.3f}")
+    print(f"Vertical MTF(3.0 c/mm) = {mtf3_v:.3f}")
 
     plotters.plot_1d_mtf(
         freq_h,
@@ -493,25 +538,52 @@ def run_pipeline_psf():
     )
 
     # Prepare summary
+    label_width = 24
+
     summary = [
-        f"Output saved to: {out_dir}",
-        f"Arguments: {args}",
-        f"COM circle: center=({cx},{cy}), radius={radius}px",
-        f"PSF size px:     horizontal={fw_h:.3f}, vertical={fw_v:.3f}",
-        f"MTF10 horizontal: {mtf10_h:.3f} cycles/mm",
-        f"MTF10 vertical:   {mtf10_v:.3f} cycles/mm",
+        "========================================",
+        "  SCOPE-XR PSF Analysis Results",
+        "========================================",
+        "",
+        f"Full arguments: {args}",  # Good for traceability
+        "--- General Info ---",
+        f"{'Input Image:': <{label_width}} {os.path.basename(img_path)}",
+        f"{'Output Directory:': <{label_width}} {out_dir}",
+        "",
+        "--- Setup Parameters ---",
+        f"{'COM Circle Center:': <{label_width}} ({cx:.2f}, {cy:.2f}) px",
+        f"{'COM Circle Radius:': <{label_width}} {radius:.2f} px",
+        "",
+        "--- PSF Size (FWHM from Sinogram) ---",
+        f"{'FWHM Horizontal:': <{label_width}} {fw_h:.3f} px",
+        f"{'FWHM Vertical:': <{label_width}} {fw_v:.3f} px",
+        "",
+        "--- MTF Horizontal (from Sinogram) ---",
+        f"{'MTF10:': <{label_width}} {mtf10_h:.3f} cycles/mm",
+        f"{'MTF @ 1.0 cy/mm:': <{label_width}} {mtf1_h:.3f}",
+        f"{'MTF @ 2.0 cy/mm:': <{label_width}} {mtf2_h:.3f}",
+        f"{'MTF @ 3.0 cy/mm:': <{label_width}} {mtf3_h:.3f}",
+        "",
+        "--- MTF Vertical (from Sinogram) ---",
+        f"{'MTF10:': <{label_width}} {mtf10_v:.3f} cycles/mm",
+        f"{'MTF @ 1.0 cy/mm:': <{label_width}} {mtf1_v:.3f}",
+        f"{'MTF @ 2.0 cy/mm:': <{label_width}} {mtf2_v:.3f}",
+        f"{'MTF @ 3.0 cy/mm:': <{label_width}} {mtf3_v:.3f}",
+        "",
     ]
 
     # ----------------------------------------------------------------------------------#
     # Oversampling section
     if oversample:
         max_os_angle = utils.suggest_os_angle(pixel_size, resample2, radius)
-        print(f"Suggested maximum oversampling angle to avoid cross-talk: {max_os_angle:.2f}°")
+        print(
+            f"Suggested maximum oversampling angle to avoid cross-talk: {max_os_angle:.2f}°"
+        )
         if dtheta > max_os_angle:
             print(
                 f"Caution!: The provided oversampling angle {dtheta}° is larger than the suggested maximum {max_os_angle:.2f}°. This may cause cross-talk between neighboring profiles."
             )
-            
+
         if oversample_strategy == 1:
             print("Using oversampling strategy 1 (traditional).")
             sub_profiles, sub_sinogram = (
@@ -625,15 +697,39 @@ def run_pipeline_psf():
         )
 
         # Compute MTF in horizontal and vertical directions
-        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
-            recon_sub, axis=0, pixel_size=pixel_size / resample2
-        )
-        freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
-            recon_sub, axis=1, pixel_size=pixel_size / resample2
+
+        # NOTE: The reconstruction introduces a filtering effect, so we compute MTF directly from sinogram
+        # freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
+        #     reconstruction, axis=0, pixel_size=pixel_size
+        # )
+        # freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
+        #     reconstruction, axis=1, pixel_size=pixel_size
+        # )
+        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf_from_sino(
+            sub_sinogram, pixel_size / resample2, h_idx
         )
 
-        print(f"MTF10 horizontal oversampled: {mtf10_h_ov:.3f} cycles/mm")
-        print(f"MTF10 vertical oversampled:   {mtf10_v_ov:.3f} cycles/mm")
+        mtf1_h_ov = mtfc.get_mtf_at_freq(1.0, freq_h_ov, mtf_h_ov)
+        mtf2_h_ov = mtfc.get_mtf_at_freq(2.0, freq_h_ov, mtf_h_ov)
+        mtf3_h_ov = mtfc.get_mtf_at_freq(3.0, freq_h_ov, mtf_h_ov)
+
+        freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf_from_sino(
+            sub_sinogram, pixel_size / resample2, v_idx
+        )
+
+        mtf1_v_ov = mtfc.get_mtf_at_freq(1.0, freq_v_ov, mtf_v_ov)
+        mtf2_v_ov = mtfc.get_mtf_at_freq(2.0, freq_v_ov, mtf_v_ov)
+        mtf3_v_ov = mtfc.get_mtf_at_freq(3.0, freq_v_ov, mtf_v_ov)
+
+        print(f"Horizontal oversampled MTF10: {mtf10_h_ov:.3f} cycles/mm")
+        print(f"Horizontal oversampled MTF(1.0 c/mm) = {mtf1_h_ov:.3f}")
+        print(f"Horizontal oversampled MTF(2.0 c/mm) = {mtf2_h_ov:.3f}")
+        print(f"Horizontal oversampled MTF(3.0 c/mm) = {mtf3_h_ov:.3f}")
+
+        print(f"Vertical oversampled MTF10:   {mtf10_v_ov:.3f} cycles/mm")
+        print(f"Vertical oversampled MTF(1.0 c/mm) = {mtf1_v_ov:.3f}")
+        print(f"Vertical oversampled MTF(2.0 c/mm) = {mtf2_v_ov:.3f}")
+        print(f"Vertical oversampled MTF(3.0 c/mm) = {mtf3_v_ov:.3f}")
 
         plotters.plot_1d_mtf(
             freq_h_ov,
@@ -654,10 +750,22 @@ def run_pipeline_psf():
 
         # Append oversampled summary
         summary += [
-            "Oversampled results:",
-            f"PSF size px (oversampled):     horizontal={fw_h_ov:.3f}, vertical={fw_v_ov:.3f}",
-            f"MTF10 horizontal oversampled: {mtf10_h_ov:.3f} cycles/mm",
-            f"MTF10 vertical oversampled:   {mtf10_v_ov:.3f} cycles/mm",
+            "",
+            "--- PSF Size (Oversampled FWHM) ---",
+            f"{'FWHM Horizontal:': <{label_width}} {fw_h_ov:.3f} px",
+            f"{'FWHM Vertical:': <{label_width}} {fw_v_ov:.3f} px",
+            "",
+            "--- MTF Horizontal (Oversampled) ---",
+            f"{'MTF10:': <{label_width}} {mtf10_h_ov:.3f} cycles/mm",
+            f"{'MTF @ 1.0 cy/mm:': <{label_width}} {mtf1_h_ov:.3f}",
+            f"{'MTF @ 2.0 cy/mm:': <{label_width}} {mtf2_h_ov:.3f}",
+            f"{'MTF @ 3.0 cy/mm:': <{label_width}} {mtf3_h_ov:.3f}",
+            "",
+            "--- MTF Vertical (Oversampled) ---",
+            f"{'MTF10:': <{label_width}} {mtf10_v_ov:.3f} cycles/mm",
+            f"{'MTF @ 1.0 cy/mm:': <{label_width}} {mtf1_v_ov:.3f}",
+            f"{'MTF @ 2.0 cy/mm:': <{label_width}} {mtf2_v_ov:.3f}",
+            f"{'MTF @ 3.0 cy/mm:': <{label_width}} {mtf3_v_ov:.3f}",
         ]
 
     # Save summary to txt
