@@ -338,6 +338,35 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift=None) -> int:
     return best_delta
 
 
+def manual_center_sinogram(
+    sinogram: np.ndarray, delta: int
+) -> tuple[np.ndarray, int]:
+    """
+    Manually centers a sinogram by applying a specified vertical shift.
+
+    Args:
+        sinogram: 2D array of shape (n_rays, n_angles).
+        delta: Integer shift value to apply (positive shifts down).
+
+    Returns:
+        centered: Centered sinogram array, possibly cropped symmetrically.
+        delta: Applied integer shift value.
+    """
+    centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
+    if delta > 0:
+            # Shift was DOWN, fill values are at the TOP. Crop the top.
+            crop = delta
+            return centered[crop:, :], delta
+            
+    elif delta < 0:
+        # Shift was UP, fill values are at the BOTTOM. Crop the bottom.
+        crop = np.abs(delta)
+        return centered[:-crop, :], delta
+            
+    else:
+        # No shift, no crop
+        return centered, delta
+
 def auto_center_sinogram(
     sinogram: np.ndarray, max_shift=None
 ) -> tuple[np.ndarray, int]:

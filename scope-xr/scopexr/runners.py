@@ -36,7 +36,8 @@ def run_pipeline_fs():
     axis_shifts = args["axis_shifts"]
     filter_name = args["filter_name"]
     symmetrize = args["symmetrize"]
-    shift_sino = args["shift_sino"]
+    manual_shift = args["manual_shift"]
+    auto_shift = args["auto_shift"]
     avg_neighbors = args["avg_neighbors"]
     avg_number = args["avg_number"]
     show_plots = args["show_plots"]
@@ -118,11 +119,21 @@ def run_pipeline_fs():
         cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
     )
 
-    if shift_sino:
+    if manual_shift is not None:
+        print(f"Applying manual shift: {manual_shift} px")
+        centered_sino, applied_shift = sr.manual_center_sinogram(sinogram, manual_shift)
+        sinogram = centered_sino
+    elif auto_shift:
+        print("Running automatic sinogram centering...")
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
         sinogram = centered_sino
-        print(f"Applied axis shift: {applied_shift} px")
-
+        print(f"Applied automatic axis shift: {applied_shift} px")
+        
+    else:
+        # 3. No shift is applied (no_shift: True or all are False)
+        applied_shift = 0
+        print("Sinogram shifting is disabled.")
+    
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
     # Save and plot function
