@@ -11,15 +11,15 @@ def get_merged_config():
     )
 
     # CLI arguments (short flags)
-    # Removed required=True, validation happens later
-    parser.add_argument(
-        "--f", type=str, help="Path to the image file (.raw/.png/.tif)"
-    )
+    parser.add_argument("--f", type=str, help="Path to the image file (.raw/.png/.tif)")
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
     parser.add_argument(
-        "--no_hough", action="store_true", default=None, help="Skip Hough transform detection"
+        "--no_hough",
+        action="store_true",
+        default=None,
+        help="Skip Hough transform detection",
     )
     parser.add_argument("--m", type=float, help="Magnification")
     parser.add_argument("--n", type=int, help="Minimum pixel count")
@@ -29,13 +29,11 @@ def get_merged_config():
     parser.add_argument("--axis_shifts", type=int, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--avg_number", type=int, help="Number of profiles to average")
-    parser.add_argument("--sym", action="store_true", default=None, help="Symmetrize the sinogram")
+    parser.add_argument(
+        "--sym", action="store_true", default=None, help="Symmetrize the sinogram"
+    )
     parser.add_argument("--show", action="store_true", default=None, help="Show plots")
 
-    # ---
-    # CORRECTED SHIFT GROUP
-    # All shift options should be in one mutually exclusive group
-    # ---
     shift_group = parser.add_mutually_exclusive_group()
     shift_group.add_argument(
         "--auto_shift",
@@ -61,31 +59,26 @@ def get_merged_config():
         "--avg",
         dest="avg_neighbors",
         action="store_true",
-        default=None, # Use None as default
+        default=None,  # Use None as default
         help="Enable averaging neighboring profiles",
     )
     avg_group.add_argument(
         "--no_avg",
         dest="avg_neighbors",
         action="store_false",
-        default=None, # Use None as default
+        default=None,  # Use None as default
         help="Disable averaging neighboring profiles",
     )
-    
+
     args, unknown = parser.parse_known_args()
 
-    # ---
-    # CORRECTED MERGE LOGIC
-    # ---
-    
     # 1. Set code defaults (lowest priority)
-    # auto_shift: True is the default behavior if nothing else is set
     config = {
         "img_path": None,
-        "auto_shift": True, 
+        "auto_shift": True,
         "manual_shift": None,
         "no_shift": False,
-        "avg_neighbors": True,
+        "avg_neighbors": False,
         "no_hough": False,
         "symmetrize": False,
         "show_plots": False,
@@ -98,7 +91,10 @@ def get_merged_config():
             if yaml_config:
                 config.update(yaml_config)
     except FileNotFoundError:
-        print(f"Warning: Config file not found at {args.config}. Using defaults.", file=sys.stderr)
+        print(
+            f"Warning: Config file not found at {args.config}. Using defaults.",
+            file=sys.stderr,
+        )
     except Exception as e:
         print(f"Error loading YAML config: {e}", file=sys.stderr)
 
@@ -131,13 +127,11 @@ def get_merged_config():
     for cli_key, config_key in cli_to_config_keys.items():
         cli_value = cli_dict.get(cli_key)
         # Only update if the CLI argument was *actually* given
-        # (i.e., it is not None)
         if cli_value is not None:
             config[config_key] = cli_value
 
     # ---
-    # Final mutually exclusive logic:
-    # We check which CLI flag was *actually passed* (from cli_dict)
+    # Check which CLI flag was *actually passed* (from cli_dict)
     # and enforce priority.
     # ---
     if cli_dict.get("manual_shift") is not None:
@@ -161,7 +155,6 @@ def get_merged_config():
 
 
 def validate_args(args):
-    # Use .get() to avoid KeyErrors for optional args
     if not args.get("img_path"):
         raise ValueError("Image path is required. Use --f to specify the image file.")
     if args.get("pixel_size") is None or args["pixel_size"] <= 0:
@@ -181,15 +174,12 @@ def validate_args(args):
     if args.get("axis_shifts") is None or args["axis_shifts"] < 0:
         raise ValueError("Axis shifts must be a non-negative integer.")
 
-    # Corrected logic for avg_number
     avg_num = args.get("avg_number")
     if args.get("avg_neighbors") and avg_num is not None:
-        # The check should be for positive *and* odd.
-        # Your original check was "positive AND odd"
-        # The logic "avg_number % 2 == 1" is correct for odd.
-        # Let's check for "NOT (positive AND odd)"
         if avg_num <= 0 or avg_num % 2 == 0:
             raise ValueError("Average number must be a positive odd integer.")
-            
-    if args.get("manual_shift") is not None and not isinstance(args["manual_shift"], int):
+
+    if args.get("manual_shift") is not None and not isinstance(
+        args["manual_shift"], int
+    ):
         raise ValueError("Manual shift must be an integer.")

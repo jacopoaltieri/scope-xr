@@ -128,12 +128,12 @@ def run_pipeline_fs():
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
         sinogram = centered_sino
         print(f"Applied automatic axis shift: {applied_shift} px")
-        
+
     else:
         # 3. No shift is applied (no_shift: True or all are False)
         applied_shift = 0
         print("Sinogram shifting is disabled.")
-    
+
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
     # Save and plot function
@@ -338,9 +338,11 @@ def run_pipeline_psf():
     n_angles = args.get("n_angles")
     profile_half_length = args.get("profile_half_length")
     derivative_step = args.get("derivative_step")
+    axis_shifts = args["axis_shifts"]
     filter_name = args.get("filter_name")
     symmetrize = args.get("symmetrize")
-    shift_sino = args.get("shift_sino")
+    manual_shift = args["manual_shift"]
+    auto_shift = args["auto_shift"]
     avg_neighbors = args.get("avg_neighbors")
     avg_number = args.get("avg_number")
     oversample = args.get("oversample")
@@ -408,10 +410,20 @@ def run_pipeline_psf():
     )
 
     # Center sinogram if requested
-    if shift_sino:
+    if manual_shift is not None:
+        print(f"Applying manual shift: {manual_shift} px")
+        centered_sino, applied_shift = sr.manual_center_sinogram(sinogram, manual_shift)
+        sinogram = centered_sino
+    elif auto_shift:
+        print("Running automatic sinogram centering...")
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
         sinogram = centered_sino
-        print(f"Applied axis shift: {applied_shift} px")
+        print(f"Applied automatic axis shift: {applied_shift} px")
+
+    else:
+        # 3. No shift is applied (no_shift: True or all are False)
+        applied_shift = 0
+        print("Sinogram shifting is disabled.")
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
@@ -631,11 +643,24 @@ def run_pipeline_psf():
         else:
             raise ValueError(f"Invalid oversample strategy: {oversample_strategy}")
 
-        if shift_sino:
-            centered_sub_sino, sub_shift = sr.auto_center_sinogram(sub_sinogram)
-            sub_sinogram = centered_sub_sino
-            print(f"Applied axis shift (oversampled): {sub_shift} px")
+    if manual_shift is not None:
+        print(f"Applying manual shift: {manual_shift} px")
+        centered_sino, applied_shift = sr.manual_center_sinogram(
+            sinogram, manual_shift * resample2
+        )  # Adjust shift for oversampled sinogram
+        sinogram = centered_sino
+    elif auto_shift:
+        print("Running automatic sinogram centering...")
+        centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
+        sinogram = centered_sino
+        print(f"Applied automatic axis shift: {applied_shift} px")
 
+    else:
+        # 3. No shift is applied (no_shift: True or all are False)
+        applied_shift = 0
+        print("Sinogram shifting is disabled.")
+        
+        
         save_and_plot("profiles_oversampled", sub_profiles)
         save_and_plot("sinogram_oversampled", sub_sinogram)
         recon_sub = sr.reconstruct_focal_spot(sub_sinogram, filter_name, symmetrize)

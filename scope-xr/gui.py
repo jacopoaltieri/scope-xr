@@ -87,7 +87,7 @@ class PathSelector(QWidget):
         return self.line_edit.text()
 
 # ---
-# Helper function to create a radio button group
+# Helper function to create a radio button group (still used for AVG)
 # ---
 def create_radio_group(title, options, default_key='default'):
     group_box = QGroupBox(title)
@@ -103,6 +103,7 @@ def create_radio_group(title, options, default_key='default'):
         
     group_box.setLayout(group_layout)
     return group_box, buttons
+
 # ---
 # Main Window Class
 # ---
@@ -114,22 +115,14 @@ class ScopeXRApp(QMainWindow):
         
         self.image_path = None
 
-        # ---
-        # THIS IS THE FIX (Part 1)
-        # Get the absolute path to the directory containing this script (app.py)
-        # ---
         try:
-            # The standard way
             self.base_dir = os.path.dirname(os.path.abspath(__file__))
         except NameError:
-            # Fallback for environments where __file__ isn't defined
             self.base_dir = os.path.abspath(".")
             
-        # Create the full paths to the config files
         fs_config_path = os.path.join(self.base_dir, 'fs_args.yaml')
         psf_config_path = os.path.join(self.base_dir, 'psf_args.yaml')
 
-        # Load configs using the full paths
         self.fs_config_data = load_config(fs_config_path)
         self.psf_config_data = load_config(psf_config_path)
 
@@ -159,7 +152,6 @@ class ScopeXRApp(QMainWindow):
 
         self.tab_widget = QTabWidget()
         
-        # Pass config data to tab creators
         self.fs_tab = self.create_fs_tab(self.fs_config_data)
         self.psf_tab = self.create_psf_tab(self.psf_config_data)
         
@@ -208,14 +200,10 @@ class ScopeXRApp(QMainWindow):
         """Creates the complete, scrollable form for the Focal Spot tab."""
         tab_widget, layout = self._create_scrollable_tab()
         
-        # ---
-        # ALL KEYS UPDATED TO MATCH YOUR YAML
-        # ---
         self.fs_config = PathSelector(is_directory=False)
         layout.addRow("Config File [--config]:", self.fs_config)
 
         self.fs_output_dir = PathSelector(is_directory=True)
-        # Use 'out_dir' from your YAML
         self.fs_output_dir.line_edit.setText(config_data.get('out_dir', ''))
         layout.addRow("Output Dir [--o]:", self.fs_output_dir)
         
@@ -236,41 +224,38 @@ class ScopeXRApp(QMainWindow):
 
         self.fs_magnification = QDoubleSpinBox()
         self.fs_magnification.setDecimals(3)
-        # Assuming 'm' is the key. If not, change 'm' to the correct one.
         self.fs_magnification.setValue(config_data.get('m', 0.0))
         self.fs_magnification.setToolTip("Set to 0.0 to let program estimate automatically.")
         layout.addRow("Magnification [--m]:", self.fs_magnification)
         
         self.fs_min_pixels = QSpinBox()
         self.fs_min_pixels.setRange(0, 500)
-        # Assuming 'n' is the key.
         self.fs_min_pixels.setValue(config_data.get('n', 10))
         layout.addRow("Min. Pixels [--n]:", self.fs_min_pixels)
         
         self.fs_nangles = QSpinBox()
         self.fs_nangles.setRange(90, 1080)
-        self.fs_nangles.setValue(config_data.get('n_angles', 360)) # Key was 'n_angles'
+        self.fs_nangles.setValue(config_data.get('n_angles', 360)) 
         layout.addRow("Num. Angles [--nangles]:", self.fs_nangles)
         
         self.fs_half_length = QSpinBox()
         self.fs_half_length.setRange(1, 10_000)
-        self.fs_half_length.setValue(config_data.get('profile_half_length', 100)) # Key was 'profile_half_length'
+        self.fs_half_length.setValue(config_data.get('profile_half_length', 100)) 
         layout.addRow("Profile Half-Length [--hl]:", self.fs_half_length)
 
         self.fs_derivative_step = QSpinBox()
         self.fs_derivative_step.setRange(1, 10)
-        self.fs_derivative_step.setValue(config_data.get('derivative_step', 1)) # Key was 'derivative_step'
+        self.fs_derivative_step.setValue(config_data.get('derivative_step', 1)) 
         layout.addRow("Derivative Step [--ds]:", self.fs_derivative_step)
 
         self.fs_axis_shifts = QSpinBox()
         self.fs_axis_shifts.setRange(0, 50)
-        # Assuming 'axis_shifts' is the key.
         self.fs_axis_shifts.setValue(config_data.get('axis_shifts', 10)) 
-        layout.addRow("Axis Shifts [--axis_shifts]:", self.fs_axis_shifts)
+        layout.addRow("Shifts Search Range [--axis_shifts]:", self.fs_axis_shifts)
         
         self.fs_filter = QComboBox()
         self.fs_filter.addItems(["ramp", "shepp-logan", "cosine", "hamming", "hann", "None"])
-        self.fs_filter.setCurrentText(str(config_data.get('filter_name', 'ramp'))) # Key was 'filter_name'
+        self.fs_filter.setCurrentText(str(config_data.get('filter_name', 'ramp'))) 
         layout.addRow("Filter [--filter]:", self.fs_filter)
 
         self.fs_avg_number = QSpinBox()
@@ -279,23 +264,49 @@ class ScopeXRApp(QMainWindow):
         layout.addRow("Avg. Number (must be odd) [--avg_number]:", self.fs_avg_number)
         
         self.fs_sym = QCheckBox("Symmetrize Sinogram")
-        self.fs_sym.setChecked(config_data.get('symmetrize', False)) # Key was 'symmetrize'
+        self.fs_sym.setChecked(config_data.get('symmetrize', False)) 
         layout.addRow("[--sym]:", self.fs_sym)
         
-        shift_default = 'default'
-        if config_data.get('shift_sino', False): shift_default = 'shift' # Key was 'shift_sino'
-        elif config_data.get('no_shift', False): shift_default = 'no_shift' # 'no_shift' might not be in YAML
+        # ---
+        # NEW SHIFT GROUP FOR FS
+        # ---
+        fs_shift_box = QGroupBox("Sinogram Shifting")
+        fs_shift_layout = QVBoxLayout()
+        self.fs_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
+        self.fs_radio_no = QRadioButton("No Shift (--no_shift)")
+        
+        # Manual shift option
+        self.fs_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
+        self.fs_manual_shift_val = QSpinBox()
+        self.fs_manual_shift_val.setRange(-1000, 1000)
+        self.fs_manual_shift_val.setEnabled(False) # Disabled by default
+        self.fs_radio_manual.toggled.connect(self.fs_manual_shift_val.setEnabled)
+        
+        manual_layout = QHBoxLayout()
+        manual_layout.addWidget(self.fs_radio_manual)
+        manual_layout.addWidget(self.fs_manual_shift_val)
+        
+        fs_shift_layout.addWidget(self.fs_radio_auto)
+        fs_shift_layout.addLayout(manual_layout)
+        fs_shift_layout.addWidget(self.fs_radio_no)
+        fs_shift_box.setLayout(fs_shift_layout)
 
-        self.fs_shift_group, self.fs_shift_buttons = create_radio_group(
-            "Sinogram Shifting",
-            {"default": "Default (from YAML)", "shift": "Enable (--shift)", "no_shift": "Disable (--no_shift)"},
-            default_key=shift_default
-        )
-        layout.addRow(self.fs_shift_group)
+        # Set default state from config
+        manual_val = config_data.get('manual_shift')
+        if manual_val is not None:
+            self.fs_radio_manual.setChecked(True)
+            self.fs_manual_shift_val.setValue(int(manual_val))
+        elif config_data.get('no_shift', False):
+            self.fs_radio_no.setChecked(True)
+        else:
+            self.fs_radio_auto.setChecked(True) # Default
+            
+        layout.addRow(fs_shift_box)
+        # --- END NEW SHIFT GROUP ---
 
         avg_default = 'default'
-        if config_data.get('avg_neighbors', False): avg_default = 'avg' # Key was 'avg_neighbors'
-        elif config_data.get('no_avg', False): avg_default = 'no_avg' # 'no_avg' might not be in YAML
+        if config_data.get('avg_neighbors', False): avg_default = 'avg' 
+        elif config_data.get('no_avg', False): avg_default = 'no_avg'
         
         self.fs_avg_group, self.fs_avg_buttons = create_radio_group(
             "Profile Averaging",
@@ -305,7 +316,7 @@ class ScopeXRApp(QMainWindow):
         layout.addRow(self.fs_avg_group)
 
         self.fs_show = QCheckBox("Show Matplotlib plots")
-        self.fs_show.setChecked(config_data.get('show_plots', True)) # Key was 'show_plots'
+        self.fs_show.setChecked(config_data.get('show_plots', True)) 
         layout.addRow("[--show]:", self.fs_show)
         
         return tab_widget
@@ -314,25 +325,22 @@ class ScopeXRApp(QMainWindow):
         """Creates the complete, scrollable form for the PSF tab."""
         tab_widget, layout = self._create_scrollable_tab()
 
-        # ---
-        # ALL KEYS UPDATED TO MATCH YOUR YAML
-        # ---
         self.psf_config = PathSelector(is_directory=False)
         layout.addRow("Config File [--config]:", self.psf_config)
 
         self.psf_output_dir = PathSelector(is_directory=True)
-        self.psf_output_dir.line_edit.setText(config_data.get('out_dir', '')) # Key was 'out_dir'
+        self.psf_output_dir.line_edit.setText(config_data.get('out_dir', '')) 
         layout.addRow("Output Dir [--o]:", self.psf_output_dir)
         
         self.psf_pixel_size = QDoubleSpinBox()
         self.psf_pixel_size.setDecimals(10)
-        self.psf_pixel_size.setValue(config_data.get('pixel_size', 0.1)) # Key was 'pixel_size'
+        self.psf_pixel_size.setValue(config_data.get('pixel_size', 0.1)) 
         layout.addRow("Pixel Size (mm) [--p]:", self.psf_pixel_size)
 
         self.psf_diameter = QDoubleSpinBox()
         self.psf_diameter.setDecimals(2)
         self.psf_diameter.setRange(0.01, 1000.0)
-        self.psf_diameter.setValue(config_data.get('circle_diameter', 1.0)) # Key was 'circle_diameter'
+        self.psf_diameter.setValue(config_data.get('circle_diameter', 1.0)) 
         layout.addRow("Object Diameter (mm) [--d]:", self.psf_diameter)
 
         self.psf_no_hough = QCheckBox("Skip Hough Transform")
@@ -341,27 +349,27 @@ class ScopeXRApp(QMainWindow):
 
         self.psf_nangles = QSpinBox()
         self.psf_nangles.setRange(90, 1080)
-        self.psf_nangles.setValue(config_data.get('n_angles', 360)) # Key was 'n_angles'
+        self.psf_nangles.setValue(config_data.get('n_angles', 360)) 
         layout.addRow("Num. Angles [--nangles]:", self.psf_nangles)
         
         self.psf_half_length = QSpinBox()
         self.psf_half_length.setRange(1, 10_000)
-        self.psf_half_length.setValue(config_data.get('profile_half_length', 100)) # Key was 'profile_half_length'
+        self.psf_half_length.setValue(config_data.get('profile_half_length', 100)) 
         layout.addRow("Profile Half-Length [--hl]:", self.psf_half_length)
 
         self.psf_derivative_step = QSpinBox()
         self.psf_derivative_step.setRange(1, 10)
-        self.psf_derivative_step.setValue(config_data.get('derivative_step', 1)) # Key was 'derivative_step'
+        self.psf_derivative_step.setValue(config_data.get('derivative_step', 1)) 
         layout.addRow("Derivative Step [--ds]:", self.psf_derivative_step)
 
         self.psf_axis_shifts = QSpinBox()
         self.psf_axis_shifts.setRange(0, 50)
-        self.psf_axis_shifts.setValue(config_data.get('axis_shifts', 10)) # Key was 'axis_shifts'
-        layout.addRow("Axis Shifts [--axis_shifts]:", self.psf_axis_shifts)
+        self.psf_axis_shifts.setValue(config_data.get('axis_shifts', 10)) 
+        layout.addRow("Shifts Search Range [--axis_shifts]:", self.psf_axis_shifts)
         
         self.psf_filter = QComboBox()
         self.psf_filter.addItems(["ramp", "shepp-logan", "cosine", "hamming", "hann", "None"])
-        self.psf_filter.setCurrentText(str(config_data.get('filter_name', 'ramp'))) # Key was 'filter_name'
+        self.psf_filter.setCurrentText(str(config_data.get('filter_name', 'ramp'))) 
         layout.addRow("Filter [--filter]:", self.psf_filter)
 
         self.psf_avg_number = QSpinBox()
@@ -370,7 +378,7 @@ class ScopeXRApp(QMainWindow):
         layout.addRow("Avg. Number (must be odd) [--avg_number]:", self.psf_avg_number)
         
         self.psf_sym = QCheckBox("Symmetrize Sinogram")
-        self.psf_sym.setChecked(config_data.get('symmetrize', False)) # Key was 'symmetrize'
+        self.psf_sym.setChecked(config_data.get('symmetrize', False)) 
         layout.addRow("[--sym]:", self.psf_sym)
 
         self.psf_dtheta = QDoubleSpinBox()
@@ -396,19 +404,45 @@ class ScopeXRApp(QMainWindow):
         self.psf_oversample_strategy.setCurrentText(str(config_data.get('oversample_strategy', '1')))
         layout.addRow("Oversample Strategy:", self.psf_oversample_strategy)
         
-        shift_default = 'default'
-        if config_data.get('shift_sino', False): shift_default = 'shift' # Key was 'shift_sino'
-        elif config_data.get('no_shift', False): shift_default = 'no_shift'
+        # ---
+        # NEW SHIFT GROUP FOR PSF
+        # ---
+        psf_shift_box = QGroupBox("Sinogram Shifting")
+        psf_shift_layout = QVBoxLayout()
+        self.psf_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
+        self.psf_radio_no = QRadioButton("No Shift (--no_shift)")
         
-        self.psf_shift_group, self.psf_shift_buttons = create_radio_group(
-            "Sinogram Shifting",
-            {"default": "Default (from YAML)", "shift": "Enable (--shift)", "no_shift": "Disable (--no_shift)"},
-            default_key=shift_default
-        )
-        layout.addRow(self.psf_shift_group)
+        # Manual shift option
+        self.psf_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
+        self.psf_manual_shift_val = QSpinBox()
+        self.psf_manual_shift_val.setRange(-1000, 1000)
+        self.psf_manual_shift_val.setEnabled(False) # Disabled by default
+        self.psf_radio_manual.toggled.connect(self.psf_manual_shift_val.setEnabled)
+        
+        manual_layout_psf = QHBoxLayout()
+        manual_layout_psf.addWidget(self.psf_radio_manual)
+        manual_layout_psf.addWidget(self.psf_manual_shift_val)
+        
+        psf_shift_layout.addWidget(self.psf_radio_auto)
+        psf_shift_layout.addLayout(manual_layout_psf)
+        psf_shift_layout.addWidget(self.psf_radio_no)
+        psf_shift_box.setLayout(psf_shift_layout)
+
+        # Set default state from config
+        manual_val_psf = config_data.get('manual_shift')
+        if manual_val_psf is not None:
+            self.psf_radio_manual.setChecked(True)
+            self.psf_manual_shift_val.setValue(int(manual_val_psf))
+        elif config_data.get('no_shift', False):
+            self.psf_radio_no.setChecked(True)
+        else:
+            self.psf_radio_auto.setChecked(True) # Default
+            
+        layout.addRow(psf_shift_box)
+        # --- END NEW SHIFT GROUP ---
 
         avg_default = 'default'
-        if config_data.get('avg_neighbors', False): avg_default = 'avg' # Key was 'avg_neighbors'
+        if config_data.get('avg_neighbors', False): avg_default = 'avg' 
         elif config_data.get('no_avg', False): avg_default = 'no_avg'
 
         self.psf_avg_group, self.psf_avg_buttons = create_radio_group(
@@ -430,7 +464,7 @@ class ScopeXRApp(QMainWindow):
         layout.addRow(self.psf_oversample_group)
         
         self.psf_show = QCheckBox("Show Matplotlib plots")
-        self.psf_show.setChecked(config_data.get('show_plots', True)) # Key was 'show_plots'
+        self.psf_show.setChecked(config_data.get('show_plots', True)) 
         layout.addRow("[--show]:", self.psf_show)
         
         return tab_widget
@@ -463,14 +497,9 @@ class ScopeXRApp(QMainWindow):
         super().resizeEvent(event)
 
     def edit_config(self):
-        # ---
-        # THIS IS THE FIX (Part 2)
-        # Use self.base_dir to find the config file to edit
-        # ---
         current_tab_index = self.tab_widget.currentIndex()
         config_filename = "fs_args.yaml" if current_tab_index == 0 else "psf_args.yaml"
         
-        # Use the base_dir we defined in __init__
         config_file_path = os.path.join(self.base_dir, config_filename)
         try:
             system = platform.system()
@@ -497,13 +526,9 @@ class ScopeXRApp(QMainWindow):
         
         
         if current_tab_index == 0:
-            # Use self.base_dir to create the absolute path to fs_main.py
+            # --- FOCAL SPOT ---
             command.append(os.path.join(self.base_dir, "fs_main.py"))
             command.extend(["--f", self.image_path])
-            
-            # This logic is correct:
-            # It sends all values from the GUI.
-            # Since the GUI was loaded from YAML, the values are correct.
             
             if self.fs_config.text():
                 command.extend(["--config", self.fs_config.text()])
@@ -538,9 +563,14 @@ class ScopeXRApp(QMainWindow):
             if self.fs_show.isChecked():
                 command.append("--show")
 
-            if self.fs_shift_buttons["shift"].isChecked():
-                command.append("--shift")
-            elif self.fs_shift_buttons["no_shift"].isChecked():
+            # ---
+            # NEW FS SHIFT LOGIC
+            # ---
+            if self.fs_radio_manual.isChecked():
+                command.extend(["--manual_shift", str(self.fs_manual_shift_val.value())])
+            elif self.fs_radio_auto.isChecked():
+                command.append("--auto_shift")
+            elif self.fs_radio_no.isChecked():
                 command.append("--no_shift")
 
             if self.fs_avg_buttons["avg"].isChecked():
@@ -549,7 +579,7 @@ class ScopeXRApp(QMainWindow):
                 command.append("--no_avg")
 
         else:
-            # Use self.base_dir to create the absolute path to psf_main.py
+            # --- PSF ---
             command.append(os.path.join(self.base_dir, "psf_main.py"))
             command.extend(["--f", self.image_path])
 
@@ -575,7 +605,6 @@ class ScopeXRApp(QMainWindow):
             else:
                  command.extend(["--filter", "None"])
             
-            # --- FIX: Changed .string() to .value() ---
             command.extend(["--avg_number", str(self.psf_avg_number.value())])
 
             if self.psf_sym.isChecked():
@@ -590,12 +619,16 @@ class ScopeXRApp(QMainWindow):
             if self.psf_show.isChecked():
                 command.append("--show")
 
-            if self.psf_shift_buttons["shift"].isChecked():
-                command.append("--shift")
-            elif self.psf_shift_buttons["no_shift"].isChecked():
+            # ---
+            # NEW PSF SHIFT LOGIC
+            # ---
+            if self.psf_radio_manual.isChecked():
+                command.extend(["--manual_shift", str(self.psf_manual_shift_val.value())])
+            elif self.psf_radio_auto.isChecked():
+                command.append("--auto_shift")
+            elif self.psf_radio_no.isChecked():
                 command.append("--no_shift")
 
-            # --- FIX: Corrected typo psf_avg_ to psf_avg_buttons["avg"] ---
             if self.psf_avg_buttons["avg"].isChecked():
                 command.append("--avg")
             elif self.psf_avg_buttons["no_avg"].isChecked():
@@ -610,6 +643,7 @@ class ScopeXRApp(QMainWindow):
         self.run_thread.output.connect(self.update_console)
         self.run_thread.finished.connect(self.on_run_finished)
         self.run_thread.start()
+        
     def update_console(self, text):
         self.output_console.append(text)
 
