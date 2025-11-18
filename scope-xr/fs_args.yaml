@@ -11,7 +11,7 @@ axis_shifts: 10 # Number of axis shifts to produce
 filter_name: "ramp" # Filter name for reconstruction (ram, shepp-logan, cosine, hamming, hann, none)
 symmetrize: false # Whether to symmetrize the sinogram
 shift_sino: true # Whether to automatically shift the sinogram
-avg_neighbors: true # Whether to average neighboring pixels
+avg_neighbors: false # Whether to average neighboring pixels
 avg_number: 3 # Number of neighboring pixels to average
 show_plots: false # Whether to display plots
 
