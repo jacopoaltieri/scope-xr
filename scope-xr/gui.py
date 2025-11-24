@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QFileDialog, QTextEdit, QLabel, QSplitter,
     QTabWidget, QFormLayout, QSpinBox, QDoubleSpinBox, QCheckBox,
-    QComboBox, QLineEdit, QScrollArea, QGroupBox, QRadioButton
+    QComboBox, QLineEdit, QScrollArea, QGroupBox, QRadioButton, QMessageBox
 )
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtGui import QPixmap
@@ -25,9 +25,6 @@ def load_config(filename):
         print(f"Warning: Error loading '{filename}': {e}. Using hardcoded defaults.")
         return {}
 
-# ---
-# Worker thread to run the script without freezing the GUI
-# ---
 class RunThread(QThread):
     output = pyqtSignal(str)
     
@@ -57,9 +54,6 @@ class RunThread(QThread):
         except Exception as e:
             self.output.emit(f"An unexpected error occurred: {str(e)}")
 
-# ---
-# Helper widget for selecting files or directories
-# ---
 class PathSelector(QWidget):
     def __init__(self, is_directory=False):
         super().__init__()
@@ -85,10 +79,10 @@ class PathSelector(QWidget):
             
     def text(self):
         return self.line_edit.text()
+    
+    def setText(self, text):
+        self.line_edit.setText(text)
 
-# ---
-# Helper function to create a radio button group (still used for AVG)
-# ---
 def create_radio_group(title, options, default_key='default'):
     group_box = QGroupBox(title)
     group_layout = QVBoxLayout()
@@ -97,16 +91,13 @@ def create_radio_group(title, options, default_key='default'):
     for key, text in options.items():
         radio = QRadioButton(text)
         if key == default_key:
-            radio.setChecked(True) # Set the default
+            radio.setChecked(True) 
         group_layout.addWidget(radio)
         buttons[key] = radio
         
     group_box.setLayout(group_layout)
     return group_box, buttons
 
-# ---
-# Main Window Class
-# ---
 class ScopeXRApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -126,11 +117,9 @@ class ScopeXRApp(QMainWindow):
         self.fs_config_data = load_config(fs_config_path)
         self.psf_config_data = load_config(psf_config_path)
 
-        # --- Main Layout: Splitter ---
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(splitter)
 
-        # --- 1. Left Pane (Image Viewer) ---
         left_pane = QWidget()
         left_layout = QVBoxLayout(left_pane)
         
@@ -146,7 +135,6 @@ class ScopeXRApp(QMainWindow):
         left_layout.addWidget(self.image_display_label, stretch=1)
         splitter.addWidget(left_pane)
 
-        # --- 2. Right Pane (Controls, Tabs, and Output) ---
         right_pane = QWidget()
         right_layout = QVBoxLayout(right_pane)
 
@@ -161,7 +149,7 @@ class ScopeXRApp(QMainWindow):
         right_layout.addWidget(self.tab_widget)
 
         button_layout = QHBoxLayout()
-        self.edit_config_btn = QPushButton("Edit Default Config")
+        self.edit_config_btn = QPushButton("Edit Default Config File")
         self.run_btn = QPushButton("Run Analysis")
         self.run_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
         
@@ -195,16 +183,87 @@ class ScopeXRApp(QMainWindow):
         tab_layout.addWidget(scroll_area)
         return tab_widget, form_layout
 
+    # --- UPDATE FUNCTION FOR FS TAB ---
+    def update_fs_gui(self):
+        """Reads the file path from the FS config box, loads it, and updates widgets."""
+        path = self.fs_config.text()
+        if not path or not os.path.exists(path):
+            QMessageBox.warning(self, "File Not Found", f"Could not find config file: {path}")
+            return
+
+        new_data = load_config(path)
+        if not new_data:
+            QMessageBox.warning(self, "Error", "Failed to load or empty config file.")
+            return
+
+        # Update widgets (use .get() with a safe fallback or keep current value)
+        # We use a simple helper to avoid clutter
+        def set_spin(widget, key, dtype=float):
+            if key in new_data:
+                val = new_data[key]
+                if val is not None:
+                    widget.setValue(dtype(val))
+
+        if 'out_dir' in new_data: self.fs_output_dir.setText(new_data['out_dir'])
+        set_spin(self.fs_pixel_size, 'pixel_size', float)
+        set_spin(self.fs_diameter, 'circle_diameter', float)
+        if 'no_hough' in new_data: self.fs_no_hough.setChecked(bool(new_data['no_hough']))
+        set_spin(self.fs_magnification, 'm', float)
+        set_spin(self.fs_min_pixels, 'n', int)
+        set_spin(self.fs_nangles, 'n_angles', int)
+        set_spin(self.fs_half_length, 'profile_half_length', int)
+        set_spin(self.fs_derivative_step, 'derivative_step', int)
+        set_spin(self.fs_axis_shifts, 'axis_shifts', int)
+        
+        if 'filter_name' in new_data: 
+            self.fs_filter.setCurrentText(str(new_data['filter_name']))
+        set_spin(self.fs_avg_number, 'avg_number', int)
+        if 'symmetrize' in new_data: self.fs_sym.setChecked(bool(new_data['symmetrize']))
+        
+        # Shifts
+        manual_val = new_data.get('manual_shift')
+        if manual_val is not None:
+            self.fs_radio_manual.setChecked(True)
+            self.fs_manual_shift_val.setValue(int(manual_val))
+        elif new_data.get('no_shift', False):
+            self.fs_radio_no.setChecked(True)
+        elif new_data.get('auto_shift', False): # Explicit check
+             self.fs_radio_auto.setChecked(True)
+        else:
+             # Fallback to default if nothing specified? Or leave as is?
+             # Let's assume auto_shift is default if nothing else is set
+             self.fs_radio_auto.setChecked(True)
+
+        # Avg Group
+        if new_data.get('avg_neighbors', False):
+            self.fs_avg_buttons['avg'].setChecked(True)
+        elif new_data.get('no_avg', False): # Assuming you add this key to yaml for explicit disable
+             self.fs_avg_buttons['no_avg'].setChecked(True)
+        # 'default' button stays if neither key is present
+
+        if 'show_plots' in new_data: self.fs_show.setChecked(bool(new_data['show_plots']))
+        
+        print(f"FS GUI updated from {path}")
+
 
     def create_fs_tab(self, config_data):
-        """Creates the complete, scrollable form for the Focal Spot tab."""
         tab_widget, layout = self._create_scrollable_tab()
         
+        # Config File Row with Load Button
+        config_layout = QHBoxLayout()
         self.fs_config = PathSelector(is_directory=False)
-        layout.addRow("Config File [--config]:", self.fs_config)
+        # Assuming config_data has the default path or we use the hardcoded one
+        # self.fs_config.setText(...) # Set initial text if you have it
+        
+        load_btn = QPushButton("Load/Update GUI")
+        load_btn.clicked.connect(self.update_fs_gui)
+        
+        config_layout.addWidget(self.fs_config)
+        config_layout.addWidget(load_btn)
+        layout.addRow("Config File [--config]:", config_layout)
 
         self.fs_output_dir = PathSelector(is_directory=True)
-        self.fs_output_dir.line_edit.setText(config_data.get('out_dir', ''))
+        self.fs_output_dir.setText(config_data.get('out_dir', ''))
         layout.addRow("Output Dir [--o]:", self.fs_output_dir)
         
         self.fs_pixel_size = QDoubleSpinBox()
@@ -267,19 +326,15 @@ class ScopeXRApp(QMainWindow):
         self.fs_sym.setChecked(config_data.get('symmetrize', False)) 
         layout.addRow("[--sym]:", self.fs_sym)
         
-        # ---
-        # NEW SHIFT GROUP FOR FS
-        # ---
         fs_shift_box = QGroupBox("Sinogram Shifting")
         fs_shift_layout = QVBoxLayout()
         self.fs_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
         self.fs_radio_no = QRadioButton("No Shift (--no_shift)")
         
-        # Manual shift option
         self.fs_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
         self.fs_manual_shift_val = QSpinBox()
         self.fs_manual_shift_val.setRange(-1000, 1000)
-        self.fs_manual_shift_val.setEnabled(False) # Disabled by default
+        self.fs_manual_shift_val.setEnabled(False) 
         self.fs_radio_manual.toggled.connect(self.fs_manual_shift_val.setEnabled)
         
         manual_layout = QHBoxLayout()
@@ -291,7 +346,6 @@ class ScopeXRApp(QMainWindow):
         fs_shift_layout.addWidget(self.fs_radio_no)
         fs_shift_box.setLayout(fs_shift_layout)
 
-        # Set default state from config
         manual_val = config_data.get('manual_shift')
         if manual_val is not None:
             self.fs_radio_manual.setChecked(True)
@@ -299,10 +353,9 @@ class ScopeXRApp(QMainWindow):
         elif config_data.get('no_shift', False):
             self.fs_radio_no.setChecked(True)
         else:
-            self.fs_radio_auto.setChecked(True) # Default
+            self.fs_radio_auto.setChecked(True) 
             
         layout.addRow(fs_shift_box)
-        # --- END NEW SHIFT GROUP ---
 
         avg_default = 'default'
         if config_data.get('avg_neighbors', False): avg_default = 'avg' 
@@ -321,15 +374,90 @@ class ScopeXRApp(QMainWindow):
         
         return tab_widget
 
+    # --- UPDATE FUNCTION FOR PSF TAB ---
+    def update_psf_gui(self):
+        """Reads the file path from the PSF config box, loads it, and updates widgets."""
+        path = self.psf_config.text()
+        if not path or not os.path.exists(path):
+            QMessageBox.warning(self, "File Not Found", f"Could not find config file: {path}")
+            return
+
+        new_data = load_config(path)
+        if not new_data:
+            QMessageBox.warning(self, "Error", "Failed to load or empty config file.")
+            return
+
+        def set_spin(widget, key, dtype=float):
+            if key in new_data:
+                val = new_data[key]
+                if val is not None:
+                    widget.setValue(dtype(val))
+
+        if 'out_dir' in new_data: self.psf_output_dir.setText(new_data['out_dir'])
+        set_spin(self.psf_pixel_size, 'pixel_size', float)
+        set_spin(self.psf_diameter, 'circle_diameter', float)
+        if 'no_hough' in new_data: self.psf_no_hough.setChecked(bool(new_data['no_hough']))
+        set_spin(self.psf_nangles, 'n_angles', int)
+        set_spin(self.psf_half_length, 'profile_half_length', int)
+        set_spin(self.psf_derivative_step, 'derivative_step', int)
+        set_spin(self.psf_axis_shifts, 'axis_shifts', int)
+        
+        if 'filter_name' in new_data: 
+            self.psf_filter.setCurrentText(str(new_data['filter_name']))
+        set_spin(self.psf_avg_number, 'avg_number', int)
+        if 'symmetrize' in new_data: self.psf_sym.setChecked(bool(new_data['symmetrize']))
+        
+        set_spin(self.psf_dtheta, 'dtheta', float)
+        set_spin(self.psf_resample1, 'resample1', float)
+        set_spin(self.psf_resample2, 'resample2', float)
+        set_spin(self.psf_gaussian_sigma, 'gaussian_sigma', float)
+        if 'oversample_strategy' in new_data:
+            self.psf_oversample_strategy.setCurrentText(str(new_data['oversample_strategy']))
+
+        # Shifts
+        manual_val = new_data.get('manual_shift')
+        if manual_val is not None:
+            self.psf_radio_manual.setChecked(True)
+            self.psf_manual_shift_val.setValue(int(manual_val))
+        elif new_data.get('no_shift', False):
+            self.psf_radio_no.setChecked(True)
+        elif new_data.get('auto_shift', False):
+             self.psf_radio_auto.setChecked(True)
+        else:
+             self.psf_radio_auto.setChecked(True)
+
+        # Avg Group
+        if new_data.get('avg_neighbors', False):
+            self.psf_avg_buttons['avg'].setChecked(True)
+        elif new_data.get('no_avg', False): 
+             self.psf_avg_buttons['no_avg'].setChecked(True)
+
+        # Oversample Group
+        if new_data.get('oversample', False):
+            self.psf_oversample_buttons['oversample'].setChecked(True)
+        elif new_data.get('no_oversample', False):
+             self.psf_oversample_buttons['no_oversample'].setChecked(True)
+
+        if 'show_plots' in new_data: self.psf_show.setChecked(bool(new_data['show_plots']))
+        
+        print(f"PSF GUI updated from {path}")
+
     def create_psf_tab(self, config_data):
-        """Creates the complete, scrollable form for the PSF tab."""
         tab_widget, layout = self._create_scrollable_tab()
 
+        # Config File Row with Load Button
+        config_layout = QHBoxLayout()
         self.psf_config = PathSelector(is_directory=False)
-        layout.addRow("Config File [--config]:", self.psf_config)
+        
+        load_btn = QPushButton("Load/Update GUI")
+        load_btn.clicked.connect(self.update_psf_gui)
+        
+        config_layout.addWidget(self.psf_config)
+        config_layout.addWidget(load_btn)
+        layout.addRow("Config File [--config]:", config_layout)
 
         self.psf_output_dir = PathSelector(is_directory=True)
-        self.psf_output_dir.line_edit.setText(config_data.get('out_dir', '')) 
+        self.psf_output_dir.setText(config_data.get('out_dir', '')) 
         layout.addRow("Output Dir [--o]:", self.psf_output_dir)
         
         self.psf_pixel_size = QDoubleSpinBox()
@@ -404,19 +532,16 @@ class ScopeXRApp(QMainWindow):
         self.psf_oversample_strategy.setCurrentText(str(config_data.get('oversample_strategy', '1')))
         layout.addRow("Oversample Strategy:", self.psf_oversample_strategy)
         
-        # ---
-        # NEW SHIFT GROUP FOR PSF
-        # ---
+        # PSF Shifts
         psf_shift_box = QGroupBox("Sinogram Shifting")
         psf_shift_layout = QVBoxLayout()
         self.psf_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
         self.psf_radio_no = QRadioButton("No Shift (--no_shift)")
         
-        # Manual shift option
         self.psf_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
         self.psf_manual_shift_val = QSpinBox()
         self.psf_manual_shift_val.setRange(-1000, 1000)
-        self.psf_manual_shift_val.setEnabled(False) # Disabled by default
+        self.psf_manual_shift_val.setEnabled(False) 
         self.psf_radio_manual.toggled.connect(self.psf_manual_shift_val.setEnabled)
         
         manual_layout_psf = QHBoxLayout()
@@ -428,7 +553,6 @@ class ScopeXRApp(QMainWindow):
         psf_shift_layout.addWidget(self.psf_radio_no)
         psf_shift_box.setLayout(psf_shift_layout)
 
-        # Set default state from config
         manual_val_psf = config_data.get('manual_shift')
         if manual_val_psf is not None:
             self.psf_radio_manual.setChecked(True)
@@ -436,10 +560,9 @@ class ScopeXRApp(QMainWindow):
         elif config_data.get('no_shift', False):
             self.psf_radio_no.setChecked(True)
         else:
-            self.psf_radio_auto.setChecked(True) # Default
+            self.psf_radio_auto.setChecked(True)
             
         layout.addRow(psf_shift_box)
-        # --- END NEW SHIFT GROUP ---
 
         avg_default = 'default'
         if config_data.get('avg_neighbors', False): avg_default = 'avg' 
@@ -653,9 +776,6 @@ class ScopeXRApp(QMainWindow):
         self.output_console.append("\n--- Analysis Finished ---")
 
 
-# ---
-# Standard Python entry point
-# ---
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ScopeXRApp()
