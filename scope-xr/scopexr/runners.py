@@ -136,22 +136,9 @@ def run_pipeline_fs():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
-    # Save and plot function
-    saved_files = []
-
-    def save_and_plot(name, arr, plot_func=None, suffix=""):
-        fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
-        path = os.path.join(out_dir, fname)
-        utils.save_16bit_tiff(arr, path)
-        saved_files.append(path)
-        if plot_func:
-            plot_func(arr, out_dir, show_plots)
-        return path
-
-    # Base saving
-    save_and_plot("profiles", profiles)
-    save_and_plot("sinogram", sinogram)
-    save_and_plot("reconstruction", reconstruction)
+    utils.save_and_plot("profiles", profiles,  out_dir=out_dir),
+    utils.save_and_plot("sinogram", sinogram,  out_dir=out_dir),
+    utils.save_and_plot("reconstruction", reconstruction,  out_dir=out_dir),
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -434,22 +421,9 @@ def run_pipeline_psf():
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    # Save and plot function
-    saved_files = []
-
-    def save_and_plot(name, arr, plot_func=None, suffix=""):
-        fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
-        path = os.path.join(out_dir, fname)
-        utils.save_16bit_tiff(arr, path)
-        saved_files.append(path)
-        if plot_func:
-            plot_func(arr, out_dir, show_plots)
-        return path
-
-    # Base saving
-    save_and_plot("profiles", profiles)
-    save_and_plot("sinogram", sinogram)
-    save_and_plot("reconstruction", reconstruction)
+    utils.save_and_plot("profiles", profiles,  out_dir=out_dir),
+    utils.save_and_plot("sinogram", sinogram,  out_dir=out_dir),
+    utils.save_and_plot("reconstruction", reconstruction,  out_dir=out_dir),
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -675,9 +649,11 @@ def run_pipeline_psf():
         save_and_plot("profiles_oversampled", sub_profiles)
         save_and_plot("sinogram_oversampled", sub_sinogram)
         recon_sub = sr.reconstruct_focal_spot(sub_sinogram, filter_name, symmetrize)
-
-        # Save oversampled images
-        save_and_plot("reconstruction_oversampled", recon_sub)
+        
+        utils.save_and_plot("profiles_oversampled", sub_profiles)
+        utils.save_and_plot("sinogram_oversampled", sub_sinogram)
+        utils.save_and_plot("reconstruction_oversampled", recon_sub)
+        
         plotters.plot_profiles_and_reconstruction(
             sub_profiles,
             sub_sinogram,

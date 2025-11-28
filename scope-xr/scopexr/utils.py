@@ -83,3 +83,13 @@ def suggest_os_angle(p: float, n: int, r: float) -> float:
     dtheta = 2*np.arccos(1-p/(n*r))
     dtheta = np.degrees(dtheta)
     return dtheta
+
+def save_and_plot(name, arr, plot_func=None, suffix="", out_dir=None, show_plots=False):
+    fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
+    path = os.path.join(out_dir, fname)
+    save_16bit_tiff(arr, path)
+
+    if plot_func:
+        plot_func(arr, out_dir, show_plots)
+
+    return path

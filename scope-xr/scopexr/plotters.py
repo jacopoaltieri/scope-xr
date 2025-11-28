@@ -96,8 +96,8 @@ def plot_profiles_with_fwhm(
     ax.plot(radial, prof_narrow_sino, label=f"Narrowest (idx={narrow_idx})", color='orange')
 
     # Compute half-max levels
-    half_w = (prof_wide_sino.max() + prof_wide_sino.min()) *height + prof_wide_sino.min()
-    half_n = (prof_narrow_sino.max() + prof_narrow_sino.min()) *height + prof_narrow_sino.min()
+    half_w = (prof_wide_sino.max() - prof_wide_sino.min()) *height + prof_wide_sino.min()
+    half_n = (prof_narrow_sino.max() - prof_narrow_sino.min()) *height + prof_narrow_sino.min()
 
     # Interpolate radial coordinates at fractional indices
     idx = np.arange(len(radial))
