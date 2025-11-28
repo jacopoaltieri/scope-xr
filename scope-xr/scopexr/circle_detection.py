@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+from scipy.ndimage import center_of_mass
 
 def detect_circle_hough(
     img: np.ndarray,
@@ -81,38 +81,21 @@ def detect_circle_hough(
     return x, y, r
 
 
-def compute_com_profiles(cropped: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute center-of-mass profiles along rows (x) and columns (y).
-    Returns arrays of COM positions in local coordinates.
-    """
-    h, w = cropped.shape
-
-    com_x = np.zeros(h)
-    for i in range(h):
-        row = cropped[i, :]
-        total = row.sum()
-        com_x[i] = (np.arange(w) * row).sum() / total
-
-    com_y = np.zeros(w)
-    for j in range(w):
-        col = cropped[:, j]
-        total = col.sum()
-        com_y[j] = (np.arange(h) * col).sum() / total
-
-    return com_x, com_y
-
-
-        
 def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, float, float]:
     """
     Estimate the circle radius by sampling intensity profiles along
     horizontal and vertical directions, restricted to a region around the estimated center.
     """
     h, w = cropped.shape
-    com_x, com_y = compute_com_profiles(cropped)
-    cx_init = int(com_x.mean())
-    cy_init = int(com_y.mean())
+    
+    cy_float, cx_float = center_of_mass(cropped)
+    
+    # Handle case where image might be empty/black
+    if np.isnan(cy_float) or np.isnan(cx_float):
+        cy_init, cx_init = h // 2, w // 2
+    else:
+        cy_init, cx_init = int(cy_float), int(cx_float)
+    # --- REPLACEMENT END ---
 
     # Define threshold relative to intensity range
     threshold = np.min(cropped) + (np.max(cropped) - np.min(cropped)) / 2
@@ -126,10 +109,16 @@ def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, 
 
     for idx, y in enumerate(range(y_start, y_end)):
         row = cropped[y, :]
-        left = np.argmax(row >= threshold)
-        right = w - np.argmax(row[::-1] >= threshold) - 1
-        x_left[idx] = left
-        x_right[idx] = right
+        # Find indices where value crosses threshold
+        above_thresh = np.where(row >= threshold)[0]
+        
+        if len(above_thresh) > 0:
+            x_left[idx] = above_thresh[0]
+            x_right[idx] = above_thresh[-1]
+        else:
+            # Fallback if line doesn't hit the circle (e.g. at the very edge)
+            x_left[idx] = cx_init
+            x_right[idx] = cx_init
 
     # Limit x range for vertical scan
     x_start = max(cx_init - region_size, 0)
@@ -140,17 +129,21 @@ def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, 
 
     for idx, x in enumerate(range(x_start, x_end)):
         col = cropped[:, x]
-        down = np.argmax(col >= threshold)
-        up = h - np.argmax(col[::-1] >= threshold) - 1
-        y_down[idx] = down
-        y_up[idx] = up
+        above_thresh = np.where(col >= threshold)[0]
+        
+        if len(above_thresh) > 0:
+            y_down[idx] = above_thresh[0]
+            y_up[idx] = above_thresh[-1]
+        else:
+            y_down[idx] = cy_init
+            y_up[idx] = cy_init
 
-    # Compute updated center and radii
+    # Compute center and radii
     cx = np.round(np.mean((x_left + x_right) / 2))
     cy = np.round(np.mean((y_down + y_up) / 2))
 
-    r_x = np.round(np.mean((x_right - x_left) / 2))
-    r_y = np.round(np.mean((y_up - y_down) / 2))
+    r_x = np.mean((x_right - x_left) / 2)
+    r_y = np.mean((y_up - y_down) / 2)
     radius_estimate = np.round(np.mean([r_x, r_y]))
 
     return cx, cy, radius_estimate
