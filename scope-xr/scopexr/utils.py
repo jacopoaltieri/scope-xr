@@ -65,7 +65,7 @@ def save_16bit_tiff(data: np.ndarray, path: str):
     iio.imwrite(path, scaled_data, compression='deflate')
 
 
-def interpolate_nans_1d(y):
+def interpolate_nans_1d(y: np.ndarray) -> np.ndarray:
     """
     Linearly interpolate NaNs in a 1D array.
     """
@@ -78,13 +78,17 @@ def interpolate_nans_1d(y):
 
 
 def suggest_os_angle(p: float, n: int, r: float) -> float:
-    """Suggest the optimal oversampling angle (in degrees) to ensure that the cross-talk between neighboring profiles is negligible."""
-
+    """
+    Suggest the optimal oversampling angle (in degrees) to ensure that the cross-talk between neighboring profiles is negligible.
+    """
     dtheta = 2*np.arccos(1-p/(n*r))
     dtheta = np.degrees(dtheta)
     return dtheta
 
-def save_and_plot(name, arr, plot_func=None, suffix="", out_dir=None, show_plots=False):
+def save_and_plot(name, arr,out_dir, plot_func=None, suffix="",  show_plots=False):
+    """
+    Save a 2D array as a 16-bit TIFF and optionally plot it using a provided plotting function.
+    """
     fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
     path = os.path.join(out_dir, fname)
     save_16bit_tiff(arr, path)
