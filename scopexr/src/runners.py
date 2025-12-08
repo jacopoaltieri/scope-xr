@@ -3,14 +3,14 @@ import numpy as np
 import os
 
 
-from scopexr import utils, plotters
-import scopexr.arg_parser_fs as afs
-import scopexr.arg_parser_psf as apsf
-import scopexr.circle_detection as circ
-import scopexr.image_opening as io
-import scopexr.mtf_calc as mtfc
-import scopexr.sinogram_recon as sr
-import scopexr.widths_calculator as wc
+from src import utils, plotters
+import src.arg_parser_fs as afs
+import src.arg_parser_psf as apsf
+import src.circle_detection as circ
+import src.image_opening as io
+import src.mtf_calc as mtfc
+import src.sinogram_recon as sr
+import src.widths_calculator as wc
 
 
 def run_pipeline_fs():
@@ -136,9 +136,9 @@ def run_pipeline_fs():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
-    utils.save_and_plot("profiles", profiles,  out_dir=out_dir),
-    utils.save_and_plot("sinogram", sinogram,  out_dir=out_dir),
-    utils.save_and_plot("reconstruction", reconstruction,  out_dir=out_dir),
+    utils.save_and_plot("profiles", profiles,  out_dir),
+    utils.save_and_plot("sinogram", sinogram,  out_dir),
+    utils.save_and_plot("reconstruction", reconstruction,  out_dir),
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -161,6 +161,9 @@ def run_pipeline_fs():
     wide_idx, _, sigmas = wc.find_extreme_profiles_erf(profiles)
     narrow_idx = (wide_idx + 90) % sinogram.shape[1]
 
+    wide_idx = 0
+    narrow_idx = 90
+    
     print(f"Widest edge at angle idx {wide_idx}")
     print(f"Narrowest edge at angle idx {narrow_idx}")
 
@@ -187,6 +190,18 @@ def run_pipeline_fs():
 
     n_rays = sinogram.shape[0]
     radial = np.arange(n_rays) - n_rays // 2
+
+
+    data = np.column_stack((radial, prof_wide_sino, prof_narrow_sino))
+
+    np.savetxt(
+        os.path.join(out_dir, "profiles.csv"),
+        data,
+        delimiter=",",
+        header="radial,wide_profile,narrow_profile",
+        comments="",
+        fmt=["%d", "%.6f", "%.6f"]
+    )
 
     fwhm_path = os.path.join(out_dir, "fwhm_sinogram_profiles.png")
     plotters.plot_profiles_with_fwhm(
@@ -421,9 +436,9 @@ def run_pipeline_psf():
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    utils.save_and_plot("profiles", profiles,  out_dir=out_dir),
-    utils.save_and_plot("sinogram", sinogram,  out_dir=out_dir),
-    utils.save_and_plot("reconstruction", reconstruction,  out_dir=out_dir),
+    utils.save_and_plot("profiles", profiles,  out_dir),
+    utils.save_and_plot("sinogram", sinogram, out_dir),
+    utils.save_and_plot("reconstruction", reconstruction,  out_dir),
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -646,13 +661,11 @@ def run_pipeline_psf():
             print("Sinogram shifting is disabled (oversampled).")
             
         
-        save_and_plot("profiles_oversampled", sub_profiles)
-        save_and_plot("sinogram_oversampled", sub_sinogram)
         recon_sub = sr.reconstruct_focal_spot(sub_sinogram, filter_name, symmetrize)
         
-        utils.save_and_plot("profiles_oversampled", sub_profiles)
-        utils.save_and_plot("sinogram_oversampled", sub_sinogram)
-        utils.save_and_plot("reconstruction_oversampled", recon_sub)
+        utils.save_and_plot("profiles_oversampled", sub_profiles, out_dir)
+        utils.save_and_plot("sinogram_oversampled", sub_sinogram, out_dir)
+        utils.save_and_plot("reconstruction_oversampled", recon_sub, out_dir)
         
         plotters.plot_profiles_and_reconstruction(
             sub_profiles,

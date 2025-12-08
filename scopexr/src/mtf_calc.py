@@ -1,29 +1,5 @@
 import numpy as np
 
-# def compute_2d_mtf(psf):
-#     """
-#     Compute 2D MTF from 2D PSF.
-#     """
-#     psf = psf / np.sum(psf)  # Normalize PSF
-#     otf = np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(psf)))
-#     mtf = np.abs(otf)
-#     mtf = mtf / np.max(mtf)  # Normalize MTF to 1 at zero frequency
-#     return mtf
-
-
-# def plot_2d_mtf(mtf, title="2D MTF"):
-#     """
-#     Plot 2D MTF.
-#     """
-#     plt.figure(figsize=(6, 5))
-#     plt.imshow(mtf, cmap="jet", extent=[-0.5, 0.5, -0.5, 0.5])
-#     plt.title(title)
-#     plt.xlabel("Spatial frequency fx (cycles/pixel)")
-#     plt.ylabel("Spatial frequency fy (cycles/pixel)")
-#     plt.colorbar(label="MTF")
-#     plt.show()
-
-
 def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
     """
     Compute 1D MTF from 2D PSF by integrating to LSF along specified axis.
@@ -150,7 +126,7 @@ def get_mtf_at_freq(
 if __name__ == "__main__":
     psf_path = r"C:\Users\jacop\Desktop\PhD\Focal Spot\Input images\virtual_images\psf\PSF-downsampled.png"
     from imageio import imread
-    from scopexr.plotters import plot_1d_mtf
+    from src.plotters import plot_1d_mtf
 
     psf = imread(
         psf_path,

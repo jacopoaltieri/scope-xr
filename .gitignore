@@ -1,8 +1,8 @@
-ATS 6 mag
-21_3_2025
-__pycache__
+analysis_results
 output*
+simulations
+Focal_Spot.java
+ATS*
+__pycache__
 spotxenv
-*.spotxvenv
-scope-xr paper
-test objects design
+mtf_study.py

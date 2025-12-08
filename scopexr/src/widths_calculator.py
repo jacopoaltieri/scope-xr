@@ -3,38 +3,6 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 
 
-# def fwhm(sinogram: np.ndarray) -> tuple[int, int, int]:
-#     """
-#     Compute the full width at half maximum (FWHM) of a 1D sinogram profile.
-
-#     Args:
-#         sinogram: 1D array representing a single profile from the sinogram.
-
-#     Returns:
-#         width_px: Width in pixels between half-maximum crossings.
-#         left_idx: Index of the left half-maximum crossing.
-#         right_idx: Index of the right half-maximum crossing.
-#     """
-#     half_max = (sinogram.max() + sinogram.min()) / 2.0
-#     n = len(sinogram)
-#     center = n // 2
-
-#     left_edge = None
-#     for i in range(center, -1, -1):
-#         if sinogram[i] < half_max:
-#             left_edge = i
-#             break
-#     left = (left_edge + 1) if left_edge is not None else 0
-
-#     right_edge = None
-#     for i in range(center, n):
-#         if sinogram[i] < half_max:
-#             right_edge = i
-#             break
-#     right = (right_edge - 1) if right_edge is not None else (n - 1)
-
-#     width = right - left
-#     return width, left, right
 def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     """
     Compute the Full Width at Half Maximum (FWHM) of a 1D profile using
