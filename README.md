@@ -38,9 +38,10 @@ Run the command:
 git clone "[https://github.com/jacopoaltieri/scope-xr](https://github.com/jacopoaltieri/scope-xr)"
 ```
 
-Then install the dependencies.
+Then, move into scopexr and install the dependencies.
 
 ```bash
+cd scopexr
 pip install -r requirements.txt
 ```
 
