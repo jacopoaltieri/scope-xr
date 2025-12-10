@@ -1,31 +1,26 @@
 import argparse
 import sys
 import yaml
-import os
+
 
 def get_merged_config():
-    parser = argparse.ArgumentParser(description="Focal Spot Analysis")
+    parser = argparse.ArgumentParser()
 
-    # 1. Configuration Arguments
     parser.add_argument(
-        "--config", 
-        type=str, 
-        default=None, 
-        help="Path to YAML config file. Defaults to local 'fs_args.yaml' or internal package default."
-    )
-    
-    parser.add_argument(
-        "--init_config", 
-        action="store_true", 
-        help="Generate a default 'fs_args.yaml' file in the current directory and exit."
+        "--config", type=str, default=r".\fs_args.yaml", help="Path to YAML config file"
     )
 
-    # 2. CLI Overrides (Short flags)
+    # CLI arguments (short flags)
     parser.add_argument("--f", type=str, help="Path to the image file (.raw/.png/.tif)")
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
-    parser.add_argument("--no_hough", action="store_true", default=None, help="Skip Hough transform detection")
+    parser.add_argument(
+        "--no_hough",
+        action="store_true",
+        default=None,
+        help="Skip Hough transform detection",
+    )
     parser.add_argument("--m", type=float, help="Magnification")
     parser.add_argument("--n", type=int, help="Minimum pixel count")
     parser.add_argument("--nangles", type=int, help="Number of angles")
@@ -34,47 +29,50 @@ def get_merged_config():
     parser.add_argument("--axis_shifts", type=int, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
     parser.add_argument("--avg_number", type=int, help="Number of profiles to average")
-    parser.add_argument("--sym", action="store_true", default=None, help="Symmetrize the sinogram")
+    parser.add_argument(
+        "--sym", action="store_true", default=None, help="Symmetrize the sinogram"
+    )
     parser.add_argument("--show", action="store_true", default=None, help="Show plots")
 
-    # Shift Group
     shift_group = parser.add_mutually_exclusive_group()
-    shift_group.add_argument("--auto_shift", action="store_true", default=None, help="Enable automatic sinogram centering.")
-    shift_group.add_argument("--manual_shift", type=int, default=None, help="Provide a specific manual shift value (in pixels).")
-    shift_group.add_argument("--no_shift", action="store_true", default=None, help="Disable all sinogram shifting.")
+    shift_group.add_argument(
+        "--auto_shift",
+        action="store_true",
+        default=None,
+        help="Enable automatic sinogram centering.",
+    )
+    shift_group.add_argument(
+        "--manual_shift",
+        type=int,
+        default=None,
+        help="Provide a specific manual shift value (in pixels).",
+    )
+    shift_group.add_argument(
+        "--no_shift",
+        action="store_true",
+        default=None,
+        help="Disable all sinogram shifting.",
+    )
 
-    # Avg Group
     avg_group = parser.add_mutually_exclusive_group()
-    avg_group.add_argument("--avg", dest="avg_neighbors", action="store_true", default=None, help="Enable averaging neighboring profiles")
-    avg_group.add_argument("--no_avg", dest="avg_neighbors", action="store_false", default=None, help="Disable averaging neighboring profiles")
+    avg_group.add_argument(
+        "--avg",
+        dest="avg_neighbors",
+        action="store_true",
+        default=None,  # Use None as default
+        help="Enable averaging neighboring profiles",
+    )
+    avg_group.add_argument(
+        "--no_avg",
+        dest="avg_neighbors",
+        action="store_false",
+        default=None,  # Use None as default
+        help="Disable averaging neighboring profiles",
+    )
 
     args, unknown = parser.parse_known_args()
 
-    # --- SPECIAL CASE: Init Config ---
-    # If the user just wants to generate the config, we return a flag immediately
-    if args.init_config:
-        return {"init_config": True}
-
-
-    # Priority 1: User specified path
-    if args.config:
-        config_path = args.config
-        if not os.path.exists(config_path):
-            print(f"[Error] Specified config file not found: {config_path}", file=sys.stderr)
-            sys.exit(1)
-            
-    # Priority 2: Local file in current directory
-    elif os.path.exists("fs_args.yaml"):
-        config_path = "fs_args.yaml"
-        print(f"[Info] Using local configuration: {config_path}")
-        
-    # Priority 3: Internal Package Default
-    else:
-        config_path = os.path.join(os.path.dirname(__file__), "fs_args.yaml")
-        print(f"[Info] Using internal default configuration.")
-
-    # --- LOAD YAML ---
-    # Set hardcoded defaults first (lowest priority)
+    # 1. Set code defaults (lowest priority)
     config = {
         "img_path": None,
         "auto_shift": True,
@@ -86,16 +84,21 @@ def get_merged_config():
         "show_plots": False,
     }
 
+    # 2. Load YAML config (overwrites code defaults)
     try:
-        with open(config_path, "r") as f:
+        with open(args.config, "r") as f:
             yaml_config = yaml.safe_load(f)
             if yaml_config:
                 config.update(yaml_config)
+    except FileNotFoundError:
+        print(
+            f"Warning: Config file not found at {args.config}. Using defaults.",
+            file=sys.stderr,
+        )
     except Exception as e:
-        print(f"[Warning] Error loading YAML config from {config_path}: {e}", file=sys.stderr)
-        print("Using hardcoded defaults.", file=sys.stderr)
+        print(f"Error loading YAML config: {e}", file=sys.stderr)
 
-    # --- APPLY CLI OVERRIDES ---
+    # 3. Load CLI arguments (highest priority)
     cli_to_config_keys = {
         "f": "img_path",
         "o": "out_dir",
@@ -113,6 +116,7 @@ def get_merged_config():
         "avg_neighbors": "avg_neighbors",
         "avg_number": "avg_number",
         "show": "show_plots",
+        # Add all shift keys to the map
         "auto_shift": "auto_shift",
         "manual_shift": "manual_shift",
         "no_shift": "no_shift",
@@ -122,62 +126,60 @@ def get_merged_config():
 
     for cli_key, config_key in cli_to_config_keys.items():
         cli_value = cli_dict.get(cli_key)
+        # Only update if the CLI argument was *actually* given
         if cli_value is not None:
             config[config_key] = cli_value
 
-    # Ensure mutually exclusive flags override the YAML properly
+    # ---
+    # Check which CLI flag was *actually passed* (from cli_dict)
+    # and enforce priority.
+    # ---
     if cli_dict.get("manual_shift") is not None:
+        # CLI --manual_shift was used
         config["auto_shift"] = False
         config["no_shift"] = False
         config["manual_shift"] = cli_dict.get("manual_shift")
-        
     elif cli_dict.get("auto_shift") is True:
+        # CLI --auto_shift was used
         config["auto_shift"] = True
         config["no_shift"] = False
         config["manual_shift"] = None
-        
     elif cli_dict.get("no_shift") is True:
+        # CLI --no_shift was used
         config["auto_shift"] = False
         config["no_shift"] = True
         config["manual_shift"] = None
+    # If no CLI shift flag was passed, the config (from YAML or default) is used as-is.
 
     return config
 
 
-def validate_args(config):
-    # Skip validation if we are just initializing config
-    if config.get("init_config"):
-        return
-
-    if not config.get("img_path"):
-        raise ValueError("Image path is required. Use --f to specify the image file or set 'img_path' in YAML.")
-        
-    # Basic positive number checks 
-
-    positive_checks = [
-        ("pixel_size", float),
-        ("circle_diameter", float),
-        ("min_n", int),
-        ("n_angles", int),
-        ("profile_half_length", int),
-        ("derivative_step", int)
-    ]
-
-    for key, expected_type in positive_checks:
-        val = config.get(key)
-        if val is None or val <= 0:
-            raise ValueError(f"'{key}' must be a positive {expected_type.__name__}.")
-
-    if config.get("magnification") is not None and config["magnification"] <= 0:
+def validate_args(args):
+    if not args.get("img_path"):
+        raise ValueError("Image path is required. Use --f to specify the image file.")
+    if args.get("pixel_size") is None or args["pixel_size"] <= 0:
+        raise ValueError("Pixel size must be a positive number.")
+    if args.get("circle_diameter") is None or args["circle_diameter"] <= 0:
+        raise ValueError("Circle diameter must be a positive number.")
+    if args.get("magnification") is not None and args["magnification"] <= 0:
         raise ValueError("Magnification must be a positive number.")
-
-    if config.get("axis_shifts") is not None and config["axis_shifts"] < 0:
+    if args.get("min_n") is None or args["min_n"] <= 0:
+        raise ValueError("Minimum pixel count must be a positive integer.")
+    if args.get("n_angles") is None or args["n_angles"] <= 0:
+        raise ValueError("Number of angles must be a positive integer.")
+    if args.get("profile_half_length") is None or args["profile_half_length"] <= 0:
+        raise ValueError("Half profile length must be a positive integer.")
+    if args.get("derivative_step") is None or args["derivative_step"] <= 0:
+        raise ValueError("Derivative step size must be a positive integer.")
+    if args.get("axis_shifts") is None or args["axis_shifts"] < 0:
         raise ValueError("Axis shifts must be a non-negative integer.")
 
-    avg_num = config.get("avg_number")
-    if config.get("avg_neighbors") and avg_num is not None:
+    avg_num = args.get("avg_number")
+    if args.get("avg_neighbors") and avg_num is not None:
         if avg_num <= 0 or avg_num % 2 == 0:
             raise ValueError("Average number must be a positive odd integer.")
 
-    if config.get("manual_shift") is not None and not isinstance(config["manual_shift"], int):
+    if args.get("manual_shift") is not None and not isinstance(
+        args["manual_shift"], int
+    ):
         raise ValueError("Manual shift must be an integer.")

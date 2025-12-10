@@ -28,5 +28,4 @@ scopexr-fs = "scopexr.fs_main:main"
 scopexr-psf = "scopexr.psf_main:main"
 
 [tool.setuptools.package-data]
-# Ensures YAML files are included when installed
-scopexr = ["*.yaml"]
+scopexr = ["*.png"]

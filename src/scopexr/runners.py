@@ -11,16 +11,9 @@ from . import image_opening as io
 from . import mtf_calc as mtfc
 from . import sinogram_recon as sr
 from . import widths_calculator as wc
-from .utils import export_default_config
 
 def run_pipeline_fs():
     args = afs.get_merged_config()
-    
-    # If the user just wants to create the config file, we then exit immediately
-    if args.get("init_config"):
-        export_default_config(filename="fs_args.yaml", dest_folder=".")
-        exit(0)
-    
     afs.validate_args(args)
 
     print("Running focal spot reconstruction pipeline.")
@@ -330,12 +323,6 @@ def run_pipeline_fs():
 
 def run_pipeline_psf():
     args = apsf.get_merged_config()
-    
-        # If the user just wants to create the config file, we then exit immediately
-    if args.get("init_config"):
-        export_default_config(filename="psf_args.yaml", dest_folder=".")
-        exit(0)
-        
     apsf.validate_args(args)
 
     print("Running detector PSF reconstruction pipeline.")

@@ -3,6 +3,7 @@ import subprocess
 import os
 import platform
 import yaml
+from importlib import resources
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QFileDialog, QTextEdit, QLabel, QSplitter,
@@ -10,7 +11,7 @@ from PyQt6.QtWidgets import (
     QComboBox, QLineEdit, QScrollArea, QGroupBox, QRadioButton, QMessageBox
 )
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QIcon
 
 
 def load_config(filename):
@@ -102,6 +103,7 @@ class ScopeXRApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SCOPE-XR GUI")
+        self.set_app_icon("scopexr_logo.png")
         self.resize(1100, 800)
         
         self.image_path = None
@@ -111,8 +113,8 @@ class ScopeXRApp(QMainWindow):
         except NameError:
             self.base_dir = os.path.abspath(".")
             
-        fs_config_path = os.path.join(self.base_dir, 'fs_args.yaml')
-        psf_config_path = os.path.join(self.base_dir, 'psf_args.yaml')
+        fs_config_path = './fs_args.yaml'
+        psf_config_path = './psf_args.yaml'
 
         self.fs_config_data = load_config(fs_config_path)
         self.psf_config_data = load_config(psf_config_path)
@@ -171,6 +173,14 @@ class ScopeXRApp(QMainWindow):
         self.run_btn.clicked.connect(self.run_script)
         
         self.run_thread = None
+
+    def set_app_icon(self, filename):
+            """Sets the application window icon from package resources."""
+            try:
+                with resources.files('scopexr').joinpath(filename) as path:
+                    self.setWindowIcon(QIcon(str(path)))
+            except Exception:
+                pass # Fail silently if icon is missing
 
     def _create_scrollable_tab(self):
         tab_widget = QWidget()
@@ -620,21 +630,33 @@ class ScopeXRApp(QMainWindow):
         super().resizeEvent(event)
 
     def edit_config(self):
-        current_tab_index = self.tab_widget.currentIndex()
-        config_filename = "fs_args.yaml" if current_tab_index == 0 else "psf_args.yaml"
-        
-        config_file_path = os.path.join(self.base_dir, config_filename)
-        try:
-            system = platform.system()
-            if system == "Windows":
-                os.startfile(config_file_path)
-            elif system == "Darwin":
-                subprocess.run(["open", config_file_path])
-            else:
-                subprocess.run(["xdg-open", config_file_path])
-        except Exception as e:
-            self.output_console.setText(f"Error opening {config_file_path}: {str(e)}")
+            current_tab_index = self.tab_widget.currentIndex()
+            config_filename = "fs_args.yaml" if current_tab_index == 0 else "psf_args.yaml"
+            
+            # Get absolute path in the Current Working Directory
+            config_file_path = os.path.abspath(config_filename)
+            
+            if not os.path.exists(config_file_path):
+                QMessageBox.warning(
+                    self, 
+                    "Config Not Found", 
+                    f"The configuration file was not found in this folder:\n\n{config_file_path}\n\n"
+                    "Please create it manually or copy the examples."
+                )
+                return
 
+            # Open the file
+            try:
+                system = platform.system()
+                if system == "Windows":
+                    os.startfile(config_file_path)
+                elif system == "Darwin":
+                    subprocess.run(["open", config_file_path])
+                else:
+                    subprocess.run(["xdg-open", config_file_path])
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not open file:\n{e}")
+    
     def run_script(self):
         if not self.image_path:
             self.output_console.setText("Please select an image file first.")
