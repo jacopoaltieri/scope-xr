@@ -644,13 +644,15 @@ class ScopeXRApp(QMainWindow):
         self.run_btn.setText("Running...")
         self.output_console.setText(f"Starting analysis on {os.path.basename(self.image_path)}...\n")
 
-        command = [sys.executable]
-        current_tab_index = self.tab_widget.currentIndex()
+        # --- KEY CHANGE: Run as Module ---
+        # We use [sys.executable, "-m", "scopexr.fs_main"] instead of path to file
+        command = [sys.executable, "-m"]
         
+        current_tab_index = self.tab_widget.currentIndex()
         
         if current_tab_index == 0:
             # --- FOCAL SPOT ---
-            command.append(os.path.join(self.base_dir, "fs_main.py"))
+            command.append("scopexr.fs_main") # Module name
             command.extend(["--f", self.image_path])
             
             if self.fs_config.text():
@@ -686,9 +688,7 @@ class ScopeXRApp(QMainWindow):
             if self.fs_show.isChecked():
                 command.append("--show")
 
-            # ---
-            # NEW FS SHIFT LOGIC
-            # ---
+            # Shifts
             if self.fs_radio_manual.isChecked():
                 command.extend(["--manual_shift", str(self.fs_manual_shift_val.value())])
             elif self.fs_radio_auto.isChecked():
@@ -696,6 +696,7 @@ class ScopeXRApp(QMainWindow):
             elif self.fs_radio_no.isChecked():
                 command.append("--no_shift")
 
+            # Avg
             if self.fs_avg_buttons["avg"].isChecked():
                 command.append("--avg")
             elif self.fs_avg_buttons["no_avg"].isChecked():
@@ -703,7 +704,7 @@ class ScopeXRApp(QMainWindow):
 
         else:
             # --- PSF ---
-            command.append(os.path.join(self.base_dir, "psf_main.py"))
+            command.append("scopexr.psf_main") # Module name
             command.extend(["--f", self.image_path])
 
             if self.psf_config.text():
@@ -742,9 +743,7 @@ class ScopeXRApp(QMainWindow):
             if self.psf_show.isChecked():
                 command.append("--show")
 
-            # ---
-            # NEW PSF SHIFT LOGIC
-            # ---
+            # Shifts
             if self.psf_radio_manual.isChecked():
                 command.extend(["--manual_shift", str(self.psf_manual_shift_val.value())])
             elif self.psf_radio_auto.isChecked():
@@ -752,32 +751,39 @@ class ScopeXRApp(QMainWindow):
             elif self.psf_radio_no.isChecked():
                 command.append("--no_shift")
 
+            # Avg
             if self.psf_avg_buttons["avg"].isChecked():
                 command.append("--avg")
             elif self.psf_avg_buttons["no_avg"].isChecked():
                 command.append("--no_avg")
 
+            # Oversample
             if self.psf_oversample_buttons["oversample"].isChecked():
                 command.append("--oversample")
             elif self.psf_oversample_buttons["no_oversample"].isChecked():
                 command.append("--no_oversample")
 
+        # Start Thread
         self.run_thread = RunThread(command)
-        self.run_thread.output.connect(self.update_console)
+        self.run_thread.output.connect(self.append_output)
         self.run_thread.finished.connect(self.on_run_finished)
         self.run_thread.start()
-        
-    def update_console(self, text):
-        self.output_console.append(text)
+
+    def append_output(self, text):
+        self.output_console.moveCursor(self.output_console.textCursor().MoveOperation.End)
+        self.output_console.insertPlainText(text)
+        self.output_console.ensureCursorVisible()
 
     def on_run_finished(self):
         self.run_btn.setEnabled(True)
         self.run_btn.setText("Run Analysis")
-        self.output_console.append("\n--- Analysis Finished ---")
+        self.output_console.insertPlainText("\n--- Analysis Finished ---\n")
 
-
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     window = ScopeXRApp()
     window.show()
     app.exec()
+
+if __name__ == "__main__":
+    main()

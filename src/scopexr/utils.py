@@ -2,7 +2,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import imageio.v3 as iio
+import shutil
+from importlib import resources
 
+
+def export_default_config(filename="fs_args.yaml", dest_folder="."):
+    """
+    Copies the internal default config file to the user's destination folder.
+    """
+    dest_path = os.path.join(dest_folder, filename)
+    
+    # Check if it already exists to avoid accidental overwrite
+    if os.path.exists(dest_path):
+        print(f"[Warning] '{filename}' already exists in this folder.")
+        print("Skipping creation to protect your data.")
+        return
+
+    try:
+        # 'scopexr' is the package name defined in pyproject.toml
+        # This finds the file inside the installed site-packages folder
+        with resources.files('scopexr').joinpath(filename) as source_path:
+            shutil.copy(str(source_path), dest_path)
+            print(f"[Success] Created editable config: {dest_path}")
+            print("You can now edit this file and run:")
+            print(f"  scopexr-fs --config {filename}")
+    except Exception as e:
+        print(f"[Error] Could not export config: {e}")
 
 def eval_minimum_magnification(a: float, n: int, p: float) -> float:
     """Evaluate the minimum magnification required to obtain a focal spot image involving a reasonable number n of pixels."""

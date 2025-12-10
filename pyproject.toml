@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scopexr"
+version = "1.1.0"
+description = "X-Ray Focal Spot and PSF Analysis Tool"
+authors = [
+  { name = "Jacopo", email = "jacopo@example.com" },
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "PyQt6",
+    "PyYAML",
+    "scikit-image",
+    "opencv-python"
+]
+
+[project.scripts]
+# This creates the executable commands you can type in the terminal
+scopexr-gui = "scopexr.gui:main"
+scopexr-fs = "scopexr.fs_main:main"
+scopexr-psf = "scopexr.psf_main:main"
+
+[tool.setuptools.package-data]
+# Ensures YAML files are included when installed
+scopexr = ["*.yaml"]

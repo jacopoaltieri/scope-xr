@@ -4,5 +4,6 @@ simulations
 Focal_Spot.java
 ATS*
 __pycache__
-spotxenv
+scopenv
 mtf_study.py
+scopexr.egg-info

@@ -3,7 +3,7 @@ import tifffile
 from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
 from scipy.stats import binned_statistic
 from skimage.transform import iradon
-from src.utils import interpolate_nans_1d
+
 
 
 def _check_phl(
