@@ -2,7 +2,7 @@
 
 - [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
-  - [Installing scope-xr](#installing-scope-xr)
+  - [Installing SCOPE-XR](#installing-scope-xr)
     - [Prerequisites](#prerequisites)
     - [1. Quick Install (For regular users)](#1-quick-install-for-regular-users)
     - [2. Manual Install (From source)](#2-manual-install-from-source)
@@ -34,7 +34,7 @@ This package aims to:
 - **Focal Spot:** Automate the image analysis process first developed by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
 - **PSF:** Provide the code for the method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach).
 
-## Installing scope-xr
+## Installing SCOPE-XR
 
 SCOPE-XR is installed as a standard Python package. It is recommended to use a virtual environment (venv or conda) to keep your system clean.
 
@@ -51,12 +51,14 @@ If you just want to use the software without modifying the code, you can install
 pip install git+https://github.com/jacopoaltieri/scope-xr.git
 ```
 
+⚠️ **Important**: The installation process does not automatically copy the configuration files. You must manually download the required .yaml files from the `examples` folder in this repository and place them in your working directory before running the software.  
+
 ### 2. Manual Install (From source)
 
 1. **Clone the repository:**
 
     ```bash
-    git clone [https://github.com/jacopoaltieri/scope-xr](https://github.com/jacopoaltieri/scope-xr)
+    git clone https://github.com/jacopoaltieri/scope-xr
     cd scope-xr
     ```
 
