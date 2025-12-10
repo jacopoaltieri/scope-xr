@@ -1,0 +1,26 @@
+out_dir: "./output_fs" # Directory to save results
+pixel_size: 0.1 # Pixel size in mm
+circle_diameter: 10 # Diameter of the circle in mm
+no_hough: false # Whether to skip Hough transform
+magnification: null # Magnification factor (null to auto-calculate)
+min_n: 6 # Minimum number of pixels covered by the FS
+n_angles: 360 # Number of projection angles
+profile_half_length: 64 # Half-length of the profile in pixels
+derivative_step: 1 # Step size for derivative calculation
+axis_shifts: 10 # Number of axis shifts to produce
+manual_shift: null # Manual shift to apply to the sinogram (if null, no shift or auto-shift is applied)
+filter_name: "ramp" # Filter name for reconstruction (ram, shepp-logan, cosine, hamming, hann, none)
+symmetrize: false # Whether to symmetrize the sinogram
+auto_shift: true # Whether to automatically shift the sinogram
+avg_neighbors: false # Whether to average neighboring pixels
+avg_number: 3 # Number of neighboring pixels to average
+show_plots: false # Whether to display plots
+
+hough_params: # Hough transform parameters (typically do not need to be changed)
+  dp: 1.3 # Inverse ratio of resolution
+  min_dist: 100 # Minimum distance between detected centers
+  param1: 70 # Upper threshold for Canny edge detector
+  param2: 40 # Threshold for center detection
+  min_radius: 10 # Minimum circle radius
+  max_radius: 400 # Maximum circle radius (0 to use no maximum)
+  debug: false # Whether to show hough transform debug plots
