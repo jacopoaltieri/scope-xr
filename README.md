@@ -3,8 +3,11 @@
 - [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
   - [Installing scope-xr](#installing-scope-xr)
-  - [Supported Image Formats](#supported-image-formats)
+    - [Prerequisites](#prerequisites)
+    - [1. Quick Install (For regular users)](#1-quick-install-for-regular-users)
+    - [2. Manual Install (From source)](#2-manual-install-from-source)
 - [Usage](#usage)
+  - [Supported Image Formats](#supported-image-formats)
   - [GUI Execution](#gui-execution)
   - [CLI Execution](#cli-execution)
     - [Overriding Configuration Parameters](#overriding-configuration-parameters)
@@ -18,32 +21,74 @@
   - [4. Reconstruction via Filtered Back Projection (FBP)](#4-reconstruction-via-filtered-back-projection-fbp)
   - [5.1 Focal Spot Dimension Measurement](#51-focal-spot-dimension-measurement)
   - [5.2 PSF measurements](#52-psf-measurements)
+- [Contributing](#contributing)
 
 ---
 
 # Introduction
 
-SCOPE-XR (Single-image Characterization Of PErformance in X-Ray systems) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of a detector starting from a single acquisition of a circular cut-out or disk test object. This package aims to:
+SCOPE-XR (Single-image Characterization Of PErformance in X-Ray systems) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of a detector starting from a single acquisition of a circular cut-out or disk test object.
 
-- Focal Spot: automate the image analysis process first developed by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins)
-- PSF: provide the code for the method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach)
+This package aims to:
+
+- **Focal Spot:** Automate the image analysis process first developed by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
+- **PSF:** Provide the code for the method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach).
 
 ## Installing scope-xr
 
-Since this package is not distributed yet, users will need to clone the GitHub repository and install the required packages before using it.
+SCOPE-XR is installed as a standard Python package. It is recommended to use a virtual environment (venv or conda) to keep your system clean.
 
-Run the command:
+### Prerequisites
+
+- Python 3.9 or higher
+- Git
+
+### 1. Quick Install (For regular users)
+
+If you just want to use the software without modifying the code, you can install it directly from GitHub:
 
 ```bash
-git clone "[https://github.com/jacopoaltieri/scope-xr](https://github.com/jacopoaltieri/scope-xr)"
+pip install git+https://github.com/jacopoaltieri/scope-xr.git
 ```
 
-Then, move into scopexr and install the dependencies.
+### 2. Manual Install (From source)
 
-```bash
-cd scopexr
-pip install -r requirements.txt
-```
+1. **Clone the repository:**
+
+    ```bash
+    git clone [https://github.com/jacopoaltieri/scope-xr](https://github.com/jacopoaltieri/scope-xr)
+    cd scope-xr
+    ```
+
+2. **Create and activate a virtual environment (Optional but Recommended):**
+
+    **Windows:**
+
+    ```bash
+    python -m venv venv
+    .\venv\Scripts\activate
+    ```
+
+    **Linux/macOS:**
+
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+3. **Install the package:**
+
+    Install in editable mode (recommended for development) to ensure all dependencies are handled automatically:
+
+    ```bash
+    pip install -e .
+    ```
+
+# Usage
+
+The program supports configurable execution via YAML configuration files.
+You can find an example of these files in the `examples` folder, along with some simulated images to test the package.
+
 
 ## Supported Image Formats
 
@@ -53,20 +98,13 @@ The supported input image formats are:
 - `.tif`
 - `.raw` (must be accompanied by a corresponding `.xml` metadata file)
 
-# Usage
-
-The program supports configurable execution via a YAML configuration file. For each method (**Focal Spot** and **PSF**), a different YAML file is used, each containing its own set of parameters. By default, the program loads the respective file and uses the defined parameters. Additionally specific settings can be overwritten at runtime. This allows for setup-specific configuration without the need to repeatedly pass the same arguments.
-
-For an easier use, the GUI can be used and the parameters are edited directly from there.
-Alternatively, the program can be run from terminal with the corresponding CLI flags.
-
 ## GUI Execution
 
 The GUI provides an easy-to-use interface with all settings and parameters available in one window. It is the recommended way to use SCOPE-XR.
-To run the GUI, execute the following command from the repository's root directory:
+To run the GUI, simply type:
 
 ```bash
-python gui.py
+scopexr-gui
 ```
 
 GUI Features:
@@ -74,25 +112,25 @@ GUI Features:
 - **Easy Mode Selection**: Separate tabs for "Focal Spot (FS)" and "PSF" analysis.
 - **Automatic Configuration**: The GUI automatically loads all default parameters from `fs_args.yaml` or `psf_args.yaml` on startup.
 - **Image Preview**: Load any .png or .tif image to see a preview directly in the app.
-- **Full Parameter Control**: All CLI flags are represented by interactive widgets (spin boxes, checkboxes, etc.).
+- **Full Parameter Control**: All CLI flags are editable via interactive widgets.
 - **Edit Config Files**: A button allows you to directly open and edit the default .yaml config file for the active tab.
 - **Live Output**: All console output from the analysis script is printed directly to a text box within the GUI.
   
 ## CLI Execution
 
-For advanced users or for integrating into scripts, the CLI remains fully functional.
+For advanced users or bach processing, the CLI tools are fully functional.
 To run the program with the default settings (as defined in `fs_args.yaml` or `psf_args.yaml`), use the following commands:
 
 - **Focal Spot:**
 
   ```bash
-  python fs_main.py --f "path/to/img.png"
+  scopexr-fs --f "path/to/img.png"
   ```
 
 - **PSF:**
 
   ```bash
-  python psf_main.py --f "path/to/img.png"
+  scopexr-psf --f "path/to/img.png"
   ```
 
 ### Overriding Configuration Parameters
@@ -100,7 +138,7 @@ To run the program with the default settings (as defined in `fs_args.yaml` or `p
 You can override any configuration value directly from the command line by adding the corresponding flag. For example:
 
 ```bash
-python fs_main.py --f "path/to/img.png" --p 0.2
+scopexr-fs --f "path/to/img.png" --p 0.2
 ```
 
 In this case, the pixel size will be set to `0.2 mm` instead of the default value specified in the YAML file.
@@ -216,6 +254,40 @@ If the magnification `M` is not passed as a parameter by the user, the program c
 
 For the PSF measurements, the program finds the horizontal and vertical profiles and computes their FWHM by fitting a gaussian curve on the corresponding sinogram profiles.
 
-if the *--oversample* flag is checked, the program performs subpixel resolution sampling while computing the radial profiles.
+If the *--oversample* flag is checked, the program performs subpixel resolution sampling while computing the radial profiles.
+
+# Contributing
+
+Contributions are welcome! If you want to add features or fix bugs, please follow this workflow:
+
+1. **Fork** the repository on GitHub to your own account.
+2. **Clone** your fork locally:
+
+  ```bash
+  git clone https://github.com/YOUR_USERNAME/scope-xr.git
+  cd scope-xr
+  ```
+
+3. **Create a new branch** for your feature:
+
+  ```bash
+  git checkout -b feature/my-new-feature
+  ```
+
+4. **Install in editable mode** to test changes instantly:
+
+  ```bash
+  pip install -e .
+  ```
+
+5. **Commit** your changes and push to your fork:
+  
+  ```bash
+  git add .
+  git commit -m "Added a cool feature"
+  git push origin feature/my-new-feature
+  ```
+
+6. **Open a Pull Request** on the original repository.
 
 ---
