@@ -19,7 +19,20 @@ import sys
 import yaml
 
 
-def get_merged_config():
+def get_merged_config() -> dict:
+    """
+    Parse command-line arguments and YAML configuration file,
+    merging them with the following priority:
+    
+    1. Code defaults (lowest priority)
+    2. YAML config file
+    3. Command-line arguments (highest priority)
+
+    Returns
+    -------
+    dict
+        Merged configuration dictionary
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -170,7 +183,19 @@ def get_merged_config():
     return config
 
 
-def validate_args(args):
+def validate_args(args: dict) -> None:
+    """
+    Validate the merged configuration arguments.
+    Parameters
+    ----------
+    args
+        Merged configuration dictionary
+
+    Raises
+    ------
+    ValueError
+        If any argument is invalid
+    """
     if not args.get("img_path"):
         raise ValueError("Image path is required. Use --f to specify the image file.")
     if args.get("pixel_size") is None or args["pixel_size"] <= 0:

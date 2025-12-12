@@ -21,16 +21,21 @@ from scipy.special import erf
 
 def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     """
-    Compute the Full Width at Half Maximum (FWHM) of a 1D profile using
-    linear interpolation between half-maximum crossings.
+    Compute the Full Width at Half Maximum (FWHM) of a 1D profile using linear interpolation.
 
-    Args:
-        profile: 1D array representing a single profile (e.g. from a sinogram).
+    Parameters
+    ----------
+    profile
+        1D array representing a single profile (e.g. from a sinogram).
 
-    Returns:
-        width: Width in pixels between half-maximum crossings (float, interpolated)
-        left_idx: Fractional index of left half-maximum crossing
-        right_idx: Fractional index of right half-maximum crossing
+    Returns
+    -------
+    width : float
+        Width in pixels between half-maximum crossings (interpolated).
+    left_idx : float
+        Fractional index of left half-maximum crossing.
+    right_idx : float
+        Fractional index of right half-maximum crossing.
     """
     profile = np.asarray(profile)
     n = len(profile)
@@ -44,13 +49,13 @@ def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     # --- Find left half-maximum crossing ---
     left_idx = None
     for i in range(peak_idx, 0, -1):
-        if profile[i] >= half_max > profile[i-1]: 
-            denominator = (profile[i] - profile[i-1])
+        if profile[i] >= half_max > profile[i - 1]:
+            denominator = profile[i] - profile[i - 1]
             if denominator == 0:
-                frac = 0.5 # avoid division by zero
+                frac = 0.5  # avoid division by zero
             else:
-                frac = (half_max - profile[i-1]) / denominator
-            
+                frac = (half_max - profile[i - 1]) / denominator
+
             left_idx = (i - 1) + frac
             break
 
@@ -68,18 +73,24 @@ def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     width = right_idx - left_idx
     return width, left_idx, right_idx
 
+
 def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
     """
-    Compute the Full Width at Tenth Maximum (FWTM / 10% max) of a 1D profile
-    using linear interpolation between crossings.
+    Compute the Full Width at Tenth Maximum (FWTM / 10% max) of a 1D profile using linear interpolation.
 
-    Args:
-        profile: 1D array representing a single profile (e.g. from a sinogram).
+    Parameters
+    ----------
+    profile
+        1D array representing a single profile (e.g. from a sinogram).
 
-    Returns:
-        width: Width in pixels between 10% maximum crossings (float, interpolated)
-        left_idx: Fractional index of left 10% maximum crossing
-        right_idx: Fractional index of right 10% maximum crossing
+    Returns
+    -------
+    width : float
+        Width in pixels between 10% maximum crossings (interpolated).
+    left_idx : float
+        Fractional index of left 10% maximum crossing.
+    right_idx : float
+        Fractional index of right 10% maximum crossing.
     """
     profile = np.asarray(profile)
     n = len(profile)
@@ -89,20 +100,21 @@ def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
     peak_val = profile[peak_idx]
     min_val = np.min(profile)
     ten_max = min_val + 0.1 * (peak_val - min_val)
-    # --- Find left half-maximum crossing ---
+
+    # --- Find left crossing ---
     left_idx = None
     for i in range(peak_idx, 0, -1):
-        if profile[i] >= ten_max > profile[i-1]: 
-            denominator = (profile[i] - profile[i-1])
+        if profile[i] >= ten_max > profile[i - 1]:
+            denominator = profile[i] - profile[i - 1]
             if denominator == 0:
-                frac = 0.5 # avoid division by zero
+                frac = 0.5  # avoid division by zero
             else:
-                frac = (ten_max - profile[i-1]) / denominator
-            
+                frac = (ten_max - profile[i - 1]) / denominator
+
             left_idx = (i - 1) + frac
             break
 
-    # --- Find right half-maximum crossing ---
+    # --- Find right crossing ---
     right_idx = None
     for i in range(peak_idx, n - 1):
         if profile[i] >= ten_max > profile[i + 1]:
@@ -111,19 +123,24 @@ def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
             break
 
     if left_idx is None or right_idx is None:
-        return np.nan, np.nan, np.nan  # no valid FWHM found
+        return np.nan, np.nan, np.nan  # no valid FWTM found
 
     width = right_idx - left_idx
     return width, left_idx, right_idx
+
 
 def fwhm_from_sigma(sigma: float) -> float:
     """
     Compute the FWHM from the standard deviation of an error function step.
 
-    Args:
-        sigma: Standard deviation of the error function step.
+    Parameters
+    ----------
+    sigma
+        Standard deviation of the error function step.
 
-    Returns:
+    Returns
+    -------
+    float
         FWHM value.
     """
     return 2 * sigma * np.sqrt(2 * np.log(2))
@@ -133,14 +150,22 @@ def erf_step(x: np.ndarray, A: float, x0: float, sigma: float, B: float) -> np.n
     """
     Error function step model for fitting profile edges.
 
-    Args:
-        x: Independent variable (e.g., pixel positions).
-        A: Amplitude of the step.
-        x0: Center position of the transition.
-        sigma: Width of the transition (standard deviation).
-        B: Background offset.
+    Parameters
+    ----------
+    x
+        Independent variable (e.g., pixel positions).
+    A
+        Amplitude of the step.
+    x0
+        Center position of the transition.
+    sigma
+        Width of the transition (standard deviation).
+    B
+        Background offset.
 
-    Returns:
+    Returns
+    -------
+    np.ndarray
         Model values evaluated at x.
     """
     return A * erf((x - x0) / sigma) + B
@@ -148,15 +173,21 @@ def erf_step(x: np.ndarray, A: float, x0: float, sigma: float, B: float) -> np.n
 
 def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarray]:
     """
-    Fit each angular profile to an error function step and compute its slope.
+    Fit each angular profile to an error function step and find extreme slopes.
 
-    Args:
-        profiles: 2D array of shape [n_rays, n_angles] containing line profiles.
+    Parameters
+    ----------
+    profiles
+        2D array of shape [n_rays, n_angles] containing line profiles.
 
-    Returns:
-        wide_idx: Index of the profile with the steepest (widest) slope.
-        narrow_idx: Index of the profile with the shallowest (narrowest) slope.
-        sigmas: 1D array of computed sigmas for each profile.
+    Returns
+    -------
+    wide_idx : int
+        Index of the profile with the steepest (widest) slope.
+    narrow_idx : int
+        Index of the profile with the shallowest (narrowest) slope.
+    sigmas : np.ndarray
+        1D array of computed sigmas for each profile.
     """
     n_rays, n_angles = profiles.shape
     x = np.arange(n_rays)
@@ -169,9 +200,9 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
         try:
             popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=2000)
             A, x0, sigma, B = popt
-            slope = A / (np.sqrt(np.pi) * sigma)
+
         except RuntimeError:
-            slope = 0
+            sigma = 0  # Fallback
         sigmas[i] = sigma
 
     wide_idx = int(np.argmax(sigmas))
@@ -185,12 +216,18 @@ def average_neighbors(
     """
     Compute the vertical profile at a given angle index, averaging across multiple adjacent rows.
 
-    Args:
-        sinogram: 2D sinogram array of shape (rows/pixels, angles).
-        angle_idx: The angle (column index) to extract the profile from.
-        line_width: Number of adjacent rows to average (must be odd).
+    Parameters
+    ----------
+    sinogram
+        2D sinogram array of shape (rows/pixels, angles).
+    angle_idx
+        The angle (column index) to extract the profile from.
+    line_width
+        Number of adjacent rows to average (must be odd).
 
-    Returns:
+    Returns
+    -------
+    np.ndarray
         A 1D profile averaged across multiple rows.
     """
     assert line_width % 2 == 1, "line_width must be odd"
@@ -206,16 +243,24 @@ def average_neighbors(
     return np.mean(profile_stack, axis=0)
 
 
-def compute_fs_width(fwhm_px: int, pixel_size: float, fs_magnification: float) -> float:
+def compute_fs_width(
+    fwhm_px: float, pixel_size: float, fs_magnification: float
+) -> float:
     """
     Compute the focal spot width in micrometers from the FWHM in pixels.
 
-    Args:
-        fwhm_px: Full width at half maximum in pixels.
-        pixel_size: Size of a pixel in micrometers.
-        fs_magnification: Magnification factor of the focal spot
+    Parameters
+    ----------
+    fwhm_px
+        Full width at half maximum in pixels.
+    pixel_size
+        Size of a pixel in micrometers.
+    fs_magnification
+        Magnification factor of the focal spot.
 
-    Returns:
+    Returns
+    -------
+    float
         Focal spot width in micrometers.
     """
     return fwhm_px * pixel_size / fs_magnification
@@ -225,14 +270,22 @@ def gaussian(x: np.ndarray, A: float, mu: float, sigma: float, B: float) -> np.n
     """
     Gaussian model for fitting sinusoidal profiles.
 
-    Args:
-        x: Independent variable (e.g., pixel positions).
-        A: Amplitude of the Gaussian.
-        mu: Mean (center) of the Gaussian.
-        sigma: Standard deviation of the Gaussian.
-        B: Baseline offset.
+    Parameters
+    ----------
+    x
+        Independent variable (e.g., pixel positions).
+    A
+        Amplitude of the Gaussian.
+    mu
+        Mean (center) of the Gaussian.
+    sigma
+        Standard deviation of the Gaussian.
+    B
+        Baseline offset.
 
-    Returns:
+    Returns
+    -------
+    np.ndarray
         Gaussian curve evaluated at x.
     """
     return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
@@ -244,14 +297,22 @@ def find_extreme_profiles_gaussian(
     """
     Fit each sinogram profile (column) to a Gaussian curve and extract the extreme profiles.
 
-    Args:
-        sinogram: 2D array of shape (n_rays, n_angles) containing line profiles.
+    Parameters
+    ----------
+    sinogram
+        2D array of shape (n_rays, n_angles) containing line profiles.
 
-    Returns:
-        wide_idx: Index of the profile with the largest sigma (widest).
-        narrow_idx: Index of the profile with the smallest sigma (narrowest).
-        popts:  List of optimal fit parameters [A, mu, sigma, B] for each profile;
-                entries are np.array([nan, nan, nan, nan]) on fit failure.
+    Returns
+    -------
+    wide_idx : int
+        Index of the profile with the largest sigma (widest).
+    narrow_idx : int
+        Index of the profile with the smallest sigma (narrowest).
+    sigmas : np.ndarray
+        1D array of sigma values for each profile.
+    popts : list[np.ndarray]
+        List of optimal fit parameters [A, mu, sigma, B] for each profile;
+        entries are np.array([nan, nan, nan, nan]) on fit failure.
     """
     n_rays, n_angles = sinogram.shape
     x = np.arange(n_rays)

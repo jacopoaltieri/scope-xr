@@ -16,19 +16,27 @@
 
 import numpy as np
 
-def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
+def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int)-> tuple[np.ndarray, np.ndarray, float]:
     """
     Compute 1D MTF from 2D PSF by integrating to LSF along specified axis.
 
-    Args:
-        psf: 2D array representing the point spread function (PSF).
-        pixel_size: Pixel size in mm.
-        axis: Axis along which to integrate (0 for rows, 1 for columns).
+    Parameters
+    ----------
+    psf
+        2D array representing the point spread function (PSF).
+    pixel_size
+        Pixel size in mm.
+    axis
+        Axis along which to integrate (0 for rows, 1 for columns).
 
-    Returns:
-        freq: Frequencies in cycles/mm.
-        mtf_1d: 1D MTF array normalized to 1 at zero frequency.
-        mtf10: Frequency at which MTF drops to 10% (cycles/mm).
+    Returns
+    -------
+    freq: np.ndarray
+        Frequencies in cycles/mm.
+    mtf_1d: np.ndarray
+        1D MTF array normalized to 1 at zero frequency.
+    mtf10: float
+        Frequency at which MTF drops to 10% (cycles/mm).
     """
     # Compute LSF
     lsf = np.sum(psf, axis=axis)
@@ -67,18 +75,27 @@ def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
     return freq_pos, mtf_pos, mtf10_freq
 
 
-def compute_1d_mtf_from_sino(sinogram: np.ndarray, pixel_size: float, angle: int):
+def compute_1d_mtf_from_sino(sinogram: np.ndarray, pixel_size: float, angle: int)-> tuple[np.ndarray, np.ndarray, float]:
     """
     Compute 1D MTF from sinogram
 
-    Args:
-        sinogram: 2D array representing the sinogram.
-        pixel_size: Pixel size in mm.
-        angle: Angle index along which to extract the profile.
-    Returns:
-        freq: Frequencies in cycles/mm.
-        mtf_1d: 1D MTF array normalized to 1 at zero frequency.
-        mtf10: Frequency at which MTF drops to 10% (cycles/mm).
+    Parameters
+    ----------
+    sinogram
+        2D array representing the sinogram.
+    pixel_size
+        Pixel size in mm.
+    angle
+        Angle index along which to extract the profile.
+    
+    Returns
+    -------
+    freq: np.ndarray
+        Frequencies in cycles/mm.
+    mtf_1d: np.ndarray
+        1D MTF array normalized to 1 at zero frequency.
+    mtf10: float
+        Frequency at which MTF drops to 10% (cycles/mm).
     """
     lsf = sinogram[:, angle]
 
@@ -128,12 +145,18 @@ def get_mtf_at_freq(
     """
     Finds the MTF value at a specific frequency using linear interpolation.
 
-    Args:
-        target_freq: The frequency on which to evaluate the MTF.
-        freq_array: The array of frequency values.
-        mtf_array: The array of MTF values.
+    Parameters
+    ----------
+    target_freq
+        The frequency on which to evaluate the MTF.
+    freq_array
+        The array of frequency values.
+    mtf_array
+        The array of MTF values.
 
-    Returns:
+    Returns
+    -------
+    float
         The interpolated MTF value at the target frequency.
     """
     return np.interp(target_freq, freq_array, mtf_array)

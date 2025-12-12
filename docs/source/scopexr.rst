@@ -36,6 +36,14 @@ scopexr.fs\_main module
    :show-inheritance:
    :undoc-members:
 
+scopexr.fs\_runner module
+-------------------------
+
+.. automodule:: scopexr.fs_runner
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 scopexr.gui module
 ------------------
 
@@ -76,10 +84,10 @@ scopexr.psf\_main module
    :show-inheritance:
    :undoc-members:
 
-scopexr.runners module
-----------------------
+scopexr.psf\_runner module
+--------------------------
 
-.. automodule:: scopexr.runners
+.. automodule:: scopexr.psf_runner
    :members:
    :show-inheritance:
    :undoc-members:

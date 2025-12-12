@@ -18,6 +18,7 @@ import cv2
 import numpy as np
 from scipy.ndimage import center_of_mass
 
+
 def detect_circle_hough(
     img: np.ndarray,
     dp: float,
@@ -34,23 +35,36 @@ def detect_circle_hough(
 
     Parameters
     ----------
-    img: 2D array representing the input grayscale image.
-    dp: Inverse ratio of the accumulator resolution to the image resolution.
+    img
+        2D array representing the input grayscale image.
+    dp
+        Inverse ratio of the accumulator resolution to the image resolution.
         For example, dp=1 means the accumulator has the same resolution as the image.
-    min_dist: Minimum distance between the centers of detected circles (in pixels).
-    param1: Higher threshold for the internal Canny edge detector (lower is half).
-    param2: Accumulator threshold for the circle centers at the detection stage.
+    min_dist
+        Minimum distance between the centers of detected circles (in pixels).
+    param1
+        Higher threshold for the internal Canny edge detector (lower is half).
+    param2
+        Accumulator threshold for the circle centers at the detection stage.
         Smaller values will detect more circles (including false ones).
-    min_radius: Minimum circle radius (in pixels) to search for.
-    max_radius: Maximum circle radius (in pixels) to search for. If <= 0, no upper limit is applied.
-    debug: If True, display the detected circle overlaid on the image in a pop-up window.
+    min_radius
+        Minimum circle radius (in pixels) to search for.
+    max_radius
+        Maximum circle radius (in pixels) to search for. If <= 0, no upper limit is applied.
+    debug
+        If True, display the detected circle overlaid on the image in a pop-up window.
         Defaults to False.
 
     Returns
     -------
-    (x, y, r): Tuple giving the x coordinate, y coordinate of the circle center,
-        and the radius r (all in pixels) of the strongest detected circle.
-    None: If no circle is found.
+    x: float
+        x coordinate of the detected circle center.
+    y: float
+        y coordinate of the detected circle center.
+    r: float
+        radius of the detected circle.    
+    None
+        If no circle is found.
 
     Raises
     ------
@@ -97,21 +111,38 @@ def detect_circle_hough(
     return x, y, r
 
 
-def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, float, float]:
+def estimate_circle(
+    cropped: np.ndarray, region_size: int = 10
+) -> tuple[float, float, float]:
     """
     Estimate the circle radius by sampling intensity profiles along
     horizontal and vertical directions, restricted to a region around the estimated center.
+
+    Parameters
+    ----------
+    cropped
+        2D NumPy array (h, w), cropped image containing the circle
+    region_size
+        size of the region around the center to consider for profile
+
+    Returns
+    -------
+    cx: float
+        x coordinate of the estimated circle center
+    cy: float
+        y coordinate of the estimated circle center
+    radius_estimate: float
+        estimated circle radius
     """
     h, w = cropped.shape
-    
+
     cy_float, cx_float = center_of_mass(cropped)
-    
+
     # Handle case where image might be empty/black
     if np.isnan(cy_float) or np.isnan(cx_float):
         cy_init, cx_init = h // 2, w // 2
     else:
         cy_init, cx_init = int(cy_float), int(cx_float)
-    # --- REPLACEMENT END ---
 
     # Define threshold relative to intensity range
     threshold = np.min(cropped) + (np.max(cropped) - np.min(cropped)) / 2
@@ -127,7 +158,7 @@ def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, 
         row = cropped[y, :]
         # Find indices where value crosses threshold
         above_thresh = np.where(row >= threshold)[0]
-        
+
         if len(above_thresh) > 0:
             x_left[idx] = above_thresh[0]
             x_right[idx] = above_thresh[-1]
@@ -146,7 +177,7 @@ def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, 
     for idx, x in enumerate(range(x_start, x_end)):
         col = cropped[:, x]
         above_thresh = np.where(col >= threshold)[0]
-        
+
         if len(above_thresh) > 0:
             y_down[idx] = above_thresh[0]
             y_up[idx] = above_thresh[-1]
@@ -165,18 +196,28 @@ def estimate_circle(cropped: np.ndarray, region_size: int = 10) -> tuple[float, 
     return cx, cy, radius_estimate
 
 
-def is_circle_centered(cropped, cx, cy, margin=0.1):
+def is_circle_centered(
+    cropped: np.ndarray, cx: float, cy: float, margin: float = 0.1
+) -> bool:
     """
     Check if the estimated circle center is within `margin` of the cropped image center
     in both the x- and y-directions. Returns True if it is, False otherwise.
 
-    Parameters:
-    - cropped: 2D or 3D NumPy array (h, w[, channels])
-    - cx, cy: float or int, coordinates of the detected circle center
-    - margin: float in (0,1), allowable fraction of width/height (default 0.1)
+    Parameters
+    ----------
+    cropped
+        cropped image containing the circle
+    cx
+        x coordinate of the estimated circle center
+    cy
+        y coordinate of the estimated circle center
+    margin
+        allowable fraction of width/height (default 0.1)
 
-    Returns:
-    - bool
+    Returns
+    -------
+    bool
+        True if the circle center is within the margin from the image center
     """
     h, w = cropped.shape[:2]
     center_x, center_y = w / 2, h / 2

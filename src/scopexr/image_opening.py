@@ -21,7 +21,24 @@ from PIL import Image
 
 
 def load_raw_as_ndarray(img_path: str) -> np.ndarray:
-    """Load a raw image as a numpy ndarray using metadata from the corresponding XML file."""
+    """
+    Load a RAW image as a numpy ndarray using metadata from the corresponding XML file.
+
+    Parameters
+    ----------
+    img_path
+        Path to the raw image file (.raw).
+
+    Returns
+    -------
+    np.ndarray
+        2D numpy ndarray representing the image.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the XML metadata file is not found.
+    """
     xml_path = os.path.splitext(img_path)[0] + ".xml"
     if not os.path.exists(xml_path):
         raise FileNotFoundError(f"Metadata XML not found: '{xml_path}'")
@@ -41,19 +58,55 @@ def load_raw_as_ndarray(img_path: str) -> np.ndarray:
 
 
 def load_tiff_as_ndarray(img_path: str) -> np.ndarray:
-    """Load a TIFF image using PIL and convert it to a numpy array."""
+    """
+    Load a TIFF image using PIL and convert it to a numpy array.
+    
+    Parameters
+    ----------
+    img_path
+        Path to the TIFF image file (.tif or .tiff)
+        
+    Returns
+    -------
+    np.ndarray
+        2D numpy ndarray representing the image.
+    """
     with Image.open(img_path) as img:
         return np.array(img)
 
 
 def load_png_as_ndarray(img_path: str) -> np.ndarray:
-    """Load a PNG image using PIL and convert it to a numpy array."""
+    """
+    Load a PNG image using PIL and convert it to a numpy array.
+    
+    Parameters
+    ----------
+    img_path
+        Path to the PNG image file (.png)
+        
+    Returns
+    -------
+    np.ndarray
+        2D numpy ndarray representing the image.
+    """
     with Image.open(img_path) as img:
         return np.array(img)
 
 
 def load_image(img_path: str) -> np.ndarray:
-    """Load an image and dispatch to the correct loader based on file extension."""
+    """
+    Load an image and dispatch to the correct loader based on file extension.
+    
+    Parameters
+    ----------
+    img_path
+        Path to the image file.
+        
+    Returns
+    -------
+    np.ndarray
+        2D numpy ndarray representing the image.
+    """
     ext = os.path.splitext(img_path)[1].lower()
     if ext == ".raw":
         return load_raw_as_ndarray(img_path)

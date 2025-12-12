@@ -28,7 +28,29 @@ def plot_circle_on_crop(
     output_path: str,
     show: bool = False,
 ) -> None:
+    """
+    Plot the cropped ROI with the detected circle overlay.
 
+    Parameters
+    ----------
+    cropped
+        The 2D image array of the crop.
+    cx
+        Center x-coordinate relative to the crop.
+    cy
+        Center y-coordinate relative to the crop.
+    radius
+        Radius of the circle in pixels.
+    output_path
+        Directory to save the image.
+    show
+        If True, display the plot.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
+    """
     fig, ax = plt.subplots()
     ax.imshow(cropped, cmap="gray")
 
@@ -41,21 +63,46 @@ def plot_circle_on_crop(
     ax.set_title("Cropped ROI around circle")
     ax.axis("off")
     plt.tight_layout()
-    plt.savefig(output_path + "/circle_on_crop.png", dpi=300)
+    plt.savefig(os.path.join(output_path, "circle_on_crop.png"), dpi=300)
     if show:
         plt.show()
     plt.close(fig)
 
 
 def plot_profiles_and_reconstruction(
-    profiles,
-    sinogram,
-    reconstruction,
-    out_dir,
-    show_plots,
-    reconstruction_type,
-    suffix="",
-):
+    profiles: np.ndarray,
+    sinogram: np.ndarray,
+    reconstruction: np.ndarray,
+    out_dir: str,
+    show_plots: bool,
+    reconstruction_type: str,
+    suffix: str = "",
+) -> None:
+    """
+    Plot aligned profiles, sinogram, and reconstruction side-by-side.
+
+    Parameters
+    ----------
+    profiles
+        The aligned profiles image/array.
+    sinogram
+        The sinogram image/array.
+    reconstruction
+        The reconstructed image/array.
+    out_dir
+        Directory to save the plot.
+    show_plots
+        If True, display the plot.
+    reconstruction_type
+        Type string ('psf', 'fs', or other) to determine the title.
+    suffix
+        Optional suffix for the output filename.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
+    """
     plt.figure(figsize=(16, 8))
 
     plt.subplot(1, 3, 1)
@@ -88,32 +135,76 @@ def plot_profiles_and_reconstruction(
     plt.close()
 
 
-
 def plot_profiles_with_fwhm(
-    radial,
-    prof_wide_sino,
-    prof_narrow_sino,
-    wide_idx,
-    narrow_idx,
-    height,
-    fw,
-    lw,
-    rw,
-    fn,
-    ln,
-    rn,
-    out_path,
-    show_plots=False,
-):
+    radial: np.ndarray,
+    prof_wide_sino: np.ndarray,
+    prof_narrow_sino: np.ndarray,
+    wide_idx: int,
+    narrow_idx: int,
+    height: float,
+    fw: float,
+    lw: float,
+    rw: float,
+    fn: float,
+    ln: float,
+    rn: float,
+    out_path: str,
+    show_plots: bool = False,
+) -> None:
+    """
+    Plot the widest and narrowest sinogram profiles with FWHM/FW10M lines.
+
+    Parameters
+    ----------
+    radial
+        Radial coordinates array.
+    prof_wide_sino
+        Intensity array of the widest profile.
+    prof_narrow_sino
+        Intensity array of the narrowest profile.
+    wide_idx
+        Index of the widest profile.
+    narrow_idx
+        Index of the narrowest profile.
+    height
+        Relative height for the width measurement (e.g., 0.5 for FWHM).
+    fw
+        Width of the widest profile.
+    lw
+        Left coordinate of the widest profile width.
+    rw
+        Right coordinate of the widest profile width.
+    fn
+        Width of the narrowest profile.
+    ln
+        Left coordinate of the narrowest profile width.
+    rn
+        Right coordinate of the narrowest profile width.
+    out_path
+        Path to save the figure.
+    show_plots
+        If True, display the plot.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
+    """
     fig, ax = plt.subplots(figsize=(8, 4))
 
     # Plot the two sinogram profiles
-    ax.plot(radial, prof_wide_sino, label=f"Widest (idx={wide_idx})",color='teal')
-    ax.plot(radial, prof_narrow_sino, label=f"Narrowest (idx={narrow_idx})", color='orange')
+    ax.plot(radial, prof_wide_sino, label=f"Widest (idx={wide_idx})", color="teal")
+    ax.plot(
+        radial, prof_narrow_sino, label=f"Narrowest (idx={narrow_idx})", color="orange"
+    )
 
     # Compute half-max levels
-    half_w = (prof_wide_sino.max() - prof_wide_sino.min()) *height + prof_wide_sino.min()
-    half_n = (prof_narrow_sino.max() - prof_narrow_sino.min()) *height + prof_narrow_sino.min()
+    half_w = (
+        prof_wide_sino.max() - prof_wide_sino.min()
+    ) * height + prof_wide_sino.min()
+    half_n = (
+        prof_narrow_sino.max() - prof_narrow_sino.min()
+    ) * height + prof_narrow_sino.min()
 
     # Interpolate radial coordinates at fractional indices
     idx = np.arange(len(radial))
@@ -157,15 +248,37 @@ def plot_profiles_with_fwhm(
 
 
 def plot_sinogram_with_traced_profiles(
-    sinogram,
-    wide_idx,
-    narrow_idx,
-    out_path,
-    reconstruction_type,
-    show_plots,
-):
+    sinogram: np.ndarray,
+    wide_idx: int,
+    narrow_idx: int,
+    out_path: str,
+    reconstruction_type: str,
+    show_plots: bool,
+) -> None:
+    """
+    Plot the sinogram with vertical lines indicating the selected profiles.
+
+    Parameters
+    ----------
+    sinogram
+        The sinogram image/array.
+    wide_idx
+        Index of the widest (or horizontal) profile.
+    narrow_idx
+        Index of the narrowest (or vertical) profile.
+    out_path
+        Path to save the figure.
+    reconstruction_type
+        'psf' or 'fs' to determine label text.
+    show_plots
+        If True, display the plot.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
+    """
     fig, ax = plt.subplots(figsize=(8, 6))
-    im = ax.imshow(sinogram, cmap="gray", aspect="auto")
 
     if reconstruction_type == "psf":
         ax.set_title("Sinogram with Horizontal & Vertical Profiles")
@@ -212,18 +325,36 @@ def plot_sinogram_with_traced_profiles(
 
 
 def plot_recon_with_lines(
-    recon,
-    angle_wide,
-    angle_narrow,
-    out_path,
-    show_plots=False,
-    reconstruction_type="fs",
-):
+    recon: np.ndarray,
+    angle_wide: float,
+    angle_narrow: float,
+    out_path: str,
+    show_plots: bool = False,
+    reconstruction_type: str = "fs",
+) -> None:
     """
-    recon: 2D np.ndarray image
-    angle_wide, angle_narrow: angles in degrees where lines should be drawn
-    """
+    Plot the reconstruction with lines indicating the profile angles.
 
+    Parameters
+    ----------
+    recon
+        2D reconstruction image.
+    angle_wide
+        Angle in degrees for the widest profile.
+    angle_narrow
+        Angle in degrees for the narrowest profile.
+    out_path
+        Path to save the figure.
+    show_plots
+        If True, display the plot.
+    reconstruction_type
+        'psf' or 'fs' to determine title and labels.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
+    """
     img = recon.copy()
     w, h = img.shape[:2]
     cx = w / 2
@@ -267,17 +398,28 @@ def plot_profile_with_gaussian(
     popt: tuple[float, float, float, float],
     out_path: str,
     show_plots: bool = False,
-):
+) -> None:
     """
     Plot a sinogram profile with its Gaussian fit.
 
-    Args:
-        radial: 1D array of radial positions (centered, e.g. -L..+L).
-        sinogram_profile: 1D array of intensity values.
-        popt: Optimal parameters from Gaussian fit [A, mu, sigma, B]
-              where mu is in index space (0..n-1).
-        out_path: Path to save the plot.
-        show_plots: Whether to display the plot interactively.
+    Parameters
+    ----------
+    radial
+        1D array of radial positions (centered, e.g. -L..+L).
+    sinogram_profile
+        1D array of intensity values.
+    popt
+        Optimal parameters from Gaussian fit [A, mu, sigma, B]
+        where mu is in index space (0..n-1).
+    out_path
+        Path to save the plot.
+    show_plots
+        Whether to display the plot interactively.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
     """
     n = sinogram_profile.size
     center = n // 2
@@ -293,8 +435,6 @@ def plot_profile_with_gaussian(
     fitted_dense = (
         A * np.exp(-((radial_dense - mu_phys) ** 2) / (2 * sigma_phys**2)) + B
     )
-
-    # Map those dense indices back onto the radial axis
 
     plt.figure(figsize=(8, 4))
     plt.plot(radial, sinogram_profile, label="Data")
@@ -313,17 +453,36 @@ def plot_profile_with_gaussian(
     plt.close()
 
 
-def plot_1d_mtf(freq, mtf, pixel_size, out_path, mtf10_freq=None, show_plots=False):
+def plot_1d_mtf(
+    freq: np.ndarray,
+    mtf: np.ndarray,
+    pixel_size: float,
+    out_path: str,
+    mtf10_freq: float = None,
+    show_plots: bool = False,
+) -> None:
     """
     Plot 1D MTF with Nyquist and MTF10 reference lines.
 
-    Args:
-        freq: Array of frequencies in cycles/mm.
-        mtf: MTF values (same length as freq).
-        pixel_size: Pixel size in mm (system pixel size!).
-        mtf10_freq: Frequency at which MTF drops to 10% (cycles/mm).
-        out_path: Path to save the figure.
-        show_plots: If True, also display plot on screen.
+    Parameters
+    ----------
+    freq
+        Array of frequencies in cycles/mm.
+    mtf
+        MTF values (same length as freq).
+    pixel_size
+        Pixel size in mm (system pixel size!).
+    out_path
+        Path to save the figure.
+    mtf10_freq
+        Frequency at which MTF drops to 10% (cycles/mm).
+    show_plots
+        If True, also display plot on screen.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
     """
     # Nyquist frequency in cycles/mm
     nyquist_freq = 1 / (2 * pixel_size)

@@ -18,17 +18,49 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import imageio.v3 as iio
-
+from typing import Optional, Callable
 
 
 def eval_minimum_magnification(a: float, n: int, p: float) -> float:
-    """Evaluate the minimum magnification required to obtain a focal spot image involving a reasonable number n of pixels."""
+    """
+    Evaluate the minimum magnification required to obtain a focal spot image involving a reasonable number n of pixels.
+
+    Parameters
+    ----------
+    a
+        Focal spot size (dimension).
+    n
+        Number of pixels desired.
+    p
+        Pixel size/pitch.
+
+    Returns
+    -------
+    float
+        The calculated minimum magnification.
+    """
     m = (a + n * p) / a
     return m
 
 
 def eval_minimum_radius(n: int, p: float, m: float) -> float:
-    """Evaluate the minimum disk radius required to obtain a focal spot image involving a reasonable number n of pixels."""
+    """
+    Evaluate the minimum disk radius required to obtain a focal spot image involving a reasonable number n of pixels.
+
+    Parameters
+    ----------
+    n
+        Number of pixels desired.
+    p
+        Pixel size/pitch.
+    m
+        Magnification factor.
+
+    Returns
+    -------
+    float
+        The calculated minimum radius.
+    """
     r = (1 + n**2) * p / (2 * m)
     return r
 
@@ -38,9 +70,29 @@ def crop_square_roi(
     center: tuple[float, float],
     radius: float,
     width_factor: float = 1.5,
-    output_path: str = None,
+    output_path: Optional[str] = None,
 ) -> np.ndarray:
+    """
+    Crop a square region of interest (ROI) around the specified center.
 
+    Parameters
+    ----------
+    img
+        Input image array.
+    center
+        (x, y) coordinates of the center.
+    radius
+        Radius of the feature to crop around.
+    width_factor
+        Factor to determine the crop size relative to the radius.
+    output_path
+        If provided, saves the cropped image to this directory.
+
+    Returns
+    -------
+    np.ndarray
+        The cropped image array.
+    """
     cx, cy = center
     half_w = int(radius * width_factor)
 
@@ -49,7 +101,8 @@ def crop_square_roi(
     y0 = max(cy - half_w, 0)
     y1 = min(cy + half_w, img.shape[0])
 
-    cropped = img[y0:y1, x0:x1]
+    cropped = img[int(y0) : int(y1), int(x0) : int(x1)]
+
     if output_path is not None:
         plt.imsave(
             os.path.join(output_path, "cropped.png"),
@@ -59,12 +112,26 @@ def crop_square_roi(
     return cropped
 
 
-def save_16bit_tiff(data: np.ndarray, path: str):
-    """Scales and saves a NumPy array as a 16-bit grayscale TIFF."""
+def save_16bit_tiff(data: np.ndarray, path: str) -> None:
+    """
+    Scales and saves a NumPy array as a 16-bit grayscale TIFF.
+
+    Parameters
+    ----------
+    data
+        Input image data.
+    path
+        Output file path.
+
+    Returns
+    -------
+    None
+        This function saves a file and does not return a value.
+    """
     # 1. Normalize the data to the 0-1 range
     data_min = data.min()
     data_max = data.max()
-    
+
     if data_max == data_min:
         # Handle constant images (scale to 0 or 65535, depending on value)
         if data_min == 0:
@@ -73,18 +140,28 @@ def save_16bit_tiff(data: np.ndarray, path: str):
             normalized_data = np.ones_like(data)
     else:
         normalized_data = (data - data_min) / (data_max - data_min)
-    
+
     # 2. Scale to 0-65535 and convert to uint16
     # Rounding is important before conversion
     scaled_data = np.round(normalized_data * 65535).astype(np.uint16)
-    
+
     # 3. Save using imageio with lossless compression
-    iio.imwrite(path, scaled_data, compression='deflate')
+    iio.imwrite(path, scaled_data, compression="deflate")
 
 
 def interpolate_nans_1d(y: np.ndarray) -> np.ndarray:
     """
     Linearly interpolate NaNs in a 1D array.
+
+    Parameters
+    ----------
+    y
+        1D input array possibly containing NaNs.
+
+    Returns
+    -------
+    np.ndarray
+        Array with NaNs filled by linear interpolation.
     """
     nans = np.isnan(y)
     not_nans = ~nans
@@ -96,15 +173,57 @@ def interpolate_nans_1d(y: np.ndarray) -> np.ndarray:
 
 def suggest_os_angle(p: float, n: int, r: float) -> float:
     """
-    Suggest the optimal oversampling angle (in degrees) to ensure that the cross-talk between neighboring profiles is negligible.
+    Suggest the optimal oversampling angle to ensure negligible cross-talk.
+
+    Parameters
+    ----------
+    p
+        Pixel size.
+    n
+        Oversampling factor (or similar parameter depending on strategy).
+    r
+        Radius.
+
+    Returns
+    -------
+    float
+        Suggested oversampling angle in degrees.
     """
-    dtheta = 2*np.arccos(1-p/(n*r))
+    dtheta = 2 * np.arccos(1 - p / (n * r))
     dtheta = np.degrees(dtheta)
     return dtheta
 
-def save_and_plot(name, arr,out_dir, plot_func=None, suffix="",  show_plots=False):
+
+def save_and_plot(
+    name: str,
+    arr: np.ndarray,
+    out_dir: str,
+    plot_func: Optional[Callable] = None,
+    suffix: str = "",
+    show_plots: bool = False,
+) -> str:
     """
     Save a 2D array as a 16-bit TIFF and optionally plot it using a provided plotting function.
+
+    Parameters
+    ----------
+    name
+        Base name for the file.
+    arr
+        Image array to save.
+    out_dir
+        Output directory.
+    plot_func
+        Optional function to generate a plot.
+    suffix
+        Suffix to append to the filename.
+    show_plots
+        If True, show the plot interactively.
+
+    Returns
+    -------
+    str
+        Path to the saved TIFF file.
     """
     fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
     path = os.path.join(out_dir, fname)

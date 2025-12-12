@@ -22,6 +22,8 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+napoleon_use_rtype = False
+
 # -- Options for HTML output -------------------------------------------------
 # Using the standard modern theme
 html_theme = 'sphinx_rtd_theme'
