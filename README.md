@@ -1,5 +1,5 @@
 <h1 align="center">
-<img src="https://github.com/jacopoaltieri/scope-xr/raw/main/src/scopexr/scopexr_logo.png" width="300">
+<img src="**src**/scopexr/scopexr_logo.png" width="300">
 </h1><br>
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest)
@@ -19,16 +19,7 @@ Full documentation and physical methodology can be found at: **[scope-xr.readthe
   - [GUI Execution](#gui-execution)
   - [CLI Execution](#cli-execution)
     - [Overriding Configuration Parameters](#overriding-configuration-parameters)
-    - [Available CLI Flags](#available-cli-flags)
-      - [Focal Spot CLI](#focal-spot-cli)
-      - [PSF CLI](#psf-cli)
 - [Processing Pipeline](#processing-pipeline)
-  - [1. Input Image](#1-input-image)
-  - [2. Circle Detection Check](#2-circle-detection-check)
-  - [3. Sinogram and Profiles](#3-sinogram-and-profiles)
-  - [4. Reconstruction via Filtered Back Projection (FBP)](#4-reconstruction-via-filtered-back-projection-fbp)
-  - [5.1 Focal Spot Dimension Measurement](#51-focal-spot-dimension-measurement)
-  - [5.2 PSF measurements](#52-psf-measurements)
 - [Contributing](#contributing)
 - [⚖️ License](#️-license)
 
@@ -40,7 +31,7 @@ Full documentation and physical methodology can be found at: **[scope-xr.readthe
 
 **Key capabilities:**
 
-- **Focal Spot:** Automated reconstruction of 2D focal spot dimensions based on the methodology by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414), which is available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
+- **Focal Spot:** Automated reconstruction of 2D focal spot distribution and dimensions based on the methodology by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414), which is available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
 - **PSF:** Automated reconstruction of 2D PSF distribution of the detector, based on the methodology by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach), with optional sub-pixel oversampling for a high-resolution reconstruction.
 
 ## Installation
@@ -160,119 +151,14 @@ scopexr-fs --f "path/to/img.png" --p 0.2
 
 In this case, the pixel size will be set to `0.2 mm` instead of the default value specified in the YAML file.
 
-### Available CLI Flags
-
-#### Focal Spot CLI
-
-| **Flag**                | **Description**                                                                                                                               |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--config` (str)        | Path to the YAML configuration file.                                                                                                          |
-| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`).                                                                                        |
-| `--o` (str)             | Output directory to store results.                                                                                                            |
-| `--p` (float)           | Pixel size in mm.                                                                                                                             |
-| `--d` (float)           | Physical diameter of the circular object in mm.                                                                                               |
-| `--no_hough`            | Skip Hough Transform for automatic circle detection.                                                                                          |
-| `--m` (float)           | Image magnification. If not provided, estimated automatically. Providing it from geometrical considerations may lead to more precise results. |
-| `--n` (int)             | Minimum number of pixels required to achieve a reasonable focal spot size.                                                                    |
-| `--nangles` (int)       | Number of angular projections for profile extraction.                                                                                         |
-| `--hl` (int)            | Half length of the extracted radial profiles.                                                                                                 |
-| `--ds` (int)            | Step size used for numerical derivative calculations.                                                                                         |
-| `--axis_shifts` (int)   | Number of steps to shift the sinogram axis.                                                                                                   |
-| `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter.          |
-| `--avg_number` (int)    | Number of profiles to average, must be odd. Only used if `--avg` is true                                                                      |
-| `--sym`                 | Symmetrize the sinogram before reconstruction.                                                                                                |
-| `--shift`               | Enable automatic sinogram shifting.                                                                                                           |
-| `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`)                                                                    |
-| `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation.                                                                             |
-| `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`)                                                                      |
-| `--show`                | Display plots during processing (matplotlib windows).                                                                                         |
-
-#### PSF CLI
-
-| **Flag**                | **Description** |
-|-------------------------|-----------------|
-| `--config` (str)        | Path to the YAML configuration file. |
-| `--f` (str, *required*) | Path to the input image file (`.raw`, `.png`, `.tif`). |
-| `--o` (str)             | Output directory to store results. |
-| `--p` (float)           | Pixel size in mm. |
-| `--d` (float)           | Physical diameter of the circular object in mm. |
-| `--no_hough`            | Skip Hough Transform for automatic circle detection. |
-| `--nangles` (int)       | Number of angular projections for profile extraction. |
-| `--hl` (int)            | Half length of the extracted radial profiles. |
-| `--ds` (int)            | Step size used for numerical derivative calculations. |
-| `--axis_shifts` (int)   | Number of steps to shift the sinogram axis. |
-| `--filter` (str)        | Filter used during focal spot reconstruction. Options: `ramp`, `shepp-logan`, `cosine`, `hamming`, `hann`. Use `None` for no filter. |
-| `--avg_number` (int)    | Number of profiles to average (must be odd). Only used if `--avg` is true. |
-| `--sym`                 | Symmetrize the sinogram before reconstruction. |
-| `--dtheta` (float)      | Angle of the circular sector for oversampling (in degrees). |
-| `--resample1` (int)     | First resample factor (fine grid), used only with 3-step oversampling. |
-| `--resample2` (int)     | Second resample factor (coarse grid). This will be the final oversampling factor. |
-| `--gaussian_sigma`      | Standard deviation of the Gaussian blur applied between the fine and coarse resampling, used only with 3-step oversampling. |
-| `--oversample_strategy` | Choose oversampling strategy: `1` or `2`. Default is `1` when oversampling is enabled. Strategy `1` is the traditional method; strategy `2` is the 3-step method described by Forster et al. |
-| `--shift`               | Enable automatic sinogram shifting. |
-| `--no_shift`            | Disable automatic sinogram shifting. (*Mutually exclusive with* `--shift`) |
-| `--avg`                 | Average neighboring sinogram profiles to improve FWHM estimation. |
-| `--no_avg`              | Do not average neighboring profiles. (*Mutually exclusive with* `--avg`) |
-| `--oversample`          | Perform oversampling. |
-| `--no_oversample`       | Disable oversampling. (*Mutually exclusive with* `--oversample`) |
-| `--show`                | Display plots during processing (matplotlib windows). |
+The full list of CLI flags is available in the [documentation](https://scope-xr.readthedocs.io/)
 
 
 # Processing Pipeline
 
-## 1. Input Image
-
-The input image can be a `.raw`, `.png` or `.tif` grayscale image of the test object. The package automatically identifies the circular aperture via a Hough Transform; then a square region is cropped around the detected circle and the center and radius of the aperture are computed through a center-of-mass estimation. If the automatic detection fails, or if the user wants to pass the already cropped image, one can simply use the flag `--no_hough`. The parameters of the Hough transform have been empirically chosen to work well with these kinds of images. The user is free to change them by editing the corresponding section in the `args.yaml` file.
-
-## 2. Circle Detection Check
-
-Once the center and radius of the circle are computed, the program checks if the estimated radius satisfies the straight-edge constraint (for focal spot reconstruction only). Then, it extracts the radial profiles and their derivative.  
-If the circular edge is not perfectly centered, the sinogram could be shifted and the focal spot reconstruction may not work properly. For this reason, the script exploits the symmetry of the sinogram to compute the best axis shift.
-
-## 3. Sinogram and Profiles
-
-- **Radial Profiles Extraction:**  
-  Radial profiles are extracted from the cropped region.
-
-- **Derivative and Sinogram Generation:**  
-  The derivative of each radial profile is computed, and these derivatives are assembled into a sinogram.
-
-## 4. Reconstruction via Filtered Back Projection (FBP)
-
-The reconstruction is obtained via a Filtered Back Projection algorithm on the best-shifted sinogram with different selectable filters. The program also produces a sequence of reconstructions with different shifts to be checked manually.
-
-## 5.1 Focal Spot Dimension Measurement
-
-To compute the two dimensions of the focal spot, the program fits an ERF function on each radial profile and computes the ones with the largest slope value.; the narrow profile is taken perpendicular to the wide one. Then it identifies these profiles on the sinogram and the reconstruction based on their angle index.
-
-- **Sinogram FWHM Measurement:**  
-  Direct measurement of the Full Width at Half Maximum (FWHM) of the sinogram profile. The profile can be averaged with its nearest neighbors to reduce noise. This method may be imprecise or underestimate the actual size of the focal spot due to the low number of sample points.
-
-- **ERF-Based FWHM Measurement:**  
-  Computation of the FWHM from the σ parameter of the ERF fit. Due to the higher quality of the edge profile signal (compared to the sinogram), this method is considered to give more reliable results.
-
-From the FWHM measurement, the focal spot dimensions are evaluated as:
-
-$$
-fs = (FWHM * P) / M_fs
-$$
-
-Where:  
-
-- `P` is the pixel size (mm).  
-- `M_fs` is the magnification of the focal spot on the image plane, computed as:
-
-$$
-M_fs = M - 1
-$$
-
-If the magnification `M` is not passed as a parameter by the user, the program computes it directly from the test object radius and the estimated radius on the image.
-
-## 5.2 PSF measurements
-
-For the PSF measurements, the program finds the horizontal and vertical profiles and computes their FWHM by fitting a gaussian curve on the corresponding sinogram profiles.
-
-If the *--oversample* flag is checked, the program performs subpixel resolution sampling while computing the radial profiles.
+<p align="center">
+  <img src="docs/source/_static/processing_pipeline.png" width="100%" alt="SCOPE-XR Processing Pipeline">
+</p>
 
 # Contributing
 

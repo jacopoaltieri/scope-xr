@@ -3,15 +3,19 @@
    :align: center
    :alt: SCOPE-XR Logo
 
+.. image:: https://img.shields.io/badge/License-GPLv3-blue.svg
+   :target: https://www.gnu.org/licenses/gpl-3.0
+.. image:: https://img.shields.io/badge/GitHub-Repository-lightgrey?logo=github
+   :target: https://github.com/jacopoaltieri/scope-xr
+
 SCOPE-XR Documentation
 ======================
 
 **SCOPE-XR (Single-image Characterization Of PErformance in X-Ray systems)** is a specialized Python framework for the automated characterization of X-ray systems. 
+The source code is hosted on `GitHub <https://github.com/jacopoaltieri/scope-xr>`_.
 
-By analyzing a single acquisition of a circular aperture or disk test object, the software reconstructs 2D source distributions (Focal Spot) and detector responses (PSF).
+By analyzing a single acquisition of a circular aperture or disk test object, the software reconstructs 2D source distributions (Focal Spot) and detector response (PSF).
 
-.. note::
-   This project implements methodologies by Di Domenico et al. and Forster et al. to provide high-precision X-ray diagnostics.
 
 Key Features
 ------------

@@ -21,5 +21,5 @@ Using the best-shifted sinogram, the Filtered Back Projection algorithm generate
 
 5. Measurement & Fitting
 ------------------------
-* **Focal Spot:** An Error Function (ERF) is fitted to the radial profiles.
+* **Focal Spot:** The FWHM of the reconstructed focal spot is measured along horizontal and vertical axes.
 * **PSF:** A Gaussian curve is fitted to the sinogram profiles to determine horizontal and vertical FWHM.
