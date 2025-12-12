@@ -1,8 +1,14 @@
+<h1 align="center">
+<img src="https://github.com/jacopoaltieri/scope-xr/raw/main/src/scopexr/scopexr_logo.png" width="300">
+</h1><br>
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+
 # Table of Contents
 
 - [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
-  - [Installing SCOPE-XR](#installing-scope-xr)
+  - [Installation](#installation)
     - [Prerequisites](#prerequisites)
     - [1. Quick Install (For regular users)](#1-quick-install-for-regular-users)
     - [2. Manual Install (From source)](#2-manual-install-from-source)
@@ -22,19 +28,20 @@
   - [5.1 Focal Spot Dimension Measurement](#51-focal-spot-dimension-measurement)
   - [5.2 PSF measurements](#52-psf-measurements)
 - [Contributing](#contributing)
+- [⚖️ License](#️-license)
 
 ---
 
 # Introduction
 
-SCOPE-XR (Single-image Characterization Of PErformance in X-Ray systems) is a Python package created to compute the Focal Spot dimensions of a X-ray tube or the PSF response of a detector starting from a single acquisition of a circular cut-out or disk test object.
+**SCOPE-XR (Single-image Characterization Of PErformance in X-Ray systems)** is a specialized Python framework for the automated characterization of X-ray systems. By analyzing a single acquisition of a circular aperture or disk test object, the software reconstructs 2D source distributions and detector responses.
 
-This package aims to:
+**Key capabilities:**
 
-- **Focal Spot:** Automate the image analysis process first developed by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414) and available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
-- **PSF:** Provide the code for the method proposed by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach).
+- **Focal Spot:** Automated reconstruction of 2D focal spot dimensions based on the methodology by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414), which is available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
+- **PSF:** Automated reconstruction of 2D PSF distribution of the detector, based on the methodology by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach), with optional sub-pixel oversampling for a high-resolution reconstruction.
 
-## Installing SCOPE-XR
+## Installation
 
 SCOPE-XR is installed as a standard Python package. It is recommended to use a virtual environment (venv or conda) to keep your system clean.
 
@@ -45,15 +52,17 @@ SCOPE-XR is installed as a standard Python package. It is recommended to use a v
 
 ### 1. Quick Install (For regular users)
 
-If you just want to use the software without modifying the code, you can install it directly from GitHub:
+If you just want to use the software without modifying the code, install directly from the source via pip:
 
 ```bash
 pip install git+https://github.com/jacopoaltieri/scope-xr.git
 ```
 
-⚠️ **Important**: The installation process does not automatically copy the configuration files. You must manually download the required .yaml files from the `examples` folder in this repository and place them in your working directory before running the software.  
+⚠️ **Important**: Configuration files (`.yaml`) are required for execution. Please download them from the `examples` folder and place them in your working directory.  
 
 ### 2. Manual Install (From source)
+
+Recommended if you wish to modify the code or contribute:
 
 1. **Clone the repository:**
 
@@ -88,6 +97,8 @@ pip install git+https://github.com/jacopoaltieri/scope-xr.git
 
 # Usage
 
+SCOPE-XR provides two main interfaces designed for different user workflows.
+
 The program supports configurable execution via YAML configuration files.
 You can find an example of these files in the `examples` folder, along with some simulated images to test the package.
 
@@ -102,7 +113,7 @@ The supported input image formats are:
 
 ## GUI Execution
 
-The GUI provides an easy-to-use interface with all settings and parameters available in one window. It is the recommended way to use SCOPE-XR.
+The recommended way for routine analysis. It features live image previews and interactive parameter tuning.
 To run the GUI, simply type:
 
 ```bash
@@ -120,7 +131,7 @@ GUI Features:
   
 ## CLI Execution
 
-For advanced users or bach processing, the CLI tools are fully functional.
+Ideal for batch processing and integration into automated research pipelines.
 To run the program with the default settings (as defined in `fs_args.yaml` or `psf_args.yaml`), use the following commands:
 
 - **Focal Spot:**
@@ -134,6 +145,8 @@ To run the program with the default settings (as defined in `fs_args.yaml` or `p
   ```bash
   scopexr-psf --f "path/to/img.png"
   ```
+
+Use the `--help` flag with any command to see all available parameters.
 
 ### Overriding Configuration Parameters
 
@@ -293,3 +306,7 @@ Contributions are welcome! If you want to add features or fix bugs, please follo
 6. **Open a Pull Request** on the original repository.
 
 ---
+
+# ⚖️ License
+
+Distributed under the GNU General Public License v3.0 (GPL-3.0). See `LICENSE` for the full text.

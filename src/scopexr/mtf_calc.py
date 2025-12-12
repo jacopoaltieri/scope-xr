@@ -1,3 +1,19 @@
+# SCOPE-XR (Single-image Characterization Of PErformance in X-Ray systems)
+# Copyright (C) 2025  Jacopo Altieri
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int):
@@ -126,7 +142,7 @@ def get_mtf_at_freq(
 if __name__ == "__main__":
     psf_path = r"C:\Users\jacop\Desktop\PhD\Focal Spot\Input images\virtual_images\psf\PSF-downsampled.png"
     from imageio import imread
-    from src.plotters import plot_1d_mtf
+    from .plotters import plot_1d_mtf
 
     psf = imread(
         psf_path,
