@@ -19,7 +19,6 @@ import os
 
 
 from . import utils, plotters
-from . import arg_parser_fs as afs
 from . import arg_parser_psf as apsf
 from . import circle_detection as circ
 from . import image_opening as io
