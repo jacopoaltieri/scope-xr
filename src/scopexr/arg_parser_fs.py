@@ -23,7 +23,7 @@ def get_merged_config() -> dict:
     """
     Parse command-line arguments and YAML configuration file,
     merging them with the following priority:
-    
+
     1. Code defaults (lowest priority)
     2. YAML config file
     3. Command-line arguments (highest priority)
@@ -104,13 +104,33 @@ def get_merged_config() -> dict:
     # 1. Set code defaults (lowest priority)
     config = {
         "img_path": None,
+        "out_dir": "./output_fs",
+        "pixel_size": None,
+        "circle_diameter": None,
+        "magnification": None,  # Will be auto-calculated if None or 0
+        "min_n": 100,
+        "n_angles": 180,
+        "profile_half_length": 50,
+        "derivative_step": 1,
+        "axis_shifts": 20,
+        "filter_name": "hamming",
         "auto_shift": True,
         "manual_shift": None,
         "no_shift": False,
         "avg_neighbors": False,
+        "avg_number": 1,
         "no_hough": False,
         "symmetrize": False,
         "show_plots": False,
+        "hough_params": {
+            "dp": 1,
+            "min_dist": 50,
+            "param1": 100,
+            "param2": 30,
+            "min_radius": 100,
+            "max_radius": 500,
+            "debug": False,
+        },
     }
 
     # 2. Load YAML config (overwrites code defaults)
@@ -202,8 +222,10 @@ def validate_args(args: dict) -> None:
         raise ValueError("Pixel size must be a positive number.")
     if args.get("circle_diameter") is None or args["circle_diameter"] <= 0:
         raise ValueError("Circle diameter must be a positive number.")
-    if args.get("magnification") is not None and args["magnification"] <= 0:
-        raise ValueError("Magnification must be a positive number.")
+    if args.get("magnification") is not None and args["magnification"] < 0:
+        raise ValueError(
+            "Magnification must be a positive number or 0 for automatic calculation."
+        )
     if args.get("min_n") is None or args["min_n"] <= 0:
         raise ValueError("Minimum pixel count must be a positive integer.")
     if args.get("n_angles") is None or args["n_angles"] <= 0:

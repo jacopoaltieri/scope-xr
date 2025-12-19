@@ -62,7 +62,7 @@ def detect_circle_hough(
     y: float
         y coordinate of the detected circle center.
     r: float
-        radius of the detected circle.    
+        radius of the detected circle.
     None
         If no circle is found.
 
@@ -111,89 +111,39 @@ def detect_circle_hough(
     return x, y, r
 
 
-def estimate_circle(
-    cropped: np.ndarray, region_size: int = 10
-) -> tuple[float, float, float]:
+def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
     """
-    Estimate the circle radius by sampling intensity profiles along
-    horizontal and vertical directions, restricted to a region around the estimated center.
-
-    Parameters
-    ----------
-    cropped
-        2D NumPy array (h, w), cropped image containing the circle
-    region_size
-        size of the region around the center to consider for profile
-
-    Returns
-    -------
-    cx: float
-        x coordinate of the estimated circle center
-    cy: float
-        y coordinate of the estimated circle center
-    radius_estimate: float
-        estimated circle radius
+    Estimate circle parameters using Center of Mass and Equivalent Area.
+    
+    Methods:
+    - Center (cx, cy): Calculated via center_of_mass on the binary mask.
+    - Radius: Calculated from the area (Area = pi * r^2).
     """
     h, w = cropped.shape
 
-    cy_float, cx_float = center_of_mass(cropped)
+    # 1. Thresholding to create a binary mask
+    # We use a float cast to avoid overflow during min/max calc
+    img_float = cropped.astype(np.float32)
+    threshold = (np.min(img_float) + np.max(img_float)) / 2.0
+    
+    # Create binary mask (0 or 1)
+    mask = img_float >= threshold
 
-    # Handle case where image might be empty/black
-    if np.isnan(cy_float) or np.isnan(cx_float):
-        cy_init, cx_init = h // 2, w // 2
-    else:
-        cy_init, cx_init = int(cy_float), int(cx_float)
+    # Handle empty image case
+    if not np.any(mask):
+        return w / 2.0, h / 2.0, 0.0
 
-    # Define threshold relative to intensity range
-    threshold = np.min(cropped) + (np.max(cropped) - np.min(cropped)) / 2
+    # 2. Calculate Center (y, x)
+    # This uses all pixels in the mask to find the geometric centroid
+    cy, cx = center_of_mass(mask)
 
-    # Limit y range for horizontal scan
-    y_start = max(cy_init - region_size, 0)
-    y_end = min(cy_init + region_size, h)
+    # 3. Calculate Radius from Area
+    # Area = number of pixels in the mask
+    # Area = pi * r^2  ->  r = sqrt(Area / pi)
+    area = np.sum(mask)
+    radius_estimate = np.sqrt(area / np.pi)
 
-    x_left = np.zeros(y_end - y_start)
-    x_right = np.zeros(y_end - y_start)
-
-    for idx, y in enumerate(range(y_start, y_end)):
-        row = cropped[y, :]
-        # Find indices where value crosses threshold
-        above_thresh = np.where(row >= threshold)[0]
-
-        if len(above_thresh) > 0:
-            x_left[idx] = above_thresh[0]
-            x_right[idx] = above_thresh[-1]
-        else:
-            # Fallback if line doesn't hit the circle (e.g. at the very edge)
-            x_left[idx] = cx_init
-            x_right[idx] = cx_init
-
-    # Limit x range for vertical scan
-    x_start = max(cx_init - region_size, 0)
-    x_end = min(cx_init + region_size, w)
-
-    y_down = np.zeros(x_end - x_start)
-    y_up = np.zeros(x_end - x_start)
-
-    for idx, x in enumerate(range(x_start, x_end)):
-        col = cropped[:, x]
-        above_thresh = np.where(col >= threshold)[0]
-
-        if len(above_thresh) > 0:
-            y_down[idx] = above_thresh[0]
-            y_up[idx] = above_thresh[-1]
-        else:
-            y_down[idx] = cy_init
-            y_up[idx] = cy_init
-
-    # Compute center and radii
-    cx = np.round(np.mean((x_left + x_right) / 2))
-    cy = np.round(np.mean((y_down + y_up) / 2))
-
-    r_x = np.mean((x_right - x_left) / 2)
-    r_y = np.mean((y_up - y_down) / 2)
-    radius_estimate = np.round(np.mean([r_x, r_y]))
-
-    return cx, cy, radius_estimate
+    return float(cx), float(cy), float(radius_estimate)
 
 
 def is_circle_centered(

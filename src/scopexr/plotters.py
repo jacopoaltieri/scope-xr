@@ -279,6 +279,7 @@ def plot_sinogram_with_traced_profiles(
         This function saves a file and does not return a value.
     """
     fig, ax = plt.subplots(figsize=(8, 6))
+    ax.imshow(sinogram, cmap="gray", aspect="auto")
 
     if reconstruction_type == "psf":
         ax.set_title("Sinogram with Horizontal & Vertical Profiles")

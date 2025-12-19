@@ -25,6 +25,7 @@ from . import image_opening as io
 from . import sinogram_recon as sr
 from . import widths_calculator as wc
 
+
 def run_pipeline_fs():
     args = afs.get_merged_config()
     afs.validate_args(args)
@@ -98,7 +99,7 @@ def run_pipeline_fs():
         )
 
     cx, cy, radius = circ.estimate_circle(cropped)
-
+    print(cx,cy,cropped.shape)
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
@@ -109,11 +110,11 @@ def run_pipeline_fs():
     plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
 
     # Estimate magnification
-    if magnification is not None:
+    if magnification is not None and magnification > 0:
         m = magnification
         print(f"Using provided magnification: {m:.2f}x")
     else:
-        # Compute from circle radius
+        # Compute from circle radius (automatic calculation for None or 0)
         m = (radius * pixel_size) / (circle_diameter / 2)
         print(f"Estimated image magnification: {m:.2f}x")
 
@@ -148,9 +149,9 @@ def run_pipeline_fs():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
-    utils.save_and_plot("profiles", profiles,  out_dir),
-    utils.save_and_plot("sinogram", sinogram,  out_dir),
-    utils.save_and_plot("reconstruction", reconstruction,  out_dir),
+    utils.save_and_plot("profiles", profiles, out_dir),
+    utils.save_and_plot("sinogram", sinogram, out_dir),
+    utils.save_and_plot("reconstruction", reconstruction, out_dir),
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -175,7 +176,7 @@ def run_pipeline_fs():
 
     wide_idx = 0
     narrow_idx = 90
-    
+
     print(f"Widest edge at angle idx {wide_idx}")
     print(f"Narrowest edge at angle idx {narrow_idx}")
 
@@ -203,7 +204,6 @@ def run_pipeline_fs():
     n_rays = sinogram.shape[0]
     radial = np.arange(n_rays) - n_rays // 2
 
-
     data = np.column_stack((radial, prof_wide_sino, prof_narrow_sino))
 
     np.savetxt(
@@ -212,7 +212,7 @@ def run_pipeline_fs():
         delimiter=",",
         header="radial,wide_profile,narrow_profile",
         comments="",
-        fmt=["%d", "%.6f", "%.6f"]
+        fmt=["%d", "%.6f", "%.6f"],
     )
 
     fwhm_path = os.path.join(out_dir, "fwhm_sinogram_profiles.png")
