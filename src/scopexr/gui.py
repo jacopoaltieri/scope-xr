@@ -382,7 +382,6 @@ class ScopeXRApp(QMainWindow):
         tab_layout.addWidget(scroll_area)
         return tab_widget, form_layout
 
-    # --- UPDATE FUNCTION FOR FS TAB ---
     def update_fs_gui(self) -> None:
         """Update all focal spot GUI widgets from a loaded configuration file.
 
@@ -402,8 +401,6 @@ class ScopeXRApp(QMainWindow):
             QMessageBox.warning(self, "Error", "Failed to load or empty config file.")
             return
 
-        # Update widgets (use .get() with a safe fallback or keep current value)
-        # We use a simple helper to avoid clutter
         def set_spin(widget, key, dtype=float):
             if key in new_data:
                 val = new_data[key]
@@ -429,28 +426,22 @@ class ScopeXRApp(QMainWindow):
         if "symmetrize" in new_data:
             self.fs_sym.setChecked(bool(new_data["symmetrize"]))
 
-        # Shifts
         manual_val = new_data.get("manual_shift")
         if manual_val is not None:
             self.fs_radio_manual.setChecked(True)
             self.fs_manual_shift_val.setValue(int(manual_val))
         elif new_data.get("no_shift", False):
             self.fs_radio_no.setChecked(True)
-        elif new_data.get("auto_shift", False):  # Explicit check
+        elif new_data.get("auto_shift", False):
             self.fs_radio_auto.setChecked(True)
         else:
-            # Fallback to default if nothing specified? Or leave as is?
-            # Let's assume auto_shift is default if nothing else is set
+            # auto_shift is default if nothing else is set
             self.fs_radio_auto.setChecked(True)
 
-        # Avg Group
         if new_data.get("avg_neighbors", False):
-            self.fs_avg_buttons["avg"].setChecked(True)
-        elif new_data.get(
-            "no_avg", False
-        ):  # Assuming you add this key to yaml for explicit disable
-            self.fs_avg_buttons["no_avg"].setChecked(True)
-        # 'default' button stays if neither key is present
+            self.fs_avg_checkbox.setChecked(True)
+        elif new_data.get("no_avg", False):
+            self.fs_avg_checkbox.setChecked(False)
 
         if "show_plots" in new_data:
             self.fs_show.setChecked(bool(new_data["show_plots"]))
@@ -472,11 +463,8 @@ class ScopeXRApp(QMainWindow):
         """
         tab_widget, layout = self._create_scrollable_tab()
 
-        # Config File Row with Load Button
         config_layout = QHBoxLayout()
         self.fs_config = PathSelector(is_directory=False)
-        # Assuming config_data has the default path or we use the hardcoded one
-        # self.fs_config.setText(...) # Set initial text if you have it
 
         load_btn = QPushButton("Load/Update GUI")
         load_btn.clicked.connect(self.update_fs_gui)
@@ -554,6 +542,17 @@ class ScopeXRApp(QMainWindow):
         self.fs_sym.setChecked(config_data.get("symmetrize", False))
         layout.addRow("[--sym]:", self.fs_sym)
 
+        self.fs_avg_checkbox = QCheckBox("Enable profile averaging (--avg)")
+        if config_data.get("avg_neighbors", False):
+            self.fs_avg_checkbox.setChecked(True)
+        elif config_data.get("no_avg", False):
+            self.fs_avg_checkbox.setChecked(False)
+        layout.addRow("Profile Averaging:", self.fs_avg_checkbox)
+
+        self.fs_show = QCheckBox("Show Matplotlib plots")
+        self.fs_show.setChecked(config_data.get("show_plots", True))
+        layout.addRow("[--show]:", self.fs_show)
+
         fs_shift_box = QGroupBox("Sinogram Shifting")
         fs_shift_layout = QVBoxLayout()
         self.fs_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
@@ -585,30 +584,8 @@ class ScopeXRApp(QMainWindow):
 
         layout.addRow(fs_shift_box)
 
-        avg_default = "default"
-        if config_data.get("avg_neighbors", False):
-            avg_default = "avg"
-        elif config_data.get("no_avg", False):
-            avg_default = "no_avg"
-
-        self.fs_avg_group, self.fs_avg_buttons = create_radio_group(
-            "Profile Averaging",
-            {
-                "default": "Default (from YAML)",
-                "avg": "Enable (--avg)",
-                "no_avg": "Disable (--no_avg)",
-            },
-            default_key=avg_default,
-        )
-        layout.addRow(self.fs_avg_group)
-
-        self.fs_show = QCheckBox("Show Matplotlib plots")
-        self.fs_show.setChecked(config_data.get("show_plots", True))
-        layout.addRow("[--show]:", self.fs_show)
-
         return tab_widget
 
-    # --- UPDATE FUNCTION FOR PSF TAB ---
     def update_psf_gui(self) -> None:
         """Update all PSF GUI widgets from a loaded configuration file.
 
@@ -655,12 +632,7 @@ class ScopeXRApp(QMainWindow):
         set_spin(self.psf_resample1, "resample1", float)
         set_spin(self.psf_resample2, "resample2", float)
         set_spin(self.psf_gaussian_sigma, "gaussian_sigma", float)
-        if "oversample_strategy" in new_data:
-            self.psf_oversample_strategy.setCurrentText(
-                str(new_data["oversample_strategy"])
-            )
 
-        # Shifts
         manual_val = new_data.get("manual_shift")
         if manual_val is not None:
             self.psf_radio_manual.setChecked(True)
@@ -672,17 +644,24 @@ class ScopeXRApp(QMainWindow):
         else:
             self.psf_radio_auto.setChecked(True)
 
-        # Avg Group
         if new_data.get("avg_neighbors", False):
-            self.psf_avg_buttons["avg"].setChecked(True)
+            self.psf_avg_checkbox.setChecked(True)
         elif new_data.get("no_avg", False):
-            self.psf_avg_buttons["no_avg"].setChecked(True)
+            self.psf_avg_checkbox.setChecked(False)
 
-        # Oversample Group
-        if new_data.get("oversample", False):
-            self.psf_oversample_buttons["oversample"].setChecked(True)
-        elif new_data.get("no_oversample", False):
-            self.psf_oversample_buttons["no_oversample"].setChecked(True)
+        # Oversample selection
+        oversample_mode = 0
+        if new_data.get("no_oversample", False):
+            oversample_mode = 0
+        elif str(new_data.get("oversample_strategy")) == "2":
+            oversample_mode = 2
+        elif (
+            new_data.get("oversample", False)
+            or str(new_data.get("oversample_strategy")) == "1"
+        ):
+            oversample_mode = 1
+        self.psf_oversample_choice.setCurrentIndex(oversample_mode)
+        self.update_psf_oversample_controls()
 
         if "show_plots" in new_data:
             self.psf_show.setChecked(bool(new_data["show_plots"]))
@@ -704,7 +683,6 @@ class ScopeXRApp(QMainWindow):
         """
         tab_widget, layout = self._create_scrollable_tab()
 
-        # Config File Row with Load Button
         config_layout = QHBoxLayout()
         self.psf_config = PathSelector(is_directory=False)
 
@@ -789,14 +767,43 @@ class ScopeXRApp(QMainWindow):
         self.psf_gaussian_sigma.setValue(config_data.get("gaussian_sigma", 1.0))
         layout.addRow("Gaussian Sigma [--gaussian_sigma]:", self.psf_gaussian_sigma)
 
-        self.psf_oversample_strategy = QComboBox()
-        self.psf_oversample_strategy.addItems(["1", "2"])
-        self.psf_oversample_strategy.setCurrentText(
-            str(config_data.get("oversample_strategy", "1"))
+        self.psf_oversample_choice = QComboBox()
+        self.psf_oversample_choice.addItems(
+            [
+                "No oversampling",
+                "Oversample 1 (resample2 only)",
+                "Oversample 2 (resample1 + resample2 + gaussian sigma)",
+            ]
         )
-        layout.addRow("Oversample Strategy:", self.psf_oversample_strategy)
+        self.psf_oversample_choice.currentIndexChanged.connect(
+            self.update_psf_oversample_controls
+        )
 
-        # PSF Shifts
+        oversample_mode = 0
+        if config_data.get("no_oversample", False):
+            oversample_mode = 0
+        elif str(config_data.get("oversample_strategy", "")) == "2":
+            oversample_mode = 2
+        elif (
+            config_data.get("oversample", False)
+            or str(config_data.get("oversample_strategy", "")) == "1"
+        ):
+            oversample_mode = 1
+
+        self.psf_oversample_choice.setCurrentIndex(oversample_mode)
+        layout.addRow("Oversampling mode:", self.psf_oversample_choice)
+
+        self.psf_avg_checkbox = QCheckBox("Enable profile averaging (--avg)")
+        if config_data.get("avg_neighbors", False):
+            self.psf_avg_checkbox.setChecked(True)
+        elif config_data.get("no_avg", False):
+            self.psf_avg_checkbox.setChecked(False)
+        layout.addRow("Profile Averaging:", self.psf_avg_checkbox)
+
+        self.psf_show = QCheckBox("Show Matplotlib plots")
+        self.psf_show.setChecked(config_data.get("show_plots", True))
+        layout.addRow("[--show]:", self.psf_show)
+
         psf_shift_box = QGroupBox("Sinogram Shifting")
         psf_shift_layout = QVBoxLayout()
         self.psf_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
@@ -828,45 +835,29 @@ class ScopeXRApp(QMainWindow):
 
         layout.addRow(psf_shift_box)
 
-        avg_default = "default"
-        if config_data.get("avg_neighbors", False):
-            avg_default = "avg"
-        elif config_data.get("no_avg", False):
-            avg_default = "no_avg"
-
-        self.psf_avg_group, self.psf_avg_buttons = create_radio_group(
-            "Profile Averaging",
-            {
-                "default": "Default (from YAML)",
-                "avg": "Enable (--avg)",
-                "no_avg": "Disable (--no_avg)",
-            },
-            default_key=avg_default,
-        )
-        layout.addRow(self.psf_avg_group)
-
-        oversample_default = "default"
-        if config_data.get("oversample", False):
-            oversample_default = "oversample"
-        elif config_data.get("no_oversample", False):
-            oversample_default = "no_oversample"
-
-        self.psf_oversample_group, self.psf_oversample_buttons = create_radio_group(
-            "Oversampling",
-            {
-                "default": "Default (from YAML)",
-                "oversample": "Enable (--oversample)",
-                "no_oversample": "Disable (--no_oversample)",
-            },
-            default_key=oversample_default,
-        )
-        layout.addRow(self.psf_oversample_group)
-
-        self.psf_show = QCheckBox("Show Matplotlib plots")
-        self.psf_show.setChecked(config_data.get("show_plots", True))
-        layout.addRow("[--show]:", self.psf_show)
+        self.update_psf_oversample_controls()
 
         return tab_widget
+
+    def update_psf_oversample_controls(self) -> None:
+        """Enable/disable PSF oversampling controls based on selection."""
+        mode = self.psf_oversample_choice.currentIndex()
+
+        if mode == 0:
+            # No oversampling
+            self.psf_resample1.setEnabled(False)
+            self.psf_resample2.setEnabled(False)
+            self.psf_gaussian_sigma.setEnabled(False)
+        elif mode == 1:
+            # Oversample 1: only resample2 matters
+            self.psf_resample1.setEnabled(False)
+            self.psf_resample2.setEnabled(True)
+            self.psf_gaussian_sigma.setEnabled(False)
+        else:
+            # Oversample 2: use all
+            self.psf_resample1.setEnabled(True)
+            self.psf_resample2.setEnabled(True)
+            self.psf_gaussian_sigma.setEnabled(True)
 
     def open_image_file(self) -> None:
         """Open file dialog to select and load an image.
@@ -926,7 +917,6 @@ class ScopeXRApp(QMainWindow):
         current_tab_index = self.tab_widget.currentIndex()
         config_filename = "fs_args.yaml" if current_tab_index == 0 else "psf_args.yaml"
 
-        # Get absolute path in the Current Working Directory
         config_file_path = os.path.abspath(config_filename)
 
         if not os.path.exists(config_file_path):
@@ -938,7 +928,6 @@ class ScopeXRApp(QMainWindow):
             )
             return
 
-        # Open the file
         try:
             system = platform.system()
             if system == "Windows":
@@ -968,8 +957,6 @@ class ScopeXRApp(QMainWindow):
             f"Starting analysis on {os.path.basename(self.image_path)}...\n"
         )
 
-        # --- KEY CHANGE: Run as Module ---
-        # We use [sys.executable, "-m", "scopexr.fs_main"] instead of path to file
         command = [sys.executable, "-m"]
 
         current_tab_index = self.tab_widget.currentIndex()
@@ -1012,7 +999,11 @@ class ScopeXRApp(QMainWindow):
             if self.fs_show.isChecked():
                 command.append("--show")
 
-            # Shifts
+            if self.fs_avg_checkbox.isChecked():
+                command.append("--avg")
+            else:
+                command.append("--no_avg")
+
             if self.fs_radio_manual.isChecked():
                 command.extend(
                     ["--manual_shift", str(self.fs_manual_shift_val.value())]
@@ -1021,12 +1012,6 @@ class ScopeXRApp(QMainWindow):
                 command.append("--auto_shift")
             elif self.fs_radio_no.isChecked():
                 command.append("--no_shift")
-
-            # Avg
-            if self.fs_avg_buttons["avg"].isChecked():
-                command.append("--avg")
-            elif self.fs_avg_buttons["no_avg"].isChecked():
-                command.append("--no_avg")
 
         else:
             # --- PSF ---
@@ -1061,17 +1046,29 @@ class ScopeXRApp(QMainWindow):
                 command.append("--sym")
 
             command.extend(["--dtheta", str(self.psf_dtheta.value())])
-            command.extend(["--resample1", str(self.psf_resample1.value())])
-            command.extend(["--resample2", str(self.psf_resample2.value())])
-            command.extend(["--gaussian_sigma", str(self.psf_gaussian_sigma.value())])
-            command.extend(
-                ["--oversample_strategy", self.psf_oversample_strategy.currentText()]
-            )
 
-            if self.psf_show.isChecked():
-                command.append("--show")
+            if self.psf_avg_checkbox.isChecked():
+                command.append("--avg")
+            else:
+                command.append("--no_avg")
 
-            # Shifts
+            # Oversample
+            oversample_mode = self.psf_oversample_choice.currentIndex()
+            if oversample_mode == 0:
+                command.append("--no_oversample")
+            elif oversample_mode == 1:
+                command.append("--oversample")
+                command.extend(["--oversample_strategy", "1"])
+                command.extend(["--resample2", str(self.psf_resample2.value())])
+            else:
+                command.append("--oversample")
+                command.extend(["--oversample_strategy", "2"])
+                command.extend(["--resample1", str(self.psf_resample1.value())])
+                command.extend(["--resample2", str(self.psf_resample2.value())])
+                command.extend(
+                    ["--gaussian_sigma", str(self.psf_gaussian_sigma.value())]
+                )
+
             if self.psf_radio_manual.isChecked():
                 command.extend(
                     ["--manual_shift", str(self.psf_manual_shift_val.value())]
@@ -1081,17 +1078,8 @@ class ScopeXRApp(QMainWindow):
             elif self.psf_radio_no.isChecked():
                 command.append("--no_shift")
 
-            # Avg
-            if self.psf_avg_buttons["avg"].isChecked():
-                command.append("--avg")
-            elif self.psf_avg_buttons["no_avg"].isChecked():
-                command.append("--no_avg")
-
-            # Oversample
-            if self.psf_oversample_buttons["oversample"].isChecked():
-                command.append("--oversample")
-            elif self.psf_oversample_buttons["no_oversample"].isChecked():
-                command.append("--no_oversample")
+            if self.psf_show.isChecked():
+                command.append("--show")
 
         # Start Thread
         self.run_thread = RunThread(command)
