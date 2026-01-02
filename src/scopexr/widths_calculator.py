@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+import warnings
 from scipy.optimize import curve_fit
 from scipy.special import erf
 
@@ -198,7 +199,9 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
     for i in range(n_angles):
         profile = average_neighbors(profiles, i, 3)
         try:
-            popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=2000)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=2000)
             A, x0, sigma, B = popt
 
         except RuntimeError:
@@ -207,6 +210,15 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
 
     wide_idx = int(np.argmax(sigmas))
     narrow_idx = int(np.argmin(sigmas))
+
+    # If fitting failed to find meaningful extreme profiles, use indices 0 and 89
+    if np.all(sigmas == 0) or np.all(np.isnan(sigmas)):
+        print(
+            "Warning: Curve fitting failed to find extreme profiles. Using angles 0 and 90 as fallback."
+        )
+        wide_idx = 89
+        narrow_idx = 0
+
     return wide_idx, narrow_idx, sigmas
 
 
@@ -325,17 +337,19 @@ def find_extreme_profiles_gaussian(
     for i in range(n_angles):
         profile = average_neighbors(sinogram, i, 3)
         try:
-            popt, _ = curve_fit(
-                gaussian,
-                x,
-                profile,
-                p0=p0,
-                bounds=(
-                    [0, 0, 1e-6, -np.inf],  # Lower bounds: A, mu, sigma, B
-                    [np.inf, n_rays, n_rays, np.inf],  # Upper bounds
-                ),
-                maxfev=2000,
-            )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                popt, _ = curve_fit(
+                    gaussian,
+                    x,
+                    profile,
+                    p0=p0,
+                    bounds=(
+                        [0, 0, 1e-6, -np.inf],  # Lower bounds: A, mu, sigma, B
+                        [np.inf, n_rays, n_rays, np.inf],  # Upper bounds
+                    ),
+                    maxfev=2000,
+                )
             popts.append(popt)
             sigmas[i] = popt[2]
         except RuntimeError:
@@ -345,4 +359,13 @@ def find_extreme_profiles_gaussian(
 
     wide_idx = int(np.nanargmax(sigmas))
     narrow_idx = int(np.nanargmin(sigmas))
+
+    # If fitting failed to find meaningful extreme profiles, use indices 0 and 89
+    if np.all(np.isnan(sigmas)):
+        print(
+            "Warning: Curve fitting failed to find extreme profiles. Using angles 0 and 90 as fallback."
+        )
+        wide_idx = 89
+        narrow_idx = 0
+
     return wide_idx, narrow_idx, sigmas, popts

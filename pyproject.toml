@@ -28,6 +28,12 @@ docs = [
     # Add any other physical/math libraries you use like 'numpy' or 'scipy'
 ]
 
+test = [
+    "pytest",
+    "pytest-cov",
+    "numpy"
+]
+
 [project.scripts]
 scopexr-gui = "scopexr.gui:main"
 scopexr-fs = "scopexr.fs_main:main"

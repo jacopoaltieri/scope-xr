@@ -40,7 +40,7 @@ def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int)-> tuple[np.nda
     """
     # Compute LSF
     lsf = np.sum(psf, axis=axis)
-    lsf = lsf / np.sum(lsf)
+    lsf = lsf / np.sum(lsf) if np.sum(lsf) != 0 else lsf
 
     # Compute FFT and frequencies
     otf_1d = np.fft.fft(np.fft.ifftshift(lsf))
@@ -99,13 +99,16 @@ def compute_1d_mtf_from_sino(sinogram: np.ndarray, pixel_size: float, angle: int
     """
     lsf = sinogram[:, angle]
 
-    lsf = lsf / np.sum(lsf)
+    lsf = lsf / np.sum(lsf) if np.sum(lsf) != 0 else lsf
 
     # Compute FFT and frequencies
     otf_1d = np.fft.fft(np.fft.ifftshift(lsf))
     mtf_1d = np.abs(otf_1d)
 
-    mtf_1d = mtf_1d / mtf_1d[0]  # Normalize to 1 at zero frequency
+    if mtf_1d[0] == 0:
+        print("Warning: Zero frequency component of MTF is zero. Cannot normalize.")
+    else:
+        mtf_1d = mtf_1d / mtf_1d[0]  # Normalize to 1 at zero frequency
 
     freq = np.fft.fftfreq(lsf.size, d=pixel_size)
 
