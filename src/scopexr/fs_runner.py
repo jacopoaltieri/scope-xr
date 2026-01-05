@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import os
+from pathlib import Path
 
 
 from . import utils, plotters
@@ -57,9 +57,10 @@ def run_pipeline_fs():
 
     # ----------------------------------------------------------------------------------#
     # Create output directory
-    basename = os.path.splitext(os.path.basename(img_path))[0]
-    out_dir = os.path.join(args["out_dir"], basename)
-    os.makedirs(out_dir, exist_ok=True)
+    img_path_obj = Path(img_path)
+    basename = img_path_obj.stem
+    out_dir = Path(args["out_dir"]) / basename
+    out_dir.mkdir(parents=True, exist_ok=True)
     print(f"saving outputs to {out_dir}")
 
     # Load image
@@ -99,7 +100,7 @@ def run_pipeline_fs():
         )
 
     cx, cy, radius = circ.estimate_circle(cropped)
-    print(cx,cy,cropped.shape)
+    print(cx, cy, cropped.shape)
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
@@ -164,7 +165,7 @@ def run_pipeline_fs():
 
     # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
     shift_list = list(range(-axis_shifts, axis_shifts))
-    shift_tiff_path = os.path.join(out_dir, "recon_axis_shifts.tiff")
+    shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
     sr.reconstruct_with_axis_shifts(
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
@@ -207,7 +208,7 @@ def run_pipeline_fs():
     data = np.column_stack((radial, prof_wide_sino, prof_narrow_sino))
 
     np.savetxt(
-        os.path.join(out_dir, "profiles.csv"),
+        out_dir / "profiles.csv",
         data,
         delimiter=",",
         header="radial,wide_profile,narrow_profile",
@@ -215,7 +216,7 @@ def run_pipeline_fs():
         fmt=["%d", "%.6f", "%.6f"],
     )
 
-    fwhm_path = os.path.join(out_dir, "fwhm_sinogram_profiles.png")
+    fwhm_path = out_dir / "fwhm_sinogram_profiles.png"
     plotters.plot_profiles_with_fwhm(
         radial,
         prof_wide_sino,
@@ -233,7 +234,7 @@ def run_pipeline_fs():
         show_plots,
     )
 
-    fw10m_path = os.path.join(out_dir, "fw10m_sinogram_profiles.png")
+    fw10m_path = out_dir / "fw10m_sinogram_profiles.png"
     plotters.plot_profiles_with_fwhm(
         radial,
         prof_wide_sino,
@@ -251,7 +252,7 @@ def run_pipeline_fs():
         show_plots,
     )
 
-    sino_with_lines_path = os.path.join(out_dir, "sinogram_traced_profiles.png")
+    sino_with_lines_path = out_dir / "sinogram_traced_profiles.png"
     plotters.plot_sinogram_with_traced_profiles(
         sinogram,
         wide_idx,
@@ -264,7 +265,7 @@ def run_pipeline_fs():
     angle_step = 360.0 / n_angles
     angle_wide_deg = wide_idx * angle_step
     angle_narrow_deg = narrow_idx * angle_step
-    spot_with_lines_path = os.path.join(out_dir, "focal_spot_traced_profiles.png")
+    spot_with_lines_path = out_dir / "focal_spot_traced_profiles.png"
     plotters.plot_recon_with_lines(
         reconstruction,
         angle_wide_deg,
@@ -328,7 +329,7 @@ def run_pipeline_fs():
     ]
 
     # Save summary to .txt
-    results_path = os.path.join(out_dir, "fs_results.txt")
+    results_path = out_dir / "fs_results.txt"
     with open(results_path, "w") as f:
         f.write("\n".join(summary))
     print(f"Results written to {results_path}")

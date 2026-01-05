@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import os
+from pathlib import Path
 
 
 from . import utils, plotters
@@ -25,6 +25,7 @@ from . import image_opening as io
 from . import mtf_calc as mtfc
 from . import sinogram_recon as sr
 from . import widths_calculator as wc
+
 
 def run_pipeline_psf():
     args = apsf.get_merged_config()
@@ -61,9 +62,10 @@ def run_pipeline_psf():
 
     # ----------------------------------------------------------------------------------#
     # Create output directory
-    basename = os.path.splitext(os.path.basename(img_path))[0]
-    out_dir = os.path.join(args.get("out_dir", "."), basename)
-    os.makedirs(out_dir, exist_ok=True)
+    img_path_obj = Path(img_path)
+    basename = img_path_obj.stem
+    out_dir = Path(args.get("out_dir", ".")) / basename
+    out_dir.mkdir(parents=True, exist_ok=True)
     print(f"Saving outputs to {out_dir}")
 
     # Load image
@@ -135,14 +137,14 @@ def run_pipeline_psf():
 
     # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
     shift_list = list(range(-axis_shifts, axis_shifts))
-    shift_tiff_path = os.path.join(out_dir, "recon_axis_shifts.tiff")
+    shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
     sr.reconstruct_with_axis_shifts(
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    utils.save_and_plot("profiles", profiles,  out_dir),
+    utils.save_and_plot("profiles", profiles, out_dir),
     utils.save_and_plot("sinogram", sinogram, out_dir),
-    utils.save_and_plot("reconstruction", reconstruction,  out_dir),
+    utils.save_and_plot("reconstruction", reconstruction, out_dir),
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -183,14 +185,14 @@ def run_pipeline_psf():
         radial=radial,
         sinogram_profile=prof_h_sino,
         popt=popt_h,
-        out_path=os.path.join(out_dir, "sinogram_profile_horizontal.png"),
+        out_path=out_dir / "sinogram_profile_horizontal.png",
         show_plots=show_plots,
     )
     plotters.plot_profile_with_gaussian(
         radial=radial,
         sinogram_profile=prof_v_sino,
         popt=popt_v,
-        out_path=os.path.join(out_dir, "sinogram_profile_vertical.png"),
+        out_path=out_dir / "sinogram_profile_vertical.png",
         show_plots=show_plots,
     )
 
@@ -199,7 +201,7 @@ def run_pipeline_psf():
         sinogram,
         h_idx,
         v_idx,
-        os.path.join(out_dir, "sinogram_traced_profiles.png"),
+        out_dir / "sinogram_traced_profiles.png",
         reconstruction_type="psf",
         show_plots=show_plots,
     )
@@ -207,7 +209,7 @@ def run_pipeline_psf():
         reconstruction,
         h_idx,
         v_idx,
-        os.path.join(out_dir, "psf_traced_profiles.png"),
+        out_dir / "psf_traced_profiles.png",
         show_plots=show_plots,
         reconstruction_type="psf",
     )
@@ -247,7 +249,7 @@ def run_pipeline_psf():
         freq_h,
         mtf_h,
         pixel_size=pixel_size,
-        out_path=os.path.join(out_dir, "mtf_horizontal.png"),
+        out_path=out_dir / "mtf_horizontal.png",
         mtf10_freq=mtf10_h,
         show_plots=show_plots,
     )
@@ -255,7 +257,7 @@ def run_pipeline_psf():
         freq_v,
         mtf_v,
         pixel_size=pixel_size,
-        out_path=os.path.join(out_dir, "mtf_vertical.png"),
+        out_path=out_dir / "mtf_vertical.png",
         mtf10_freq=mtf10_v,
         show_plots=show_plots,
     )
@@ -270,7 +272,7 @@ def run_pipeline_psf():
         "",
         f"Full arguments: {args}",  # Good for traceability
         "--- General Info ---",
-        f"{'Input Image:': <{label_width}} {os.path.basename(img_path)}",
+        f"{'Input Image:': <{label_width}} {Path(img_path).name}",
         f"{'Output Directory:': <{label_width}} {out_dir}",
         "",
         "--- Setup Parameters ---",
@@ -343,14 +345,16 @@ def run_pipeline_psf():
         else:
             raise ValueError(f"Invalid oversample strategy: {oversample_strategy}")
 
-        applied_shift_ov = 0 # New variable for oversampled shift
+        applied_shift_ov = 0  # New variable for oversampled shift
         if manual_shift is not None:
             # Scale the manual shift (which is in 'normal' pixels)
             manual_shift_ov = int(manual_shift * resample2)
-            print(f"Applying manual shift to oversampled sinogram: {manual_shift_ov} px")
+            print(
+                f"Applying manual shift to oversampled sinogram: {manual_shift_ov} px"
+            )
             # Apply shift to sub_sinogram
             centered_sino, applied_shift_ov = sr.manual_center_sinogram(
-                sub_sinogram, manual_shift_ov 
+                sub_sinogram, manual_shift_ov
             )
             sub_sinogram = centered_sino
         elif auto_shift:
@@ -363,14 +367,13 @@ def run_pipeline_psf():
             # No shift is applied
             applied_shift_ov = 0
             print("Sinogram shifting is disabled (oversampled).")
-            
-        
+
         recon_sub = sr.reconstruct_focal_spot(sub_sinogram, filter_name, symmetrize)
-        
+
         utils.save_and_plot("profiles_oversampled", sub_profiles, out_dir)
         utils.save_and_plot("sinogram_oversampled", sub_sinogram, out_dir)
         utils.save_and_plot("reconstruction_oversampled", recon_sub, out_dir)
-        
+
         plotters.plot_profiles_and_reconstruction(
             sub_profiles,
             sub_sinogram,
@@ -393,36 +396,32 @@ def run_pipeline_psf():
 
         popt_h_ov = pops_ov[h_idx]
         popt_v_ov = pops_ov[v_idx]
-        
+
         # FWHM value from oversampled (in 'oversampled pixels')
-        fw_h_ov_native = wc.fwhm_from_sigma(sigmas_ov[h_idx]) 
+        fw_h_ov_native = wc.fwhm_from_sigma(sigmas_ov[h_idx])
         fw_v_ov_native = wc.fwhm_from_sigma(sigmas_ov[v_idx])
         # Convert FWHM to 'normal' pixel-equivalent
-        fw_h_ov = fw_h_ov_native / resample2 
+        fw_h_ov = fw_h_ov_native / resample2
         fw_v_ov = fw_v_ov_native / resample2
-        
+
         print(f"Horizontal (Oversampled):  FWHM={fw_h_ov:.2f} px")
         print(f"Vertical (Oversampled): FWHM={fw_v_ov:.2f} px")
 
         # The radial axis for oversampled plot
-        radial_ov = (
-            np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)
-        )
+        radial_ov = np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)
 
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
             sinogram_profile=prof_h_sino_ov,
             popt=popt_h_ov,
-            out_path=os.path.join(
-                out_dir, "oversampled_sinogram_profile_horizontal.png"
-            ),
+            out_path=out_dir / "oversampled_sinogram_profile_horizontal.png",
             show_plots=show_plots,
         )
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
             sinogram_profile=prof_v_sino_ov,
             popt=popt_v_ov,
-            out_path=os.path.join(out_dir, "oversampled_sinogram_profile_vertical.png"),
+            out_path=out_dir / "oversampled_sinogram_profile_vertical.png",
             show_plots=show_plots,
         )
 
@@ -430,7 +429,7 @@ def run_pipeline_psf():
             sub_sinogram,
             h_idx,
             v_idx,
-            os.path.join(out_dir, "oversampled_sinogram_traced_profiles.png"),
+            out_dir / "oversampled_sinogram_traced_profiles.png",
             reconstruction_type="psf",
             show_plots=show_plots,
         )
@@ -438,7 +437,7 @@ def run_pipeline_psf():
             recon_sub,
             h_idx,
             v_idx,
-            os.path.join(out_dir, "psf_traced_profiles_oversampled.png"),
+            out_dir / "psf_traced_profiles_oversampled.png",
             show_plots=show_plots,
             reconstruction_type="psf",
         )
@@ -473,16 +472,16 @@ def run_pipeline_psf():
         plotters.plot_1d_mtf(
             freq_h_ov,
             mtf_h_ov,
-            pixel_size=pixel_size, # Plot against original Nyquist
-            out_path=os.path.join(out_dir, "mtf_horizontal_oversampled.png"),
+            pixel_size=pixel_size,  # Plot against original Nyquist
+            out_path=out_dir / "mtf_horizontal_oversampled.png",
             mtf10_freq=mtf10_h_ov,
             show_plots=show_plots,
         )
         plotters.plot_1d_mtf(
             freq_v_ov,
             mtf_v_ov,
-            pixel_size=pixel_size, # Plot against original Nyquist
-            out_path=os.path.join(out_dir, "mtf_vertical_oversampled.png"),
+            pixel_size=pixel_size,  # Plot against original Nyquist
+            out_path=out_dir / "mtf_vertical_oversampled.png",
             mtf10_freq=mtf10_v_ov,
             show_plots=show_plots,
         )
@@ -508,7 +507,7 @@ def run_pipeline_psf():
         ]
 
     # Save summary to txt (this line is now *outside* the if block)
-    results_path = os.path.join(out_dir, "psf_results.txt")
+    results_path = out_dir / "psf_results.txt"
     with open(results_path, "w") as f:
         f.write("\n".join(summary))
     print(f"Results written to {results_path}")

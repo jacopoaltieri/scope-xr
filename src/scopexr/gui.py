@@ -24,7 +24,7 @@ with real-time output feedback.
 
 import sys
 import subprocess
-import os
+from pathlib import Path
 import platform
 import yaml
 from importlib import resources
@@ -279,9 +279,9 @@ class ScopeXRApp(QMainWindow):
         self.image_path = None
 
         try:
-            self.base_dir = os.path.dirname(os.path.abspath(__file__))
+            self.base_dir = Path(__file__).parent
         except NameError:
-            self.base_dir = os.path.abspath(".")
+            self.base_dir = Path.cwd()
 
         fs_config_path = "./fs_args.yaml"
         psf_config_path = "./psf_args.yaml"
@@ -390,7 +390,7 @@ class ScopeXRApp(QMainWindow):
         Shows warning dialogs if the file is not found or cannot be loaded.
         """
         path = self.fs_config.text()
-        if not path or not os.path.exists(path):
+        if not path or not Path(path).exists():
             QMessageBox.warning(
                 self, "File Not Found", f"Could not find config file: {path}"
             )
@@ -594,7 +594,7 @@ class ScopeXRApp(QMainWindow):
         Shows warning dialogs if the file is not found or cannot be loaded.
         """
         path = self.psf_config.text()
-        if not path or not os.path.exists(path):
+        if not path or not Path(path).exists():
             QMessageBox.warning(
                 self, "File Not Found", f"Could not find config file: {path}"
             )
@@ -873,7 +873,7 @@ class ScopeXRApp(QMainWindow):
             self.image_path = file_name
             if file_name.endswith(".raw"):
                 self.image_display_label.setText(
-                    f"RAW file selected:\n{os.path.basename(file_name)}\n(Preview not available)"
+                    f"RAW file selected:\n{Path(file_name).name}\n(Preview not available)"
                 )
                 self.image_display_label.setStyleSheet("")
             else:
@@ -917,9 +917,9 @@ class ScopeXRApp(QMainWindow):
         current_tab_index = self.tab_widget.currentIndex()
         config_filename = "fs_args.yaml" if current_tab_index == 0 else "psf_args.yaml"
 
-        config_file_path = os.path.abspath(config_filename)
+        config_file_path = Path(config_filename).resolve()
 
-        if not os.path.exists(config_file_path):
+        if not config_file_path.exists():
             QMessageBox.warning(
                 self,
                 "Config Not Found",
@@ -954,7 +954,7 @@ class ScopeXRApp(QMainWindow):
         self.run_btn.setEnabled(False)
         self.run_btn.setText("Running...")
         self.output_console.setText(
-            f"Starting analysis on {os.path.basename(self.image_path)}...\n"
+            f"Starting analysis on {Path(self.image_path).name}...\n"
         )
 
         command = [sys.executable, "-m"]

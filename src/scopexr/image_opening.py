@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import os
+from pathlib import Path
 import xml.etree.ElementTree as ET
 from PIL import Image
 
@@ -39,8 +39,9 @@ def load_raw_as_ndarray(img_path: str) -> np.ndarray:
     FileNotFoundError
         If the XML metadata file is not found.
     """
-    xml_path = os.path.splitext(img_path)[0] + ".xml"
-    if not os.path.exists(xml_path):
+    img_path_obj = Path(img_path)
+    xml_path = img_path_obj.with_suffix(".xml")
+    if not xml_path.exists():
         raise FileNotFoundError(f"Metadata XML not found: '{xml_path}'")
 
     # Parse XML and get width and height
@@ -60,12 +61,12 @@ def load_raw_as_ndarray(img_path: str) -> np.ndarray:
 def load_tiff_as_ndarray(img_path: str) -> np.ndarray:
     """
     Load a TIFF image using PIL and convert it to a numpy array.
-    
+
     Parameters
     ----------
     img_path
         Path to the TIFF image file (.tif or .tiff)
-        
+
     Returns
     -------
     np.ndarray
@@ -78,12 +79,12 @@ def load_tiff_as_ndarray(img_path: str) -> np.ndarray:
 def load_png_as_ndarray(img_path: str) -> np.ndarray:
     """
     Load a PNG image using PIL and convert it to a numpy array.
-    
+
     Parameters
     ----------
     img_path
         Path to the PNG image file (.png)
-        
+
     Returns
     -------
     np.ndarray
@@ -96,18 +97,18 @@ def load_png_as_ndarray(img_path: str) -> np.ndarray:
 def load_image(img_path: str) -> np.ndarray:
     """
     Load an image and dispatch to the correct loader based on file extension.
-    
+
     Parameters
     ----------
     img_path
         Path to the image file.
-        
+
     Returns
     -------
     np.ndarray
         2D numpy ndarray representing the image.
     """
-    ext = os.path.splitext(img_path)[1].lower()
+    ext = Path(img_path).suffix.lower()
     if ext == ".raw":
         return load_raw_as_ndarray(img_path)
     elif ext in [".tif", ".tiff"]:

@@ -16,7 +16,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from pathlib import Path
 from matplotlib.patches import Circle
 
 
@@ -63,7 +63,7 @@ def plot_circle_on_crop(
     ax.set_title("Cropped ROI around circle")
     ax.axis("off")
     plt.tight_layout()
-    plt.savefig(os.path.join(output_path, "circle_on_crop.png"), dpi=300)
+    plt.savefig(Path(output_path) / "circle_on_crop.png", dpi=300)
     if show:
         plt.show()
     plt.close(fig)
@@ -129,7 +129,7 @@ def plot_profiles_and_reconstruction(
     plt.axis("off")
 
     plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, f"profiles_sinogram_reconstruction{suffix}.png"))
+    plt.savefig(Path(out_dir) / f"profiles_sinogram_reconstruction{suffix}.png")
     if show_plots:
         plt.show()
     plt.close()

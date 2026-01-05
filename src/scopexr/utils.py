@@ -16,7 +16,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from pathlib import Path
 import imageio.v3 as iio
 from typing import Optional, Callable
 
@@ -105,7 +105,7 @@ def crop_square_roi(
 
     if output_path is not None:
         plt.imsave(
-            os.path.join(output_path, "cropped.png"),
+            Path(output_path) / "cropped.png",
             cropped.astype(np.uint16),
             cmap="gray",
         )
@@ -226,10 +226,10 @@ def save_and_plot(
         Path to the saved TIFF file.
     """
     fname = f"{name}{suffix}.tiff" if not name.endswith(".tiff") else name
-    path = os.path.join(out_dir, fname)
-    save_16bit_tiff(arr, path)
+    path = Path(out_dir) / fname
+    save_16bit_tiff(arr, str(path))
 
     if plot_func:
         plot_func(arr, out_dir, show_plots)
 
-    return path
+    return str(path)
