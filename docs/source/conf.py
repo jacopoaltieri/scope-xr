@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 # -- Project information -----------------------------------------------------
 project = "scope-xr"
-copyright = "2025, Jacopo Altieri"
+copyright = "2026, Jacopo Altieri"
 author = "Jacopo Altieri"
 release = "1.1.3"
 
