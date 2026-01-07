@@ -43,7 +43,7 @@ SCOPE-XR is installed as a standard Python package. It is recommended to use a v
 - Python 3.9 or higher
 - Git
 
-### Create and activate a virtual environment (Optional but Recommended):**
+### Create and activate a virtual environment (Optional but Recommended):
 
   **Windows:**
 
