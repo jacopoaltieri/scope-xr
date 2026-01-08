@@ -155,6 +155,98 @@ def compute_profiles_and_sinogram(
     return profiles.T, -sinogram.T
 
 
+def _compute_polar_coordinates(
+    cx: float,
+    cy: float,
+    img_shape: tuple[int, int],
+    radius: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Computes polar coordinates (angle and radial distance) for all pixels relative to circle center.
+
+    Parameters
+    ----------
+    cx
+        X-coordinate of the circle center.
+    cy
+        Y-coordinate of the circle center.
+    img_shape
+        Shape of the image (height, width).
+    radius
+        Radius of the circle.
+
+    Returns
+    -------
+    phis : np.ndarray
+        2D array of angular positions (radians) for each pixel.
+    rs : np.ndarray
+        2D array of radial distances from the circle edge for each pixel.
+    """
+    # Coordinates relative to center
+    ys, xs = np.indices(img_shape)
+    xs = xs.astype(np.float32) - cx
+    ys = ys.astype(np.float32) - cy
+    phis = np.arctan2(ys, xs)
+    rs = np.hypot(xs, ys) - radius
+    return phis, rs
+
+
+def _extract_wedge_radial_samples(
+    phis: np.ndarray,
+    rs: np.ndarray,
+    img: np.ndarray,
+    theta: float,
+    half_wedge: float,
+    min_r: float,
+    max_r: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Extracts and sorts pixel samples from an angular wedge within a radial range.
+
+    Parameters
+    ----------
+    phis
+        2D array of angular positions (radians) for each pixel.
+    rs
+        2D array of radial distances from circle edge for each pixel.
+    img
+        2D grayscale image array.
+    theta
+        Central angle (radians) of the wedge.
+    half_wedge
+        Half-width (radians) of the angular wedge.
+    min_r
+        Minimum radial distance to include.
+    max_r
+        Maximum radial distance to include.
+
+    Returns
+    -------
+    r_vals : np.ndarray
+        Sorted radial distances of pixels in wedge.
+    intensities : np.ndarray
+        Corresponding pixel intensities, sorted by radial distance.
+    """
+    # Mask pixels in angular wedge
+    dphi = (phis - theta + np.pi) % (2 * np.pi) - np.pi
+    mask = np.abs(dphi) <= half_wedge
+    r_vals = rs[mask]
+    intensities = img[mask]
+
+    # Restrict to radial range
+    radial_mask = (r_vals >= min_r) & (r_vals <= max_r)
+    r_vals = r_vals[radial_mask]
+    intensities = intensities[radial_mask]
+
+    # Sort by radial distance
+    if r_vals.size > 0:
+        idx = np.argsort(r_vals)
+        r_vals = r_vals[idx]
+        intensities = intensities[idx]
+
+    return r_vals, intensities
+
+
 def compute_subpixel_profiles_and_sinogram_traditional(
     img: np.ndarray,
     cx: float,
@@ -204,11 +296,7 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     half_wedge = np.deg2rad(dtheta) / 2
 
     # Coordinates relative to center
-    ys, xs = np.indices(img.shape)
-    xs = xs.astype(np.float32) - cx
-    ys = ys.astype(np.float32) - cy
-    phis = np.arctan2(ys, xs)
-    rs = np.hypot(xs, ys) - radius
+    phis, rs = _compute_polar_coordinates(cx, cy, img.shape, radius)
 
     # Set up radial grid for interpolation
     min_r = -profile_half_length
@@ -220,21 +308,9 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     profiles = np.full((n_angles, n_bins), np.nan, dtype=np.float32)
 
     for i, theta in enumerate(angles):
-        # mask pixels in angular wedge
-        dphi = (phis - theta + np.pi) % (2 * np.pi) - np.pi
-        mask = np.abs(dphi) <= half_wedge
-        r_vals = rs[mask]
-        intensities = img[mask]
-
-        # Restrict to radial range
-        radial_mask = (r_vals >= min_r) & (r_vals <= max_r)
-        r_vals = r_vals[radial_mask]
-        intensities = intensities[radial_mask]
-
-        # Sort for interpolation
-        idx = np.argsort(r_vals)
-        r_vals = r_vals[idx]
-        intensities = intensities[idx]
+        r_vals, intensities = _extract_wedge_radial_samples(
+            phis, rs, img, theta, half_wedge, min_r, max_r
+        )
         bin_edges = np.append(r_grid, r_grid[-1] + (1 / resample_radial))
 
         # Interpolate to uniform grid
@@ -322,12 +398,7 @@ def compute_subpixel_profiles_and_sinogram_3step(
     angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     half_wedge = np.deg2rad(dtheta) / 2
 
-    # Coordinates relative to center
-    ys, xs = np.indices(img.shape)
-    xs = xs.astype(np.float32) - cx
-    ys = ys.astype(np.float32) - cy
-    phis = np.arctan2(ys, xs)
-    rs = np.hypot(xs, ys) - radius
+    phis, rs = _compute_polar_coordinates(cx, cy, img.shape, radius)
 
     # precompute oversampling grids
     min_r = -profile_half_length
@@ -343,16 +414,9 @@ def compute_subpixel_profiles_and_sinogram_3step(
     profiles = np.full((n_angles, profile_length), np.nan, dtype=np.float32)
 
     for i, theta in enumerate(angles):
-        # mask pixels in angular wedge
-        dphi = (phis - theta + np.pi) % (2 * np.pi) - np.pi
-        mask = np.abs(dphi) <= half_wedge
-        r_vals = rs[mask]
-        intens = img[mask]
-
-        # sort and build non-uniform ESF
-        idx = np.argsort(r_vals)
-        r_vals = r_vals[idx]
-        intens = intens[idx]
+        r_vals, intens = _extract_wedge_radial_samples(
+            phis, rs, img, theta, half_wedge, min_r, max_r
+        )
 
         # fine resampling
         profile_fine = np.interp(fine_r, r_vals, intens)
@@ -471,20 +535,7 @@ def auto_center_sinogram(
         Applied integer shift value.
     """
     delta = find_best_center_shift(sinogram, max_shift=max_shift)
-    centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
-    if delta > 0:
-        # Shift was DOWN, fill values are at the TOP. Crop the top.
-        crop = delta
-        return centered[crop:, :], delta
-
-    elif delta < 0:
-        # Shift was UP, fill values are at the BOTTOM. Crop the bottom.
-        crop = np.abs(delta)
-        return centered[:-crop, :], delta
-
-    else:
-        # No shift, no crop
-        return centered, delta
+    return manual_center_sinogram(sinogram, delta)
 
 
 def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
