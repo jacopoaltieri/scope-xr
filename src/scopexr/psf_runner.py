@@ -38,27 +38,28 @@ def run_pipeline_psf():
             print(f"  {k:18}: {v}")
 
     # ----------------------------------------------------------------------------------#
+    # Extract configuration parameters
     img_path = args["img_path"]
-    pixel_size = args.get("pixel_size")  # in mm
-    circle_diameter = args.get("circle_diameter")  # in mm
-    no_hough = args.get("no_hough")
-    n_angles = args.get("n_angles")
-    profile_half_length = args.get("profile_half_length")
-    derivative_step = args.get("derivative_step")
+    pixel_size = args["pixel_size"]
+    circle_diameter = args["circle_diameter"]
+    no_hough = args["no_hough"]
+    n_angles = args["n_angles"]
+    profile_half_length = args["profile_half_length"]
+    derivative_step = args["derivative_step"]
     axis_shifts = args["axis_shifts"]
-    filter_name = args.get("filter_name")
-    symmetrize = args.get("symmetrize")
+    filter_name = args["filter_name"]
+    symmetrize = args["symmetrize"]
     manual_shift = args["manual_shift"]
     auto_shift = args["auto_shift"]
-    avg_neighbors = args.get("avg_neighbors")
-    avg_number = args.get("avg_number")
-    oversample = args.get("oversample")
-    oversample_strategy = args.get("oversample_strategy")
-    dtheta = args.get("dtheta")
-    resample1 = args.get("resample1")
-    resample2 = args.get("resample2")
-    gaussian_sigma = args.get("gaussian_sigma")
-    show_plots = args.get("show_plots")
+    avg_neighbors = args["avg_neighbors"]
+    avg_number = args["avg_number"]
+    oversample = args["oversample"]
+    oversample_strategy = args["oversample_strategy"]
+    dtheta = args["dtheta"]
+    resample1 = args["resample1"]
+    resample2 = args["resample2"]
+    gaussian_sigma = args["gaussian_sigma"]
+    show_plots = args["show_plots"]
 
     # ----------------------------------------------------------------------------------#
     # Create output directory
@@ -81,32 +82,35 @@ def run_pipeline_psf():
         )
         cropped = img
     else:
+        hough_params = args["hough_params"]
         hough_circle = circ.detect_circle_hough(
             img,
-            dp=args["hough_params"]["dp"],
-            min_dist=args["hough_params"]["min_dist"],
-            param1=args["hough_params"]["param1"],
-            param2=args["hough_params"]["param2"],
-            min_radius=args["hough_params"]["min_radius"],
-            max_radius=args["hough_params"]["max_radius"],
+            dp=hough_params["dp"],
+            min_dist=hough_params["min_dist"],
+            param1=hough_params["param1"],
+            param2=hough_params["param2"],
+            min_radius=hough_params["min_radius"],
+            max_radius=hough_params["max_radius"],
             output_path=out_dir,
-            debug=args["hough_params"].get("debug", False),
+            debug=hough_params.get("debug", False),
         )
-        if not hough_circle:
-            raise ValueError(
-                "Hough transform did not detect any circle. Provide a cropped image."
-            )
-        x, y, r = hough_circle
-        print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
-        cropped = utils.crop_square_roi(
-            img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
+    if not hough_circle:
+        raise ValueError(
+            "Hough transform did not detect any circle. Provide a cropped image."
         )
+
+    x, y, r = hough_circle
+    print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
+    cropped = utils.crop_square_roi(
+        img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
+    )
 
     cx, cy, radius = circ.estimate_circle(cropped)
 
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
+
     print(
         f"Estimated circle via Center Of Mass: Center=({cx}, {cy}), Radius={radius} px"
     )
@@ -127,9 +131,7 @@ def run_pipeline_psf():
         centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
         sinogram = centered_sino
         print(f"Applied automatic axis shift: {applied_shift} px")
-
     else:
-        # 3. No shift is applied (no_shift: True or all are False)
         applied_shift = 0
         print("Sinogram shifting is disabled.")
 

@@ -69,30 +69,31 @@ def run_pipeline_fs():
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
 
-    # Circle detetion
+    # Circle detection
     if no_hough:
         print(
             "Caution! Hough transform not used. Using provided image as already cropped."
         )
         cropped = img
     else:
-        # Detect circle using Hough Transform
+        hough_params = args["hough_params"]
         hough_circle = circ.detect_circle_hough(
             img,
-            dp=args["hough_params"]["dp"],
-            min_dist=args["hough_params"]["min_dist"],
-            param1=args["hough_params"]["param1"],
-            param2=args["hough_params"]["param2"],
-            min_radius=args["hough_params"]["min_radius"],
-            max_radius=args["hough_params"]["max_radius"],
+            dp=hough_params["dp"],
+            min_dist=hough_params["min_dist"],
+            param1=hough_params["param1"],
+            param2=hough_params["param2"],
+            min_radius=hough_params["min_radius"],
+            max_radius=hough_params["max_radius"],
             output_path=out_dir,
-            debug=args["hough_params"]["debug"],
+            debug=hough_params.get("debug", False),
         )
 
         if not hough_circle:
             raise ValueError(
                 "Hough transform did not detect any circle. Provide a cropped image."
             )
+
         x, y, r = hough_circle
         print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
         cropped = utils.crop_square_roi(
@@ -144,7 +145,6 @@ def run_pipeline_fs():
         print(f"Applied automatic axis shift: {applied_shift} px")
 
     else:
-        # 3. No shift is applied (no_shift: True or all are False)
         applied_shift = 0
         print("Sinogram shifting is disabled.")
 
