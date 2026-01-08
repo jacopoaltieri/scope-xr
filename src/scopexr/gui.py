@@ -22,8 +22,11 @@ load images, adjust analysis parameters, and execute SCOPE-XR algorithms
 with real-time output feedback.
 """
 
+import os
 import sys
 import subprocess
+
+# import tempfile
 from pathlib import Path
 import platform
 import yaml
@@ -314,9 +317,13 @@ class ScopeXRApp(QMainWindow):
 
         self.fs_tab = self.create_fs_tab(self.fs_config_data)
         self.psf_tab = self.create_psf_tab(self.psf_config_data)
+        self.advanced_tab = self.create_advanced_tab(
+            self.fs_config_data, self.psf_config_data
+        )
 
         self.tab_widget.addTab(self.fs_tab, "Focal Spot (FS)")
         self.tab_widget.addTab(self.psf_tab, "PSF")
+        self.tab_widget.addTab(self.advanced_tab, "Advanced")
 
         right_layout.addWidget(self.tab_widget)
 
@@ -359,7 +366,8 @@ class ScopeXRApp(QMainWindow):
         Fails silently if the icon file is not found.
         """
         try:
-            with resources.files("scopexr").joinpath(filename) as path:
+            icon_resource = resources.files("scopexr").joinpath(filename)
+            with resources.as_file(icon_resource) as path:
                 self.setWindowIcon(QIcon(str(path)))
         except Exception:
             pass  # Fail silently if icon is missing
@@ -859,6 +867,149 @@ class ScopeXRApp(QMainWindow):
             self.psf_resample2.setEnabled(True)
             self.psf_gaussian_sigma.setEnabled(True)
 
+    def create_advanced_tab(
+        self, fs_config_data: dict, psf_config_data: dict
+    ) -> QWidget:
+        """Create the Advanced tab for Hough transform parameters.
+
+        Creates a scrollable tab containing separate sections for FS and PSF
+        Hough circle detection parameters. These parameters control the circle
+        detection algorithm used to locate the focal spot or pinhole in the image.
+
+        Parameters
+        ----------
+        fs_config_data : dict
+            Configuration data for focal spot including hough_params
+        psf_config_data : dict
+            Configuration data for PSF including hough_params
+
+        Returns
+        -------
+        QWidget
+            The advanced tab widget containing all Hough parameter controls
+        """
+        tab_widget, layout = self._create_scrollable_tab()
+
+        # Warning label at the top
+        warning_label = QLabel(
+            "⚠️ WARNING: These parameters should only be modified if Hough circle detection fails.\n"
+            "The default values work for most cases. Only change these if you are sure what you are doing."
+        )
+        warning_label.setWordWrap(True)
+        warning_label.setStyleSheet(
+            "background-color: #fff3cd; color: #856404; padding: 15px; "
+            "border: 2px solid #ffc107; border-radius: 5px; font-weight: bold; margin-bottom: 10px;"
+        )
+        layout.addRow(warning_label)
+
+        # FS Hough Parameters Section
+        fs_hough_group = QGroupBox("Focal Spot Hough Transform Parameters")
+        fs_hough_layout = QFormLayout()
+
+        fs_hough = fs_config_data.get("hough_params", {})
+
+        self.fs_hough_dp = QDoubleSpinBox()
+        self.fs_hough_dp.setRange(0.1, 10.0)
+        self.fs_hough_dp.setSingleStep(0.1)
+        self.fs_hough_dp.setDecimals(1)
+        self.fs_hough_dp.setValue(fs_hough.get("dp", 1.0))
+        fs_hough_layout.addRow("Inverse Ratio (dp):", self.fs_hough_dp)
+
+        self.fs_hough_min_dist = QSpinBox()
+        self.fs_hough_min_dist.setRange(1, 1000)
+        self.fs_hough_min_dist.setValue(fs_hough.get("min_dist", 50))
+        fs_hough_layout.addRow("Min Distance (px):", self.fs_hough_min_dist)
+
+        self.fs_hough_param1 = QSpinBox()
+        self.fs_hough_param1.setRange(1, 500)
+        self.fs_hough_param1.setValue(fs_hough.get("param1", 100))
+        fs_hough_layout.addRow("Canny High Threshold (param1):", self.fs_hough_param1)
+
+        self.fs_hough_param2 = QSpinBox()
+        self.fs_hough_param2.setRange(1, 500)
+        self.fs_hough_param2.setValue(fs_hough.get("param2", 30))
+        fs_hough_layout.addRow("Accumulator Threshold (param2):", self.fs_hough_param2)
+
+        self.fs_hough_min_radius = QSpinBox()
+        self.fs_hough_min_radius.setRange(1, 2000)
+        self.fs_hough_min_radius.setValue(fs_hough.get("min_radius", 100))
+        fs_hough_layout.addRow("Min Radius (px):", self.fs_hough_min_radius)
+
+        self.fs_hough_max_radius = QSpinBox()
+        self.fs_hough_max_radius.setRange(1, 2000)
+        self.fs_hough_max_radius.setValue(fs_hough.get("max_radius", 500))
+        fs_hough_layout.addRow("Max Radius (px):", self.fs_hough_max_radius)
+
+        self.fs_hough_debug = QCheckBox("Enable Debug Visualization")
+        self.fs_hough_debug.setChecked(fs_hough.get("debug", False))
+        fs_hough_layout.addRow("Debug Mode:", self.fs_hough_debug)
+
+        fs_hough_group.setLayout(fs_hough_layout)
+        layout.addRow(fs_hough_group)
+
+        # PSF Hough Parameters Section
+        psf_hough_group = QGroupBox("PSF Hough Transform Parameters")
+        psf_hough_layout = QFormLayout()
+
+        psf_hough = psf_config_data.get("hough_params", {})
+
+        self.psf_hough_dp = QDoubleSpinBox()
+        self.psf_hough_dp.setRange(0.1, 10.0)
+        self.psf_hough_dp.setSingleStep(0.1)
+        self.psf_hough_dp.setDecimals(1)
+        self.psf_hough_dp.setValue(psf_hough.get("dp", 1.0))
+        psf_hough_layout.addRow("Inverse Ratio (dp):", self.psf_hough_dp)
+
+        self.psf_hough_min_dist = QSpinBox()
+        self.psf_hough_min_dist.setRange(1, 1000)
+        self.psf_hough_min_dist.setValue(psf_hough.get("min_dist", 50))
+        psf_hough_layout.addRow("Min Distance (px):", self.psf_hough_min_dist)
+
+        self.psf_hough_param1 = QSpinBox()
+        self.psf_hough_param1.setRange(1, 500)
+        self.psf_hough_param1.setValue(psf_hough.get("param1", 100))
+        psf_hough_layout.addRow("Canny High Threshold (param1):", self.psf_hough_param1)
+
+        self.psf_hough_param2 = QSpinBox()
+        self.psf_hough_param2.setRange(1, 500)
+        self.psf_hough_param2.setValue(psf_hough.get("param2", 30))
+        psf_hough_layout.addRow(
+            "Accumulator Threshold (param2):", self.psf_hough_param2
+        )
+
+        self.psf_hough_min_radius = QSpinBox()
+        self.psf_hough_min_radius.setRange(1, 2000)
+        self.psf_hough_min_radius.setValue(psf_hough.get("min_radius", 100))
+        psf_hough_layout.addRow("Min Radius (px):", self.psf_hough_min_radius)
+
+        self.psf_hough_max_radius = QSpinBox()
+        self.psf_hough_max_radius.setRange(1, 2000)
+        self.psf_hough_max_radius.setValue(psf_hough.get("max_radius", 500))
+        psf_hough_layout.addRow("Max Radius (px):", self.psf_hough_max_radius)
+
+        self.psf_hough_debug = QCheckBox("Enable Debug Visualization")
+        self.psf_hough_debug.setChecked(psf_hough.get("debug", False))
+        psf_hough_layout.addRow("Debug Mode:", self.psf_hough_debug)
+
+        psf_hough_group.setLayout(psf_hough_layout)
+        layout.addRow(psf_hough_group)
+
+        # Add explanation label
+        help_text = QLabel(
+            "These parameters control the Hough Circle Transform algorithm used to detect "
+            "the circular region in the image. Adjust these if circle detection fails.\n\n"
+            "• dp: Inverse ratio of accumulator resolution to image resolution\n"
+            "• min_dist: Minimum distance between detected circle centers\n"
+            "• param1: Higher threshold for Canny edge detector\n"
+            "• param2: Accumulator threshold for circle centers (lower = more false circles)\n"
+            "• min/max_radius: Range of circle radii to search for"
+        )
+        help_text.setWordWrap(True)
+        help_text.setStyleSheet("color: #666; font-size: 10pt; padding: 10px;")
+        layout.addRow(help_text)
+
+        return tab_widget
+
     def open_image_file(self) -> None:
         """Open file dialog to select and load an image.
 
@@ -961,13 +1112,38 @@ class ScopeXRApp(QMainWindow):
 
         current_tab_index = self.tab_widget.currentIndex()
 
+        # Advanced tab doesn't run analysis
+        if current_tab_index == 2:
+            self.output_console.setText(
+                "Please select the 'Focal Spot (FS)' or 'PSF' tab to run analysis.\nThe 'Advanced' tab is for configuring Hough transform parameters only."
+            )
+            self.run_btn.setEnabled(True)
+            self.run_btn.setText("Run Analysis")
+            return
+
+        # Update hough params in original YAML config from Advanced tab
         if current_tab_index == 0:
             # --- FOCAL SPOT ---
             command.append("scopexr.fs_main")  # Module name
             command.extend(["--f", self.image_path])
 
-            if self.fs_config.text():
-                command.extend(["--config", self.fs_config.text()])
+            # Update hough params in original config file
+            config_path = self.fs_config.text()
+            if config_path and Path(config_path).exists():
+                config_data = load_config(config_path)
+                config_data["hough_params"] = {
+                    "dp": self.fs_hough_dp.value(),
+                    "min_dist": self.fs_hough_min_dist.value(),
+                    "param1": self.fs_hough_param1.value(),
+                    "param2": self.fs_hough_param2.value(),
+                    "min_radius": self.fs_hough_min_radius.value(),
+                    "max_radius": self.fs_hough_max_radius.value(),
+                    "debug": self.fs_hough_debug.isChecked(),
+                }
+                with open(config_path, "w") as f:
+                    yaml.dump(config_data, f)
+                command.extend(["--config", config_path])
+
             if self.fs_output_dir.text():
                 command.extend(["--o", self.fs_output_dir.text()])
 
@@ -1013,13 +1189,28 @@ class ScopeXRApp(QMainWindow):
             elif self.fs_radio_no.isChecked():
                 command.append("--no_shift")
 
-        else:
+        elif current_tab_index == 1:
             # --- PSF ---
             command.append("scopexr.psf_main")  # Module name
             command.extend(["--f", self.image_path])
 
-            if self.psf_config.text():
-                command.extend(["--config", self.psf_config.text()])
+            # Update hough params in original config file
+            config_path = self.psf_config.text()
+            if config_path and Path(config_path).exists():
+                config_data = load_config(config_path)
+                config_data["hough_params"] = {
+                    "dp": self.psf_hough_dp.value(),
+                    "min_dist": self.psf_hough_min_dist.value(),
+                    "param1": self.psf_hough_param1.value(),
+                    "param2": self.psf_hough_param2.value(),
+                    "min_radius": self.psf_hough_min_radius.value(),
+                    "max_radius": self.psf_hough_max_radius.value(),
+                    "debug": self.psf_hough_debug.isChecked(),
+                }
+                with open(config_path, "w") as f:
+                    yaml.dump(config_data, f)
+                command.extend(["--config", config_path])
+
             if self.psf_output_dir.text():
                 command.extend(["--o", self.psf_output_dir.text()])
 
