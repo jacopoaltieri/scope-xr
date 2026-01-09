@@ -34,6 +34,10 @@ test = [
     "numpy"
 ]
 
+dev = [
+    "ruff"
+]
+
 [project.scripts]
 scopexr-gui = "scopexr.gui:main"
 scopexr-fs = "scopexr.fs_main:main"
