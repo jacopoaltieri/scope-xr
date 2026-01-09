@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from pathlib import Path
+from typing import Optional, Callable
+import imageio.v3 as iio
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
-import imageio.v3 as iio
-from typing import Optional, Callable
 
 
 def eval_minimum_magnification(a: float, n: int, p: float) -> float:

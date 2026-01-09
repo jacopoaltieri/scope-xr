@@ -14,9 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import matplotlib.pyplot as plt
-import numpy as np
 from pathlib import Path
+import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
 
@@ -376,7 +376,7 @@ def plot_recon_with_lines(
 
     if reconstruction_type == "psf":
         ax.set_title("PSF with Horizontal & Vertical Profiles")
-        legend_labels = [f"Horizontal (0°)", f"Vertical (90°)"]
+        legend_labels = ["Horizontal (0°)", "Vertical (90°)"]
     else:
         ax.set_title("Focal Spot with Widest & Narrowest Profiles")
         legend_labels = [
@@ -439,7 +439,7 @@ def plot_profile_with_gaussian(
 
     plt.figure(figsize=(8, 4))
     plt.plot(radial, sinogram_profile, label="Data")
-    plt.plot(radial_dense, fitted_dense, linestyle="--", label=f"Gaussian Fit")
+    plt.plot(radial_dense, fitted_dense, linestyle="--", label="Gaussian Fit")
 
     plt.title("Sinogram Profile with Gaussian Fit")
     plt.xlabel("Radial Position (px)")

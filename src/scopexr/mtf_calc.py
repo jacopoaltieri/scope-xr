@@ -166,15 +166,15 @@ def get_mtf_at_freq(
 
 
 if __name__ == "__main__":
-    psf_path = r"C:\Users\jacop\Desktop\PhD\Focal Spot\Input images\virtual_images\psf\PSF-downsampled.png"
     from imageio import imread
     from .plotters import plot_1d_mtf
+    psf_path = r"C:\Users\jacop\Desktop\PhD\Focal Spot\Input images\virtual_images\psf\PSF-downsampled.png"
+    pixel_size = 0.154  # mm
 
     psf = imread(
         psf_path,
     )
     psf = psf / np.sum(psf)
-    pixel_size = 0.154  # mm
     freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
     print(f"MTF10 frequency: {mtf10} cycles/mm")
     plot_1d_mtf(

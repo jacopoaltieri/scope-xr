@@ -4,13 +4,14 @@ from pathlib import Path
 import pytest
 import yaml
 
+from scopexr.arg_parser_fs import get_merged_config, validate_args
+
 # Ensure local src is on the path when running tests without installation
 ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from scopexr.arg_parser_fs import get_merged_config, validate_args
 
 
 def _write_yaml(tmp_path: Path, data: dict) -> Path:

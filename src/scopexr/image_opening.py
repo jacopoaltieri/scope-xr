@@ -14,9 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import numpy as np
 from PIL import Image
 
 

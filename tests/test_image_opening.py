@@ -5,18 +5,18 @@ import numpy as np
 import pytest
 from PIL import Image
 
-# Ensure local src is on the path when running tests without installation
-ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
-
 from scopexr.image_opening import (
     load_raw_as_ndarray,
     load_tiff_as_ndarray,
     load_png_as_ndarray,
     load_image,
 )
+
+# Ensure local src is on the path when running tests without installation
+ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 def _create_test_xml(xml_path: Path, width: int, height: int) -> None:

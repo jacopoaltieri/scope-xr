@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
 from pathlib import Path
+import numpy as np
 
 
 from . import utils, plotters
@@ -67,7 +67,7 @@ def run_pipeline_fs():
     try:
         img = io.load_image(img_path)
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
+        raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}") from e
 
     # Circle detection
     if no_hough:
@@ -150,9 +150,9 @@ def run_pipeline_fs():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
-    utils.save_and_plot("profiles", profiles, out_dir),
-    utils.save_and_plot("sinogram", sinogram, out_dir),
-    utils.save_and_plot("reconstruction", reconstruction, out_dir),
+    utils.save_and_plot("profiles", profiles, out_dir)
+    utils.save_and_plot("sinogram", sinogram, out_dir)
+    utils.save_and_plot("reconstruction", reconstruction, out_dir)
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -172,7 +172,7 @@ def run_pipeline_fs():
 
     # wide_idx, narrow_idx, sigmas = wc.find_extreme_profiles_erf(profiles)
     # Find narrow profile only, then compute the wide profile as perpendicular
-    wide_idx, _, sigmas = wc.find_extreme_profiles_erf(profiles)
+    wide_idx, _, _ = wc.find_extreme_profiles_erf(profiles)
     narrow_idx = (wide_idx + 90) % sinogram.shape[1]
 
     wide_idx = 0
@@ -330,6 +330,6 @@ def run_pipeline_fs():
 
     # Save summary to .txt
     results_path = out_dir / "fs_results.txt"
-    with open(results_path, "w") as f:
+    with open(results_path, "w", encoding="utf-8") as f:
         f.write("\n".join(summary))
     print(f"Results written to {results_path}")

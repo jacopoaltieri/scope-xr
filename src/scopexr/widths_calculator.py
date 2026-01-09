@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
 import warnings
+import numpy as np
 from scipy.optimize import curve_fit
 from scipy.special import erf
 
@@ -147,7 +147,7 @@ def fwhm_from_sigma(sigma: float) -> float:
     return 2 * sigma * np.sqrt(2 * np.log(2))
 
 
-def erf_step(x: np.ndarray, A: float, x0: float, sigma: float, B: float) -> np.ndarray:
+def erf_step(x: np.ndarray, a: float, x0: float, sigma: float, b: float) -> np.ndarray:
     """
     Error function step model for fitting profile edges.
 
@@ -169,7 +169,7 @@ def erf_step(x: np.ndarray, A: float, x0: float, sigma: float, B: float) -> np.n
     np.ndarray
         Model values evaluated at x.
     """
-    return A * erf((x - x0) / sigma) + B
+    return a * erf((x - x0) / sigma) + b
 
 
 def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarray]:
@@ -202,11 +202,11 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=2000)
-            A, x0, sigma, B = popt
+            sigmas[i] = popt[2]
 
         except RuntimeError:
-            sigma = 0  # Fallback
-        sigmas[i] = sigma
+            # Fit failed: record nan and a placeholder
+            sigmas[i] = np.nan
 
     wide_idx = int(np.argmax(sigmas))
     narrow_idx = int(np.argmin(sigmas))
@@ -278,7 +278,7 @@ def compute_fs_width(
     return fwhm_px * pixel_size / fs_magnification
 
 
-def gaussian(x: np.ndarray, A: float, mu: float, sigma: float, B: float) -> np.ndarray:
+def gaussian(x: np.ndarray, a: float, mu: float, sigma: float, b: float) -> np.ndarray:
     """
     Gaussian model for fitting sinusoidal profiles.
 
@@ -300,7 +300,7 @@ def gaussian(x: np.ndarray, A: float, mu: float, sigma: float, B: float) -> np.n
     np.ndarray
         Gaussian curve evaluated at x.
     """
-    return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
+    return a * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + b
 
 
 def find_extreme_profiles_gaussian(

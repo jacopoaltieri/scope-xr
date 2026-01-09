@@ -89,7 +89,7 @@ def detect_circle_hough(
     )
 
     if circles is None:
-        print(f"No circles found")
+        print("No circles found")
         return None
 
     # Round and pick the strongest circle (first one)

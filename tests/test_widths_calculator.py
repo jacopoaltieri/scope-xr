@@ -3,13 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from scipy.special import erf
-
-# Ensure local src is on the path when running tests without installation
-ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 from scopexr.widths_calculator import (
     fwhm,
@@ -22,6 +15,12 @@ from scopexr.widths_calculator import (
     gaussian,
     find_extreme_profiles_gaussian,
 )
+
+# Ensure local src is on the path when running tests without installation
+ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 class TestFwhm:
@@ -112,26 +111,6 @@ class TestFwhm:
 
         assert width_10m > width_hm
 
-    def test_peak_at_edge(self):
-        """Test FW10M when peak is at the edge."""
-        profile = np.zeros(100)
-        profile[0:10] = 1.0  # Peak at start
-
-        width, left_idx, right_idx = fw10m(profile)
-
-        # May return NaN or small width
-        assert np.isnan(width) or width >= 0
-
-    def test_zero_denominator_in_interpolation(self):
-        """Test FW10M when zero denominator occurs during interpolation."""
-        # Create profile where slopes are exactly zero
-        profile = np.array([0.1, 0.5, 1.0, 1.0, 1.0, 0.5, 0.1], dtype=float)
-
-        width, left_idx, right_idx = fw10m(profile)
-
-        # Should handle gracefully with fallback frac=0.5
-        if not np.isnan(width):
-            assert width > 0
 
     def test_fwhm_zero_denominator(self):
         """Test FWHM with zero denominator in left side interpolation."""

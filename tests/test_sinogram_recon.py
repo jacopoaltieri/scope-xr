@@ -1,16 +1,9 @@
 import sys
 from pathlib import Path
-import tempfile
 
 import numpy as np
 import pytest
 import tifffile
-
-# Ensure local src is on the path when running tests without installation
-ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 from scopexr.sinogram_recon import (
     _check_phl,
@@ -26,6 +19,12 @@ from scopexr.sinogram_recon import (
     reconstruct_focal_spot,
     reconstruct_with_axis_shifts,
 )
+
+# Ensure local src is on the path when running tests without installation
+ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 def create_synthetic_circular_edge_image(

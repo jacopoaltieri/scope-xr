@@ -552,7 +552,7 @@ def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     np.ndarray
         2D array of shape (n_rays, n_angles // 2), symmetrized sinogram.
     """
-    n_rays, n_angles = sino360.shape
+    _, n_angles = sino360.shape
     assert n_angles % 2 == 0, "Need an even number of angles"
     half = n_angles // 2
 

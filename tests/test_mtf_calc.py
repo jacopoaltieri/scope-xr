@@ -4,17 +4,17 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-# Ensure local src is on the path when running tests without installation
-ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
-
 from scopexr.mtf_calc import (
     compute_1d_mtf,
     compute_1d_mtf_from_sino,
     get_mtf_at_freq,
 )
+
+# Ensure local src is on the path when running tests without installation
+ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 def create_gaussian_psf(size: int, sigma: float) -> np.ndarray:
@@ -121,13 +121,13 @@ class TestCompute1dMtf:
         psf[40:60, 40:60] = 1.0  # Wide square
         psf = psf / np.sum(psf)
         pixel_size = 0.1
-        
+
         freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
-        
+
         # If MTF drops to 0.1 at first index, it should return freq_pos[0]
         if not np.isnan(mtf10) and len(freq) > 0:
             assert mtf10 >= freq[0]
-    
+
     def test_sinogram_mtf_with_zeros(self):
         """Test MTF computation with sinogram containing zero rows."""
         # Create sinogram with some zero rows
@@ -136,9 +136,9 @@ class TestCompute1dMtf:
         sinogram[0, :] = 0  # First row all zeros
         sinogram[-1, :] = 0  # Last row all zeros
         pixel_size = 0.1
-        
+
         freq, mtf_sino, mtf10_sino = compute_1d_mtf_from_sino(sinogram, pixel_size, 0)
-        
+
         # Should still compute MTF despite zero rows
         assert len(freq) > 0
         assert len(mtf_sino) == len(freq)
@@ -153,36 +153,36 @@ class TestCompute1dMtf:
         sinogram = np.ones((100, 180))
         sinogram[40:50, :] += 1.0  # Make it have a plateau
         pixel_size = 0.1
-        
+
         freq, mtf_1d, mtf10 = compute_1d_mtf_from_sino(sinogram, pixel_size, 0)
-        
+
         # Should handle zero denominator gracefully
         assert len(freq) > 0
         assert len(mtf_1d) == len(freq)
-    
+
     def test_mtf10_at_first_index_sino(self):
         """Test MTF10 when idx == 0 in sinogram (line 127 coverage)."""
         # Create sinogram where MTF drops below 0.1 at first frequency
         sinogram = np.ones((100, 180))
         sinogram[30:70, :] += 1.0  # Add central plateau
         pixel_size = 0.1
-        
+
         freq, mtf_1d, mtf10 = compute_1d_mtf_from_sino(sinogram, pixel_size, 0)
-        
+
         assert len(freq) > 0
         assert len(mtf_1d) == len(freq)
         # mtf10 should be valid or NaN
         assert np.isnan(mtf10) or mtf10 > 0
-    
+
     def test_mtf_never_reaches_10_percent(self):
         """Test case where MTF never drops below 0.1 (line 73 coverage)."""
         # Create very sharp PSF where MTF stays above 0.1
         psf = np.zeros((100, 100))
         psf[50, 50] = 1.0  # Delta function
         pixel_size = 0.1
-        
+
         freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
-        
+
         # MTF10 may be NaN if never reaches 0.1
         assert len(freq) > 0
         assert len(mtf_1d) == len(freq)
@@ -193,18 +193,20 @@ class TestCompute1dMtf:
         psf = np.zeros((200, 200))
         # Create a pattern with alternating bands to have low MTF
         for i in range(0, 200, 4):
-            psf[i:i+2, :] = 1.0
+            psf[i : i + 2, :] = 1.0
         psf = psf / np.sum(psf)
         pixel_size = 0.01  # Very small pixel for high frequencies
-        
+
         freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
-        
+
         # This PSF should have rapidly decreasing MTF
         assert len(freq) > 0
         assert len(mtf_1d) == len(freq)
         # Check that first few MTF values are decreasing
         if len(mtf_1d) > 2:
-            assert mtf_1d[0] >= mtf_1d[1] or mtf_1d[0] >= 0  # Allow for numerical variations
+            assert (
+                mtf_1d[0] >= mtf_1d[1] or mtf_1d[0] >= 0
+            )  # Allow for numerical variations
 
     def test_mtf10_immediately_below_threshold_sinogram(self):
         """Test sinogram MTF10 when idx == 0 (lines 127, 133 coverage)."""
@@ -212,11 +214,11 @@ class TestCompute1dMtf:
         sinogram = np.zeros((200, 180))
         # Create alternating pattern
         for i in range(0, 200, 4):
-            sinogram[i:i+2, :] = 1.0
+            sinogram[i : i + 2, :] = 1.0
         pixel_size = 0.01
-        
+
         freq, mtf_1d, mtf10 = compute_1d_mtf_from_sino(sinogram, pixel_size, 0)
-        
+
         assert len(freq) > 0
         assert len(mtf_1d) == len(freq)
 

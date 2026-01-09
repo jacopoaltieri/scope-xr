@@ -1,15 +1,8 @@
 import sys
 from pathlib import Path
-import tempfile
 
 import numpy as np
 import pytest
-
-# Ensure local src is on the path when running tests without installation
-ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 from scopexr.utils import (
     eval_minimum_magnification,
@@ -20,6 +13,12 @@ from scopexr.utils import (
     suggest_os_angle,
     save_and_plot,
 )
+
+# Ensure local src is on the path when running tests without installation
+ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 class TestEvalMinimumMagnification:

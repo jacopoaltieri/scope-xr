@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
 from pathlib import Path
+import numpy as np
 
 
 from . import utils, plotters
@@ -41,7 +41,6 @@ def run_pipeline_psf():
     # Extract configuration parameters
     img_path = args["img_path"]
     pixel_size = args["pixel_size"]
-    circle_diameter = args["circle_diameter"]
     no_hough = args["no_hough"]
     n_angles = args["n_angles"]
     profile_half_length = args["profile_half_length"]
@@ -73,7 +72,7 @@ def run_pipeline_psf():
     try:
         img = io.load_image(img_path)
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}")
+        raise FileNotFoundError(f"Unable to load image at `{img_path}`: {e}") from e
 
     # Circle detection
     if no_hough:
@@ -137,16 +136,16 @@ def run_pipeline_psf():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
-    # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
+    # Shift the central axis and save as a sequence. Useful to check if the centering is correct.
     shift_list = list(range(-axis_shifts, axis_shifts))
     shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
     sr.reconstruct_with_axis_shifts(
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    utils.save_and_plot("profiles", profiles, out_dir),
-    utils.save_and_plot("sinogram", sinogram, out_dir),
-    utils.save_and_plot("reconstruction", reconstruction, out_dir),
+    utils.save_and_plot("profiles", profiles, out_dir)
+    utils.save_and_plot("sinogram", sinogram, out_dir)
+    utils.save_and_plot("reconstruction", reconstruction, out_dir)
 
     plotters.plot_profiles_and_reconstruction(
         profiles,
@@ -508,8 +507,8 @@ def run_pipeline_psf():
             f"{'MTF @ 3.0 cy/mm:': <{label_width}} {mtf3_v_ov:.3f}",
         ]
 
-    # Save summary to txt (this line is now *outside* the if block)
+    # Save summary to txt
     results_path = out_dir / "psf_results.txt"
-    with open(results_path, "w") as f:
+    with open(results_path, "w", encoding="utf-8") as f:
         f.write("\n".join(summary))
     print(f"Results written to {results_path}")
