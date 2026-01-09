@@ -114,7 +114,7 @@ def detect_circle_hough(
 def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
     """
     Estimate circle parameters using Center of Mass and Equivalent Area.
-    
+
     Methods:
     - Center (cx, cy): Calculated via center_of_mass on the binary mask.
     - Radius: Calculated from the area (Area = pi * r^2).
@@ -125,7 +125,7 @@ def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
     # We use a float cast to avoid overflow during min/max calc
     img_float = cropped.astype(np.float32)
     threshold = (np.min(img_float) + np.max(img_float)) / 2.0
-    
+
     # Create binary mask (0 or 1)
     mask = img_float >= threshold
 

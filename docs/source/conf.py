@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 project = "scope-xr"
 copyright = "2026, Jacopo Altieri"
 author = "Jacopo Altieri"
-release = "1.1.3"
+release = "1.1.5"
 
 # -- General configuration ---------------------------------------------------
 extensions = [

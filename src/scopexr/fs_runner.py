@@ -311,7 +311,7 @@ def run_pipeline_fs():
         # --- Group by Widest Profile ---
         "--- Widest Profile Results ---",
         f"{'Angle Index:': <{label_width}} {wide_idx}",
-        f"{'Angle (Degrees):': <{label_width}} {wide_idx*angle_step:.1f}deg",
+        f"{'Angle (Degrees):': <{label_width}} {wide_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fw:.3f} px",
         f"{'FW10M:': <{label_width}} {f10w:.3f} px",
         f"{'Spot Size (FWHM):': <{label_width}} {wide_fs:.3f} mm",
@@ -320,7 +320,7 @@ def run_pipeline_fs():
         # --- Group by Narrowest Profile ---
         "--- Narrowest Profile Results ---",
         f"{'Angle Index:': <{label_width}} {narrow_idx}",
-        f"{'Angle (Degrees):': <{label_width}} {narrow_idx*angle_step:.1f}deg",
+        f"{'Angle (Degrees):': <{label_width}} {narrow_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fn:.3f} px",
         f"{'FW10M:': <{label_width}} {f10n:.3f} px",
         f"{'Spot Size (FWHM):': <{label_width}} {narrow_fs:.3f} mm",

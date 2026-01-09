@@ -234,7 +234,6 @@ class TestCompute1dMtf:
         assert len(freq0) == len(freq90)
         np.testing.assert_array_almost_equal(mtf0, mtf90, decimal=5)
 
-
     def test_narrow_vs_wide_profile(self):
         """Test that narrower profile gives higher MTF10."""
         pixel_size = 0.1

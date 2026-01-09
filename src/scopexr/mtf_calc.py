@@ -16,7 +16,10 @@
 
 import numpy as np
 
-def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int)-> tuple[np.ndarray, np.ndarray, float]:
+
+def compute_1d_mtf(
+    psf: np.ndarray, pixel_size: float, axis: int
+) -> tuple[np.ndarray, np.ndarray, float]:
     """
     Compute 1D MTF from 2D PSF by integrating to LSF along specified axis.
 
@@ -75,7 +78,9 @@ def compute_1d_mtf(psf: np.ndarray, pixel_size: float, axis: int)-> tuple[np.nda
     return freq_pos, mtf_pos, mtf10_freq
 
 
-def compute_1d_mtf_from_sino(sinogram: np.ndarray, pixel_size: float, angle: int)-> tuple[np.ndarray, np.ndarray, float]:
+def compute_1d_mtf_from_sino(
+    sinogram: np.ndarray, pixel_size: float, angle: int
+) -> tuple[np.ndarray, np.ndarray, float]:
     """
     Compute 1D MTF from sinogram
 
@@ -87,7 +92,7 @@ def compute_1d_mtf_from_sino(sinogram: np.ndarray, pixel_size: float, angle: int
         Pixel size in mm.
     angle
         Angle index along which to extract the profile.
-    
+
     Returns
     -------
     freq: np.ndarray
@@ -168,6 +173,7 @@ def get_mtf_at_freq(
 if __name__ == "__main__":
     from imageio import imread
     from .plotters import plot_1d_mtf
+
     psf_path = r"C:\Users\jacop\Desktop\PhD\Focal Spot\Input images\virtual_images\psf\PSF-downsampled.png"
     pixel_size = 0.154  # mm
 

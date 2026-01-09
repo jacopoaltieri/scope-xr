@@ -13,7 +13,6 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 
-
 def _write_yaml(tmp_path: Path, data: dict) -> Path:
     yaml_path = tmp_path / "psf_args.yaml"
     yaml_path.write_text(yaml.safe_dump(data))

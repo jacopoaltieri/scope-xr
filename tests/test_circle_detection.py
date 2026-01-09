@@ -44,7 +44,7 @@ class TestDetectCircleHough:
             dp=1.0,
             min_dist=100,
             param1=50,
-            param2=15,  
+            param2=15,
             min_radius=30,
             max_radius=50,
             output_path=str(tmp_path),

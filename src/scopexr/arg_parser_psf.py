@@ -23,7 +23,7 @@ def get_merged_config() -> dict:
     """
     Parse command-line arguments and YAML configuration file,
     merging them with the following priority:
-    
+
     1. Code defaults (lowest priority)
     2. YAML config file
     3. Command-line arguments (highest priority)

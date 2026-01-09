@@ -111,7 +111,6 @@ class TestFwhm:
 
         assert width_10m > width_hm
 
-
     def test_fwhm_zero_denominator(self):
         """Test FWHM with zero denominator in left side interpolation."""
         # Create profile with flat section that causes denominator == 0

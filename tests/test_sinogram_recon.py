@@ -40,7 +40,7 @@ def create_synthetic_circular_edge_image(
 
     # Create a sharp edge with smooth transition
     edge_mask = dist_from_circle < edge_width
-    img[edge_mask] = 1000 * np.exp(-dist_from_circle[edge_mask] ** 2 / (2 * 0.5**2))
+    img[edge_mask] = 1000 * np.exp(-(dist_from_circle[edge_mask] ** 2) / (2 * 0.5**2))
 
     # Add inner bright region
     inner_mask = dist_from_center < radius - edge_width
