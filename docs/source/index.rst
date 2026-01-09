@@ -28,7 +28,9 @@ Key Features
    :caption: User Guide
 
    installation
+   quickstart
    usage
+   troubleshooting
 
 .. toctree::
    :maxdepth: 2
@@ -42,6 +44,12 @@ Key Features
    :caption: API Reference
 
    modules
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Additional Resources
+
+   contributing
 
 Indices and tables
 ==================

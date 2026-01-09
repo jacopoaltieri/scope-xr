@@ -2,16 +2,24 @@
 <img src="src/scopexr/scopexr_logo.png" width="300">
 </h1><br>
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.1.5-blue)
 
-Full documentation and physical methodology can be found at: **[scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/)**
+📚 **Full documentation:** [scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/)
+
+- 🚀 [Quickstart Guide](https://scope-xr.readthedocs.io/en/latest/quickstart.html)
+- 📖 [User Guide](https://scope-xr.readthedocs.io/en/latest/usage.html)
+- 🔧 [Troubleshooting](https://scope-xr.readthedocs.io/en/latest/troubleshooting.html)
+- 📝 [API Reference](https://scope-xr.readthedocs.io/en/latest/modules.html)
+
 
 # Table of Contents
 
 - [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
-  - [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
     - [Prerequisites](#prerequisites)
+    - [Create and activate a virtual environment (Optional but Recommended):](#create-and-activate-a-virtual-environment-optional-but-recommended)
     - [1. Quick Install (For regular users)](#1-quick-install-for-regular-users)
     - [2. Manual Install (From source)](#2-manual-install-from-source)
 - [Usage](#usage)
@@ -20,7 +28,10 @@ Full documentation and physical methodology can be found at: **[scope-xr.readthe
   - [CLI Execution](#cli-execution)
     - [Overriding Configuration Parameters](#overriding-configuration-parameters)
 - [Processing Pipeline](#processing-pipeline)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
+- [Citation](#citation)
+- [Changelog](#changelog)
 - [⚖️ License](#️-license)
 
 ---
@@ -34,7 +45,24 @@ Full documentation and physical methodology can be found at: **[scope-xr.readthe
 - **Focal Spot:** Automated reconstruction of 2D focal spot distribution and dimensions based on the methodology by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414), which is available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
 - **PSF:** Automated reconstruction of 2D PSF distribution of the detector, based on the methodology by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach), with optional sub-pixel oversampling for a high-resolution reconstruction.
 
-## Installation
+# Quick Start
+
+Get started in 3 steps:
+
+```bash
+# 1. Install
+pip install git+https://github.com/jacopoaltieri/scope-xr.git
+
+# 2. Run GUI
+scopexr-gui
+
+# 3. Or use CLI
+scopexr-fs --f "path/to/image.tif"
+```
+
+📘 **New to SCOPE-XR?** Check out the [Quickstart Guide](https://scope-xr.readthedocs.io/en/latest/quickstart.html) with step-by-step instructions.
+
+# Installation
 
 SCOPE-XR is installed as a standard Python package. It is recommended to use a virtual environment (venv or conda) to keep your system clean.
 
@@ -159,39 +187,73 @@ The full list of CLI flags is available in the [documentation](https://scope-xr.
   <img src="docs/source/_static/processing_pipeline.png" width="100%" alt="SCOPE-XR Processing Pipeline">
 </p>
 
+# Documentation
+
+Comprehensive documentation is available at [scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/):
+
+- **[Quickstart Guide](https://scope-xr.readthedocs.io/en/latest/quickstart.html)** - Step-by-step tutorial for first-time users
+- **[Installation](https://scope-xr.readthedocs.io/en/latest/installation.html)** - Detailed installation instructions
+- **[Usage Guide](https://scope-xr.readthedocs.io/en/latest/usage.html)** - Complete parameter reference
+- **[Troubleshooting](https://scope-xr.readthedocs.io/en/latest/troubleshooting.html)** - Common issues and solutions
+- **[Theory](https://scope-xr.readthedocs.io/en/latest/theory.html)** - Physical methodology and equations
+- **[Pipeline](https://scope-xr.readthedocs.io/en/latest/pipeline.html)** - Processing workflow details
+- **[API Reference](https://scope-xr.readthedocs.io/en/latest/modules.html)** - Module and function documentation
+
+
 # Contributing
 
-Contributions are welcome! If you want to add features or fix bugs, please follow this workflow:
+We welcome contributions! Whether you're fixing bugs, adding features, improving documentation, or reporting issues, your help is appreciated.
 
-1. **Fork** the repository on GitHub to your own account.
-2. **Clone** your fork locally:
+**Quick Start:**
 
-  ```bash
-  git clone https://github.com/YOUR_USERNAME/scope-xr.git
-  cd scope-xr
-  ```
+```bash
+# Fork and clone
+git clone https://github.com/YOUR_USERNAME/scope-xr.git
+cd scope-xr
 
-3. **Create a new branch** for your feature:
+# Install dev dependencies
+pip install -e .[dev,test]
 
-  ```bash
-  git checkout -b feature/my-new-feature
-  ```
+# Create feature branch
+git checkout -b feature/my-feature
 
-4. **Install in editable mode** to test changes instantly:
+# Make changes, run tests
+ruff check
+pytest
 
-  ```bash
-  pip install -e .
-  ```
+# Push and create PR
+git push origin feature/my-feature
+```
 
-5. **Commit** your changes and push to your fork:
-  
-  ```bash
-  git add .
-  git commit -m "Added a cool feature"
-  git push origin feature/my-new-feature
-  ```
+📋 **Full guidelines:** See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions on:
+- Development setup
+- Code style guide (using ruff)
+- Testing requirements
+- Pull request process
+- Reporting bugs and requesting features
 
-6. **Open a Pull Request** on the original repository.
+# Citation
+
+If you use SCOPE-XR in your research, please cite:
+
+```bibtex
+@software{scopexr2026,
+  author = {Altieri, Jacopo},
+  title = {SCOPE-XR: Single-image Characterization Of PErformance in X-Ray systems},
+  year = {2026},
+  version = {1.1.5},
+  url = {https://github.com/jacopoaltieri/scope-xr}
+}
+```
+
+**Methodology citations:**
+- Focal Spot: [Di Domenico et al. (2016)](https://doi.org/10.1118/1.4938414)
+- PSF Analysis: [Forster et al. (2024)](https://doi.org/10.13140/RG.2.2.27408.89607)
+
+
+# Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ---
 
