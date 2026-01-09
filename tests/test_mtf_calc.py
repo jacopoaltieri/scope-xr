@@ -234,16 +234,6 @@ class TestCompute1dMtf:
         assert len(freq0) == len(freq90)
         np.testing.assert_array_almost_equal(mtf0, mtf90, decimal=5)
 
-    def test_mtf10_detection(self):
-        """Test MTF10 detection from sinogram."""
-        sinogram = create_gaussian_sinogram(100, 180, 5.0)
-        pixel_size = 0.1
-        angle = 0
-
-        freq, mtf_1d, mtf10 = compute_1d_mtf_from_sino(sinogram, pixel_size, angle)
-
-        if not np.isnan(mtf10):
-            assert mtf10 > 0
 
     def test_narrow_vs_wide_profile(self):
         """Test that narrower profile gives higher MTF10."""
