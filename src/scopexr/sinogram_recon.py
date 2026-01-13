@@ -126,7 +126,9 @@ def compute_profiles_and_sinogram(
     """
     profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
-    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
+    # Sample angles in COUNTER-CLOCKWISE order to match iradon's convention.
+    # Note: due to image coordinate system (y increases downward), we negate the angle
+    angles = -np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = int(2 * profile_half_length)
 
     profiles = np.zeros((n_angles, profile_length), dtype=np.float32)
@@ -292,7 +294,9 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     # Convert angles and angular wedge width to radians
-    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
+    # Sample angles in COUNTER-CLOCKWISE order to match iradon's convention.
+    # Note: due to image coordinate system (y increases downward), we negate the angle
+    angles = -np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     half_wedge = np.deg2rad(dtheta) / 2
 
     # Coordinates relative to center
@@ -395,7 +399,9 @@ def compute_subpixel_profiles_and_sinogram_3step(
     profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
 
     # Convert angles and angular wedge width to radians
-    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
+    # Sample angles in COUNTER-CLOCKWISE order to match iradon's convention.
+    # Note: due to image coordinate system (y increases downward), we negate the angle
+    angles = -np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     half_wedge = np.deg2rad(dtheta) / 2
 
     phis, rs = _compute_polar_coordinates(cx, cy, img.shape, radius)
