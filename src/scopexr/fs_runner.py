@@ -63,7 +63,7 @@ def run_pipeline_fs():
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"saving outputs to {out_dir}")
 
-    # Load image
+    # Image loading
     try:
         img = io.load_image(img_path)
     except FileNotFoundError as e:
@@ -111,12 +111,12 @@ def run_pipeline_fs():
     )
     plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
 
-    # Estimate magnification
+    # Magnification calculation
     if magnification is not None and magnification > 0:
         m = magnification
         print(f"Using provided magnification: {m:.2f}x")
     else:
-        # Compute from circle radius (automatic calculation for None or 0)
+        # Compute from circle radius
         m = (radius * pixel_size) / (circle_diameter / 2)
         print(f"Estimated image magnification: {m:.2f}x")
 
@@ -129,7 +129,7 @@ def run_pipeline_fs():
             f"Warning: The estimated radius {radius} mm is smaller than the minimum required radius {min_r:.2f} mm."
         )
 
-    # Extract profiles and sinogram
+    # Profiles and sinogram extraction
     profiles, sinogram = sr.compute_profiles_and_sinogram(
         cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
     )
@@ -163,23 +163,29 @@ def run_pipeline_fs():
         reconstruction_type="fs",
     )
 
-    # Shift the central axis and save as a sequence. This is useful to see if the centering is correct.
+    # Sinogram reconstruction with axis shifts
     shift_list = list(range(-axis_shifts, axis_shifts))
     shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
     sr.reconstruct_with_axis_shifts(
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    # wide_idx, narrow_idx, sigmas = wc.find_extreme_profiles_erf(profiles)
     # Find narrow profile only, then compute the wide profile as perpendicular
     wide_idx, _, _ = wc.find_extreme_profiles_erf(profiles)
     narrow_idx = (wide_idx + 90) % sinogram.shape[1]
 
-    wide_idx = 0
-    narrow_idx = 90
+    # THIS OVERRIDES THE ABOVE, AS IT IS COMMON IN NORMATIVES
+    # Find horizontal and vertical profiles
+    angle_step = 360.0 / n_angles
+    angles = np.arange(n_angles) * angle_step
 
-    print(f"Widest edge at angle idx {wide_idx}")
-    print(f"Narrowest edge at angle idx {narrow_idx}")
+    wide_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
+    narrow_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
+
+    # print(f"Widest edge at angle idx {wide_idx}")
+    # print(f"Narrowest edge at angle idx {narrow_idx}")
+    print(f"Horizontal edge at angle idx {wide_idx}")
+    print(f"Vertical edge at angle idx {narrow_idx}")
 
     if avg_neighbors:
         prof_wide_sino = wc.average_neighbors(sinogram, wide_idx, avg_number)
@@ -190,13 +196,13 @@ def run_pipeline_fs():
 
     fw, lw, rw = wc.fwhm(prof_wide_sino)
     fn, ln, rn = wc.fwhm(prof_narrow_sino)
-    print(f"Widest:   FWHM={fw}px (from {lw} to {rw})")
-    print(f"Narrowest: FWHM={fn}px (from {ln} to {rn})")
+    print(f"Horizontal:   FWHM={fw}px (from {lw} to {rw})")
+    print(f"Vertical: FWHM={fn}px (from {ln} to {rn})")
 
     f10w, l10w, r10w = wc.fw10m(prof_wide_sino)
     f10n, l10n, r10n = wc.fw10m(prof_narrow_sino)
-    print(f"Widest:   FW10M={f10w}px (from {l10w} to {r10w})")
-    print(f"Narrowest: FW10M={f10n}px (from {l10n} to {r10n})")
+    print(f"Horizontal:   FW10M={f10w}px (from {l10w} to {r10w})")
+    print(f"Vertical: FW10M={f10n}px (from {l10n} to {r10n})")
     # fw_erf = wc.fwhm_from_sigma(sigmas[wide_idx])
     # fn_erf = wc.fwhm_from_sigma(sigmas[narrow_idx])
     # print(f"Widest (ERF):   FWHM={fw_erf:.2f}px")
@@ -277,12 +283,12 @@ def run_pipeline_fs():
 
     wide_fs = wc.compute_fs_width(fw, pixel_size, m_fs)
     narrow_fs = wc.compute_fs_width(fn, pixel_size, m_fs)
-    print(f"Widest focal spot width: {wide_fs:.3f} mm")
-    print(f"Narrowest focal spot width: {narrow_fs:.3f} mm")
+    print(f"Horizontal focal spot width: {wide_fs:.3f} mm")
+    print(f"Vertical focal spot width: {narrow_fs:.3f} mm")
     wide_fs10m = wc.compute_fs_width(f10w, pixel_size, m_fs)
     narrow_fs10m = wc.compute_fs_width(f10n, pixel_size, m_fs)
-    print(f"Widest focal spot width (FW10M): {wide_fs10m:.3f} mm")
-    print(f"Narrowest focal spot width (FW10M): {narrow_fs10m:.3f} mm")
+    print(f"Horizontal focal spot width (FW10M): {wide_fs10m:.3f} mm")
+    print(f"Vertical focal spot width (FW10M): {narrow_fs10m:.3f} mm")
 
     # wide_fs_erf = wc.compute_fs_width(fw_erf, pixel_size, m_fs)
     # narrow_fs_erf = wc.compute_fs_width(fn_erf, pixel_size, m_fs)
@@ -309,7 +315,7 @@ def run_pipeline_fs():
         f"{'Applied Axis Shift:': <{label_width}} {applied_shift} px (Search Range: +/-{axis_shifts})",
         "",
         # --- Group by Widest Profile ---
-        "--- Widest Profile Results ---",
+        "--- Horizontal Profile Results ---",
         f"{'Angle Index:': <{label_width}} {wide_idx}",
         f"{'Angle (Degrees):': <{label_width}} {wide_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fw:.3f} px",
@@ -318,7 +324,7 @@ def run_pipeline_fs():
         f"{'Spot Size (FW10M):': <{label_width}} {wide_fs10m:.3f} mm",
         "",
         # --- Group by Narrowest Profile ---
-        "--- Narrowest Profile Results ---",
+        "--- Vertical Profile Results ---",
         f"{'Angle Index:': <{label_width}} {narrow_idx}",
         f"{'Angle (Degrees):': <{label_width}} {narrow_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fn:.3f} px",

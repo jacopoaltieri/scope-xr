@@ -126,7 +126,6 @@ def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
     img_float = cropped.astype(np.float32)
     threshold = (np.min(img_float) + np.max(img_float)) / 2.0
 
-    # Create binary mask (0 or 1)
     mask = img_float >= threshold
 
     # Handle empty image case
@@ -137,8 +136,7 @@ def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
     # This uses all pixels in the mask to find the geometric centroid
     cy, cx = center_of_mass(mask)
 
-    # 3. Calculate Radius from Area
-    # Area = number of pixels in the mask
+    # 3. Calculate Radius from Area (i.e., number of pixels in the mask)
     # Area = pi * r^2  ->  r = sqrt(Area / pi)
     area = np.sum(mask)
     radius_estimate = np.sqrt(area / np.pi)

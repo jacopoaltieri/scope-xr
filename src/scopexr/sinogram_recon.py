@@ -131,26 +131,26 @@ def compute_profiles_and_sinogram(
     angles = -np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     profile_length = int(2 * profile_half_length)
 
+    # Pre-allocate output arrays
     profiles = np.zeros((n_angles, profile_length), dtype=np.float32)
-    sinogram = np.zeros((n_angles, profile_length), dtype=np.float32)
 
-    # Create radial coordinates
-    d_coords = np.arange(profile_length) - profile_half_length
+    # Pre-compute radial coordinates once
+    d_coords = np.arange(profile_length, dtype=np.float32) - profile_half_length
 
-    for i, theta in enumerate(angles):
-        # Generate unit vector pointing outward from the circle
-        nx = np.cos(theta)
-        ny = np.sin(theta)
+    # Pre-compute all trigonometric values (vectorized)
+    cos_angles = np.cos(angles)
+    sin_angles = np.sin(angles)
 
-        # Create 2D sample coordinates
-        px = cx + (radius + d_coords) * nx
-        py = cy + (radius + d_coords) * ny
+    # Vectorized computation of all sampling coordinates
+    # Shape: (n_angles, profile_length)
+    px = cx + np.outer(cos_angles, (radius + d_coords))
+    py = cy + np.outer(sin_angles, (radius + d_coords))
 
-        # Sample all points at once
-        # mode='constant' and cval=0.0 fills out-of-bounds pixels with 0
-        profile = map_coordinates(img, [py, px], order=1, mode="constant", cval=0.0)
-
-        profiles[i, :] = profile  # Store the radial profile
+    # Sample all profiles at once using vectorized map_coordinates
+    for i in range(n_angles):
+        profiles[i, :] = map_coordinates(
+            img, [py[i], px[i]], order=1, mode="constant", cval=0.0
+        )
 
     # Compute the derivative to obtain the sinogram
     sinogram = np.gradient(profiles, derivative_step, axis=1)
@@ -461,11 +461,12 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift: int = None) -> int:
         max_shift = n_rays // 4
 
     half = n_angles // 2
-    errors = {}
+    shift_range = range(-max_shift, max_shift + 1)
+    errors = np.zeros(2 * max_shift + 1)
 
-    for delta in range(-max_shift, max_shift + 1):
-        # shift the sinogram up/down
-        sino_shifted = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
+    for idx, delta in enumerate(shift_range):
+        # Use np.roll for pure integer shifting
+        sino_shifted = np.roll(sinogram, delta, axis=0)
 
         if delta > 0:
             sino_valid = sino_shifted[delta:, :]
@@ -474,16 +475,16 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift: int = None) -> int:
         else:
             sino_valid = sino_shifted
 
-        # Now, calculate symmetry error only on the valid data
+        # Calculate symmetry error only on the valid data
         first = sino_valid[:, :half]
         second = sino_valid[:, half:]
         second_flipped = np.flip(second, axis=0)  # flip top<->bottom
 
-        err = np.mean((first - second_flipped) ** 2)
-        errors[delta] = err
+        errors[idx] = np.mean((first - second_flipped) ** 2)
 
-    # pick the delta with minimum error
-    best_delta = min(errors, key=errors.get)
+    # Find the delta with minimum error
+    best_idx = np.argmin(errors)
+    best_delta = shift_range[best_idx]
     return best_delta
 
 
@@ -505,7 +506,8 @@ def manual_center_sinogram(sinogram: np.ndarray, delta: int) -> tuple[np.ndarray
     delta : int
         Applied integer shift value.
     """
-    centered = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
+    # Use np.roll for pure integer shifting (no interpolation needed)
+    centered = np.roll(sinogram, delta, axis=0)
     if delta > 0:
         # Shift was DOWN, fill values are at the TOP. Crop the top.
         crop = delta

@@ -194,14 +194,24 @@ def find_extreme_profiles_erf(profiles: np.ndarray) -> tuple[int, int, np.ndarra
     x = np.arange(n_rays)
     sigmas = np.zeros(n_angles, dtype=float)
 
-    p0 = [profiles.max() - profiles.min(), n_rays / 2, n_rays / 8, profiles.min()]
-
     for i in range(n_angles):
         profile = average_neighbors(profiles, i, 3)
+
+        profile_min = profile.min()
+        profile_max = profile.max()
+        peak_idx = np.argmax(profile)
+
+        p0 = [
+            profile_max - profile_min,  # amplitude
+            peak_idx,  # center position
+            n_rays / 8,  # sigma
+            profile_min,  # baseline
+        ]
+
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=2000)
+                popt, _ = curve_fit(erf_step, x, profile, p0=p0, maxfev=1000)
             sigmas[i] = popt[2]
 
         except RuntimeError:
@@ -243,14 +253,22 @@ def average_neighbors(
         A 1D profile averaged across multiple rows.
     """
     assert line_width % 2 == 1, "line_width must be odd"
+
+    if line_width == 1:
+        # Fast path for no averaging
+        return sinogram[:, angle_idx]
+
     half_width = line_width // 2
     rows, _ = sinogram.shape
 
-    # Stack rows centered at each position and average
-    profile_stack = []
-    for offset in range(-half_width, half_width + 1):
-        row_idx = np.clip(np.arange(rows) + offset, 0, rows - 1)  # clamp to bounds
-        profile_stack.append(sinogram[row_idx, angle_idx])
+    # Pre-allocate output array
+    profile_stack = np.zeros((line_width, rows), dtype=sinogram.dtype)
+
+    # Vectorized approach: compute all row indices at once
+    base_indices = np.arange(rows)
+    for i, offset in enumerate(range(-half_width, half_width + 1)):
+        row_idx = np.clip(base_indices + offset, 0, rows - 1)
+        profile_stack[i] = sinogram[row_idx, angle_idx]
 
     return np.mean(profile_stack, axis=0)
 
@@ -331,11 +349,26 @@ def find_extreme_profiles_gaussian(
     sigmas = np.zeros(n_angles, dtype=float)
     popts: list[np.ndarray] = []
 
-    # Initial guess: [amplitude, mean, sigma, baseline]
-    p0 = [sinogram.max() - sinogram.min(), n_rays / 2, n_rays / 8, sinogram.min()]
+    # Pre-compute bounds once (they're constant)
+    bounds = (
+        [0, 0, 1e-6, -np.inf],  # Lower bounds: A, mu, sigma, B
+        [np.inf, n_rays, n_rays, np.inf],  # Upper bounds
+    )
 
     for i in range(n_angles):
         profile = average_neighbors(sinogram, i, 3)
+
+        profile_max = profile.max()
+        profile_min = profile.min()
+        peak_idx = np.argmax(profile)
+
+        p0 = [
+            profile_max - profile_min,  # amplitude
+            peak_idx,  # mean
+            n_rays / 8,  # sigma
+            profile_min,  # baseline
+        ]
+
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -344,11 +377,8 @@ def find_extreme_profiles_gaussian(
                     x,
                     profile,
                     p0=p0,
-                    bounds=(
-                        [0, 0, 1e-6, -np.inf],  # Lower bounds: A, mu, sigma, B
-                        [np.inf, n_rays, n_rays, np.inf],  # Upper bounds
-                    ),
-                    maxfev=2000,
+                    bounds=bounds,
+                    maxfev=1000,  # Reduced from 2000
                 )
             popts.append(popt)
             sigmas[i] = popt[2]

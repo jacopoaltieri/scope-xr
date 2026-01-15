@@ -86,7 +86,7 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
     assert config["auto_shift"] is True  # CLI flag wins
     assert config["manual_shift"] is None  # auto_shift clears manual
     assert config["n_angles"] == 200  # YAML retained
-    assert config["min_n"] == 100  # default retained
+    assert config["min_n"] == 6  # default retained
 
 
 def test_manual_shift_cli_overrides_yaml(tmp_path, monkeypatch):

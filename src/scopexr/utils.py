@@ -128,24 +128,25 @@ def save_16bit_tiff(data: np.ndarray, path: str) -> None:
     None
         This function saves a file and does not return a value.
     """
-    # 1. Normalize the data to the 0-1 range
     data_min = data.min()
     data_max = data.max()
+    data_range = data_max - data_min
 
-    if data_max == data_min:
-        # Handle constant images (scale to 0 or 65535, depending on value)
-        if data_min == 0:
-            normalized_data = np.zeros_like(data)
-        else:
-            normalized_data = np.ones_like(data)
+    if data_range == 0:
+        # Handle constant images - use zeros for zero value, otherwise use max
+        scaled_data = (
+            np.zeros(data.shape, dtype=np.uint16)
+            if data_min == 0
+            else np.full(data.shape, 65535, dtype=np.uint16)
+        )
     else:
-        normalized_data = (data - data_min) / (data_max - data_min)
+        # Normalize and scale in one operation to avoid intermediate array
+        # Use clip to handle any floating point edge cases
+        scaled_data = np.clip(
+            np.round((data - data_min) * (65535.0 / data_range)), 0, 65535
+        ).astype(np.uint16)
 
-    # 2. Scale to 0-65535 and convert to uint16
-    # Rounding is important before conversion
-    scaled_data = np.round(normalized_data * 65535).astype(np.uint16)
-
-    # 3. Save using imageio with lossless compression
+    # Save using imageio with lossless compression
     iio.imwrite(path, scaled_data, compression="deflate")
 
 
@@ -166,7 +167,6 @@ def interpolate_nans_1d(y: np.ndarray) -> np.ndarray:
     nans = np.isnan(y)
     not_nans = ~nans
     if np.all(nans):
-        # All NaN — leave as zeros or fill with a constant if you prefer
         return np.zeros_like(y)
     return np.interp(np.arange(len(y)), np.flatnonzero(not_nans), y[not_nans])
 

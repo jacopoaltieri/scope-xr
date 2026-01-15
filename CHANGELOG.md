@@ -5,7 +5,16 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.6] - 2026-01-15
+
+### Changed
+
+- Various speed-ups using vectorized operations
+- Improved angle selection for FS recon
+- Improved code comments for readability (only for devs)
+- Improved file linting (only for devs)
+
+## [1.1.5] - 2026-01-09
 
 ### Added
 
@@ -17,14 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This changelog file
 - "Advanced" tab in the GUI to modify Hough circle detection parameters
   
+
 ### Changed
 
 - Developer dependencies now include ruff for code linting
-
-## [1.1.5] - 2026-01-09
-
-### Changed
-
 - Version bump for documentation updates
 - Improved project metadata
 
