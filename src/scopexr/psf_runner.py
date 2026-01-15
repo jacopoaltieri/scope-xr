@@ -93,10 +93,11 @@ def run_pipeline_psf():
             output_path=out_dir,
             debug=hough_params.get("debug", False),
         )
-    if not hough_circle:
-        raise ValueError(
-            "Hough transform did not detect any circle. Provide a cropped image."
-        )
+        
+        if not hough_circle:
+            raise ValueError(
+                "Hough transform did not detect any circle. Provide a cropped image."
+            )
 
     x, y, r = hough_circle
     print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
