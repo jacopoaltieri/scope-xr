@@ -347,7 +347,6 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     return profiles.T, -sinogram.T
 
 
-# https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach
 def compute_subpixel_profiles_and_sinogram_3step(
     img: np.ndarray,
     cx: float,
@@ -363,6 +362,8 @@ def compute_subpixel_profiles_and_sinogram_3step(
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Computes sub-pixel edge profiles and sinogram by 3-step oversampled binning in angular wedges.
+    For more information about this method, see: https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach
+
 
     Parameters
     ----------
