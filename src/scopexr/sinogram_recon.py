@@ -249,7 +249,7 @@ def _extract_wedge_radial_samples(
     return r_vals, intensities
 
 
-def compute_subpixel_profiles_and_sinogram_traditional(
+def compute_subpixel_profiles_and_sinogram(
     img: np.ndarray,
     cx: float,
     cy: float,
@@ -258,10 +258,18 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     profile_half_length: int,
     derivative_step: int,
     dtheta: float,
-    resample_radial: float,
+    resample: float,
+    gaussian_sigma: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Computes sub-pixel edge profiles and sinogram by interpolating in angular wedges.
+    Computes sub-pixel edge profiles and sinogram via oversampled binning in angular wedges.
+
+    This is a unified function that handles both traditional and Gaussian-smoothed approaches:
+    - If gaussian_sigma=0: Uses direct binned statistics with interpolation (traditional approach)
+    - If gaussian_sigma>0: Uses fine grid → Gaussian blur → coarse grid pipeline (3-step approach)
+
+    For more information about the 3-step method, see:
+    https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach
 
     Parameters
     ----------
@@ -281,8 +289,14 @@ def compute_subpixel_profiles_and_sinogram_traditional(
         Step size for derivative computation.
     dtheta
         Angular width (degrees) of wedge around each angle.
-    resample_radial
-        Radial step for interpolation grid (in pixels).
+    resample
+        Radial step for the final sampling grid (in pixels).
+        When gaussian_sigma=0, this is the only resampling factor.
+        When gaussian_sigma>0, this acts as resample2 (coarse grid) and fine grid is resample*100.
+    gaussian_sigma
+        Sigma for Gaussian smoothing (in units of fine grid spacing).
+        If 0.0 (default): Uses traditional binned statistics approach.
+        If > 0.0: Uses 3-step oversampled approach with Gaussian smoothing.
 
     Returns
     -------
@@ -305,138 +319,97 @@ def compute_subpixel_profiles_and_sinogram_traditional(
     # Set up radial grid for interpolation
     min_r = -profile_half_length
     max_r = profile_half_length
-    r_grid = np.arange(min_r, max_r + 1 / resample_radial, 1 / resample_radial)
-    n_bins = r_grid.size
 
-    # Initialize profiles array (angles x radial positions)
-    profiles = np.full((n_angles, n_bins), np.nan, dtype=np.float32)
+    if gaussian_sigma == 0.0:
+        # TRADITIONAL APPROACH: Direct binned statistics with interpolation
+        r_grid = np.arange(min_r, max_r + 1 / resample, 1 / resample)
+        n_bins = r_grid.size
+        profiles = np.full((n_angles, n_bins), np.nan, dtype=np.float32)
 
-    for i, theta in enumerate(angles):
-        r_vals, intensities = _extract_wedge_radial_samples(
-            phis, rs, img, theta, half_wedge, min_r, max_r
-        )
-        bin_edges = np.append(r_grid, r_grid[-1] + (1 / resample_radial))
+        for i, theta in enumerate(angles):
+            r_vals, intensities = _extract_wedge_radial_samples(
+                phis, rs, img, theta, half_wedge, min_r, max_r
+            )
+            bin_edges = np.append(r_grid, r_grid[-1] + (1 / resample))
 
-        # Interpolate to uniform grid
-        # Handle empty wedge case to avoid interp error
-        if r_vals.size > 0:
-            bin_means, _, _ = binned_statistic(
-                r_vals, intensities, statistic="mean", bins=bin_edges
+            # Interpolate to uniform grid
+            # Handle empty wedge case to avoid interp error
+            if r_vals.size > 0:
+                bin_means, _, _ = binned_statistic(
+                    r_vals, intensities, statistic="mean", bins=bin_edges
+                )
+
+                # bin_means will have NaN for any bin that had 0 points.
+                # We must fill these small gaps.
+                nan_mask = np.isnan(bin_means)
+                if np.any(nan_mask) and not np.all(nan_mask):
+                    # Create an x-coordinate array for interpolation
+                    x = np.arange(bin_means.size)
+                    # Interpolate ONLY the nan values
+                    bin_means[nan_mask] = np.interp(
+                        x[nan_mask],  # points to interpolate
+                        x[~nan_mask],  # known x's
+                        bin_means[~nan_mask],  # known y's
+                    )
+                interp_vals = bin_means
+            else:
+                interp_vals = np.full(r_grid.shape, np.nan)
+            profiles[i, :] = interp_vals
+
+    else:
+        # 3-STEP APPROACH: Fine grid → Gaussian blur → Coarse grid
+        # Compute oversampling grids
+        n_bins_final = int(np.ceil((max_r - min_r) * resample))
+        final_r = np.linspace(min_r, max_r, n_bins_final)
+
+        # Fine grid: oversample by 3x relative to final grid
+        n_bins_fine = int(np.ceil((max_r - min_r) * resample * 100))
+        fine_r = np.linspace(final_r[0], final_r[-1], n_bins_fine)
+
+        profile_length = final_r.size
+        profiles = np.full((n_angles, profile_length), np.nan, dtype=np.float32)
+
+        for i, theta in enumerate(angles):
+            r_vals, intens = _extract_wedge_radial_samples(
+                phis, rs, img, theta, half_wedge, min_r, max_r
             )
 
-            # bin_means will have NaN for any bin that had 0 points.
-            # We must fill these small gaps.
+            # Step 1: Fine grid resampling
+            # Handle empty wedge case
+            if r_vals.size > 0:
+                profile_fine = np.interp(fine_r, r_vals, intens)
+            else:
+                profile_fine = np.full(fine_r.shape, np.nan)
+
+            # Step 2: Gaussian smoothing on fine grid
+            smooth = gaussian_filter1d(profile_fine, gaussian_sigma)
+
+            # Step 3: Resample to coarse grid using binned statistics
+            bin_edges = np.append(
+                final_r,
+                (
+                    final_r[-1] + (final_r[1] - final_r[0])
+                    if len(final_r) > 1
+                    else final_r[-1] + 1
+                ),
+            )
+            bin_means, _, _ = binned_statistic(
+                fine_r, smooth, statistic="mean", bins=bin_edges
+            )
+            # Handle any remaining NaNs from empty bins
             nan_mask = np.isnan(bin_means)
             if np.any(nan_mask) and not np.all(nan_mask):
-                # Create an x-coordinate array for interpolation
                 x = np.arange(bin_means.size)
-                # Interpolate ONLY the nan values
                 bin_means[nan_mask] = np.interp(
-                    x[nan_mask],  # points to interpolate
-                    x[~nan_mask],  # known x's
-                    bin_means[~nan_mask],  # known y's
+                    x[nan_mask],
+                    x[~nan_mask],
+                    bin_means[~nan_mask],
                 )
-            interp_vals = bin_means
-        else:
-            interp_vals = np.full(r_grid.shape, np.nan)
-        profiles[i, :] = interp_vals
-
-    # Compute radial derivative
-    sinogram = np.gradient(profiles, derivative_step, axis=1)
-
-    return profiles.T, -sinogram.T
-
-
-def compute_subpixel_profiles_and_sinogram_3step(
-    img: np.ndarray,
-    cx: float,
-    cy: float,
-    radius: float,
-    n_angles: int,
-    profile_half_length: int,
-    derivative_step: int,
-    dtheta: float,
-    gaussian_sigma: float,
-    resample1: float,
-    resample2: float,
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Computes sub-pixel edge profiles and sinogram by 3-step oversampled binning in angular wedges.
-    For more information about this method, see: https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach
-
-
-    Parameters
-    ----------
-    img
-        2D grayscale image array.
-    cx
-        X-coordinate of the circle center.
-    cy
-        Y-coordinate of the circle center.
-    radius
-        Radius of the circle.
-    n_angles
-        Number of angular samples around the circle.
-    profile_half_length
-        Half-length (in pixels) of radial sampling.
-    derivative_step
-        Step size for derivative computation.
-    dtheta
-        Angular wedge width (degrees).
-    gaussian_sigma
-        Sigma for Gaussian smoothing on fine grid.
-    resample1
-        Radial step for fine sampling (in pixels).
-    resample2
-        Radial step for final subsampling (in pixels).
-
-    Returns
-    -------
-    profiles : np.ndarray
-        2D array of shape (profile_length, n_angles), oversampled radial profiles.
-    sinogram : np.ndarray
-        2D array of shape (profile_length, n_angles), negative radial derivatives.
-    """
-    profile_half_length = _check_phl(img, cx, cy, radius, profile_half_length)
-
-    # Convert angles and angular wedge width to radians
-    # Sample angles in COUNTER-CLOCKWISE order to match iradon's convention.
-    # Note: due to image coordinate system (y increases downward), we negate the angle
-    angles = -np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
-    half_wedge = np.deg2rad(dtheta) / 2
-
-    phis, rs = _compute_polar_coordinates(cx, cy, img.shape, radius)
-
-    # precompute oversampling grids
-    min_r = -profile_half_length
-    max_r = profile_half_length
-    n_bins_final = int(np.ceil((max_r - min_r) * resample2))
-    final_r = np.linspace(min_r, max_r, n_bins_final)
-
-    # Fine grid used for interpolation/smoothing
-    n_bins_fine = int(np.ceil((max_r - min_r) * resample1))
-    fine_r = np.linspace(final_r[0], final_r[-1], n_bins_fine)
-
-    profile_length = final_r.size  # number of samples in radial direction
-    profiles = np.full((n_angles, profile_length), np.nan, dtype=np.float32)
-
-    for i, theta in enumerate(angles):
-        r_vals, intens = _extract_wedge_radial_samples(
-            phis, rs, img, theta, half_wedge, min_r, max_r
-        )
-
-        # fine resampling
-        profile_fine = np.interp(fine_r, r_vals, intens)
-
-        # smooth with Gaussian filter
-        smooth = gaussian_filter1d(profile_fine, gaussian_sigma * resample1)
-
-        # resampling to actual subsample grid
-        profile_oversampled = np.interp(final_r, fine_r, smooth)
-        profiles[i, :] = profile_oversampled
+            profiles[i, :] = bin_means
 
     # Compute the derivative to obtain the sinogram
     sinogram = np.gradient(profiles, derivative_step, axis=1)
+
     return profiles.T, -sinogram.T
 
 

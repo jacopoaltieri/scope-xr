@@ -39,9 +39,7 @@ def _valid_config() -> dict:
         "symmetrize": False,
         "show_plots": False,
         "oversample": False,
-        "oversample_strategy": 1,
         "dtheta": 10.0,
-        "resample1": 2.0,
         "resample2": 1.5,
         "gaussian_sigma": 0.5,
     }
@@ -126,7 +124,6 @@ def test_oversample_cli_flag(tmp_path, monkeypatch):
     yaml_data = {
         "oversample": False,
         "dtheta": 10.0,
-        "resample1": 2.0,
         "resample2": 1.5,
         "gaussian_sigma": 0.5,
     }
@@ -146,18 +143,6 @@ def test_oversample_cli_flag(tmp_path, monkeypatch):
 
     assert config["oversample"] is True
     assert config["dtheta"] == 20.0  # CLI overrides YAML
-
-
-def test_oversample_strategy(tmp_path, monkeypatch):
-    yaml_data = {"oversample_strategy": 1}
-    yaml_path = _write_yaml(tmp_path, yaml_data)
-
-    cli_args = ["prog", "--config", str(yaml_path), "--oversample_strategy", "2"]
-    monkeypatch.setattr(sys, "argv", cli_args)
-
-    config = get_merged_config()
-
-    assert config["oversample_strategy"] == 2
 
 
 def test_validate_args_success():
@@ -190,18 +175,13 @@ def test_validate_args_with_oversample():
             "dtheta must be a positive number for oversampling",
         ),
         (
-            {"oversample": True, "dtheta": 10.0, "resample1": 0},
-            "resample1 must be a positive number for oversampling",
-        ),
-        (
-            {"oversample": True, "dtheta": 10.0, "resample1": 2.0, "resample2": 0},
+            {"oversample": True, "dtheta": 10.0, "resample2": 0},
             "resample2 must be a positive number for oversampling",
         ),
         (
             {
                 "oversample": True,
                 "dtheta": 10.0,
-                "resample1": 2.0,
                 "resample2": 1.5,
                 "gaussian_sigma": -1,
             },
@@ -273,8 +253,6 @@ def test_all_numeric_params(tmp_path, monkeypatch):
         "7",
         "--dtheta",
         "25.5",
-        "--resample1",
-        "3.0",
         "--resample2",
         "2.5",
         "--gaussian_sigma",
@@ -290,7 +268,6 @@ def test_all_numeric_params(tmp_path, monkeypatch):
     assert config["axis_shifts"] == 10
     assert config["avg_number"] == 7
     assert config["dtheta"] == 25.5
-    assert config["resample1"] == 3.0
     assert config["resample2"] == 2.5
     assert config["gaussian_sigma"] == 1.2
 
@@ -341,3 +318,19 @@ def test_invalid_yaml_file(tmp_path, monkeypatch, capsys):
     # Check error was printed to stderr
     captured = capsys.readouterr()
     assert "Error loading YAML config" in captured.err
+
+
+def test_gaussian_sigma_none_allowed():
+    """Test that gaussian_sigma can be None (treated as 0)."""
+    cfg = _valid_config()
+    cfg["oversample"] = True
+    cfg["gaussian_sigma"] = None
+    validate_args(cfg)  # Should not raise
+
+
+def test_gaussian_sigma_zero_allowed():
+    """Test that gaussian_sigma can be 0 (no blur)."""
+    cfg = _valid_config()
+    cfg["oversample"] = True
+    cfg["gaussian_sigma"] = 0.0
+    validate_args(cfg)  # Should not raise

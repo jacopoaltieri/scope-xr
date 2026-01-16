@@ -10,8 +10,7 @@ from scopexr.sinogram_recon import (
     compute_profiles_and_sinogram,
     _compute_polar_coordinates,
     _extract_wedge_radial_samples,
-    compute_subpixel_profiles_and_sinogram_traditional,
-    compute_subpixel_profiles_and_sinogram_3step,
+    compute_subpixel_profiles_and_sinogram,
     find_best_center_shift,
     manual_center_sinogram,
     auto_center_sinogram,
@@ -325,7 +324,7 @@ class TestExtractWedgeRadialSamples:
 
 
 class TestComputeSubpixelProfilesTraditional:
-    """Test the compute_subpixel_profiles_and_sinogram_traditional function."""
+    """Test the compute_subpixel_profiles_and_sinogram function (traditional mode)."""
 
     def test_basic_subpixel_computation(self):
         """Test basic subpixel profile computation."""
@@ -334,7 +333,7 @@ class TestComputeSubpixelProfilesTraditional:
         radius = 40.0
         img = create_synthetic_circular_edge_image(size, cx, cy, radius)
 
-        profiles, sinogram = compute_subpixel_profiles_and_sinogram_traditional(
+        profiles, sinogram = compute_subpixel_profiles_and_sinogram(
             img,
             cx,
             cy,
@@ -343,7 +342,8 @@ class TestComputeSubpixelProfilesTraditional:
             profile_half_length=30,
             derivative_step=1,
             dtheta=5.0,
-            resample_radial=2.0,
+            resample=2.0,
+            gaussian_sigma=0.0,
         )
 
         # Check output shapes
@@ -361,8 +361,8 @@ class TestComputeSubpixelProfilesTraditional:
         radius = 40.0
         img = create_synthetic_circular_edge_image(size, cx, cy, radius)
 
-        for resample_radial in [1.0, 2.0, 4.0]:
-            profiles, sinogram = compute_subpixel_profiles_and_sinogram_traditional(
+        for resample in [1.0, 2.0, 4.0]:
+            profiles, sinogram = compute_subpixel_profiles_and_sinogram(
                 img,
                 cx,
                 cy,
@@ -371,18 +371,19 @@ class TestComputeSubpixelProfilesTraditional:
                 profile_half_length=20,
                 derivative_step=1,
                 dtheta=5.0,
-                resample_radial=resample_radial,
+                resample=resample,
+                gaussian_sigma=0.0,
             )
 
             # Higher resampling should give more radial samples
-            expected_bins = int(2 * 20 * resample_radial) + 1
+            expected_bins = int(2 * 20 * resample) + 1
             # Allow some tolerance
             assert profiles.shape[0] >= expected_bins - 5
             assert profiles.shape[0] <= expected_bins + 5
 
 
 class TestComputeSubpixelProfilesTraditionalEdgeCases:
-    """Test edge cases for compute_subpixel_profiles_and_sinogram_traditional."""
+    """Test edge cases for compute_subpixel_profiles_and_sinogram (traditional mode)."""
 
     def test_empty_wedge_coverage(self):
         """Test with very restrictive parameters that might yield empty wedges."""
@@ -393,7 +394,7 @@ class TestComputeSubpixelProfilesTraditionalEdgeCases:
         img = np.zeros((size, size), dtype=np.uint16)
 
         # Use very narrow wedge with restrictive radial range
-        profiles, sinogram = compute_subpixel_profiles_and_sinogram_traditional(
+        profiles, sinogram = compute_subpixel_profiles_and_sinogram(
             img,
             cx,
             cy,
@@ -402,7 +403,8 @@ class TestComputeSubpixelProfilesTraditionalEdgeCases:
             profile_half_length=5,
             derivative_step=1,
             dtheta=0.1,  # Very narrow wedge
-            resample_radial=1.0,
+            resample=1.0,
+            gaussian_sigma=0.0,
         )
 
         # Should handle empty wedges gracefully (might have NaN values)
@@ -419,7 +421,7 @@ class TestComputeSubpixelProfilesTraditionalEdgeCases:
 
         # Try to sample far outside the image boundaries
         # Use parameters that should result in empty wedges
-        profiles, sinogram = compute_subpixel_profiles_and_sinogram_traditional(
+        profiles, sinogram = compute_subpixel_profiles_and_sinogram(
             img,
             cx,
             cy,
@@ -428,7 +430,8 @@ class TestComputeSubpixelProfilesTraditionalEdgeCases:
             profile_half_length=2,  # Very small
             derivative_step=1,
             dtheta=0.001,  # Extremely narrow wedge (almost no pixels)
-            resample_radial=2.0,
+            resample=2.0,
+            gaussian_sigma=0.0,
         )
 
         # Should still produce output arrays with correct shape
@@ -440,7 +443,7 @@ class TestComputeSubpixelProfilesTraditionalEdgeCases:
 
 
 class TestComputeSubpixelProfiles3Step:
-    """Test the compute_subpixel_profiles_and_sinogram_3step function."""
+    """Test the compute_subpixel_profiles_and_sinogram function (3-step mode)."""
 
     def test_basic_3step_computation(self):
         """Test basic 3-step subpixel profile computation."""
@@ -449,7 +452,7 @@ class TestComputeSubpixelProfiles3Step:
         radius = 40.0
         img = create_synthetic_circular_edge_image(size, cx, cy, radius)
 
-        profiles, sinogram = compute_subpixel_profiles_and_sinogram_3step(
+        profiles, sinogram = compute_subpixel_profiles_and_sinogram(
             img,
             cx,
             cy,
@@ -458,9 +461,8 @@ class TestComputeSubpixelProfiles3Step:
             profile_half_length=30,
             derivative_step=1,
             dtheta=5.0,
+            resample=2.0,
             gaussian_sigma=1.0,
-            resample1=4.0,
-            resample2=2.0,
         )
 
         # Check output shapes
@@ -483,7 +485,7 @@ class TestComputeSubpixelProfiles3Step:
         noisy_img = (img.astype(np.float32) + noise).clip(0, 65535).astype(np.uint16)
 
         # Compare with different smoothing levels
-        profiles_smooth, _ = compute_subpixel_profiles_and_sinogram_3step(
+        profiles_smooth, _ = compute_subpixel_profiles_and_sinogram(
             noisy_img,
             cx,
             cy,
@@ -492,12 +494,11 @@ class TestComputeSubpixelProfiles3Step:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
+            resample=2.0,
             gaussian_sigma=2.0,  # More smoothing
-            resample1=4.0,
-            resample2=2.0,
         )
 
-        profiles_noisy, _ = compute_subpixel_profiles_and_sinogram_3step(
+        profiles_noisy, _ = compute_subpixel_profiles_and_sinogram(
             noisy_img,
             cx,
             cy,
@@ -506,9 +507,8 @@ class TestComputeSubpixelProfiles3Step:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
+            resample=2.0,
             gaussian_sigma=0.5,  # Less smoothing
-            resample1=4.0,
-            resample2=2.0,
         )
 
         # More smoothing should reduce variance
@@ -887,8 +887,8 @@ class TestIntegration:
         radius = 40.0
         img = create_synthetic_circular_edge_image(size, cx, cy, radius)
 
-        # Compute sinogram with 360 angles
-        profiles, sinogram = compute_subpixel_profiles_and_sinogram_traditional(
+        # Compute sinogram with 360 angles (traditional mode, gaussian_sigma=0)
+        profiles, sinogram = compute_subpixel_profiles_and_sinogram(
             img,
             cx,
             cy,
@@ -897,7 +897,8 @@ class TestIntegration:
             profile_half_length=30,
             derivative_step=1,
             dtheta=5.0,
-            resample_radial=2.0,
+            resample=2.0,
+            gaussian_sigma=0.0,
         )
 
         # Symmetrize
@@ -922,8 +923,8 @@ class TestIntegration:
         radius = 40.0
         img = create_synthetic_circular_edge_image(size, cx, cy, radius)
 
-        # Traditional method
-        prof_trad, sino_trad = compute_subpixel_profiles_and_sinogram_traditional(
+        # Traditional method (gaussian_sigma=0.0)
+        prof_trad, sino_trad = compute_subpixel_profiles_and_sinogram(
             img,
             cx,
             cy,
@@ -932,11 +933,12 @@ class TestIntegration:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
-            resample_radial=2.0,
+            resample=2.0,
+            gaussian_sigma=0.0,
         )
 
-        # 3-step method
-        prof_3step, sino_3step = compute_subpixel_profiles_and_sinogram_3step(
+        # 3-step method (gaussian_sigma > 0)
+        prof_3step, sino_3step = compute_subpixel_profiles_and_sinogram(
             img,
             cx,
             cy,
@@ -945,9 +947,8 @@ class TestIntegration:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
+            resample=2.0,
             gaussian_sigma=1.0,
-            resample1=4.0,
-            resample2=2.0,
         )
 
         # Both should produce valid output

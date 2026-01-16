@@ -13,11 +13,9 @@ auto_shift: true # Whether to automatically shift the sinogram
 avg_neighbors: false # Whether to average neighboring pixels
 avg_number: 3 # Number of neighboring pixels to average
 oversample: true # Whether to oversample the PSF
-oversample_strategy: 1 # Oversampling strategy (1 for ours, 2 for Forster)
 dtheta: 3 # Angular step for oversampling in degrees
-resample1: 500 # First resampling factor (only used by Forster method)
-resample2: 5 # Second resampling factor
-gaussian_sigma: 0.2 # Sigma for Gaussian smoothing in mm (only used by Forster method)
+resample2: 5 # Radial resampling factor for the final (coarse) grid
+gaussian_sigma: 0.0 # Sigma for Gaussian smoothing. Set to 0 for binned statistics (no blur), >0 for 3-step with Gaussian blur
 show_plots: false # Whether to display plots
 
 hough_params: # Hough transform parameters (typically do not need to be changed)

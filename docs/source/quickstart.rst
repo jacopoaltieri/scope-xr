@@ -125,7 +125,7 @@ For automated workflows, use the command-line interface:
     scopexr-psf --f "path/to/image.tif"
     
     # With sub-pixel oversampling
-    scopexr-psf --f "image.tif" --oversample 3
+    scopexr-psf --f "image.tif" --oversample --dtheta 2 --resample2 3 --gaussian_sigma 0.5
 
 Common First-Time Issues
 ------------------------

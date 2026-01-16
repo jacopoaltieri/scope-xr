@@ -68,26 +68,16 @@ def get_merged_config() -> dict:
         help="Angle of circular sector for oversampling in degrees",
     )
     parser.add_argument(
-        "--resample1", type=float, help="First resample factor (fine grid)."
-    )
-    parser.add_argument(
         "--resample2",
         type=float,
-        help="Second resample factor (coarse grid). This will be the final oversampling factor.",
+        help="Resample factor for oversampling (final grid spacing).",
     )
     parser.add_argument(
         "--gaussian_sigma",
         type=float,
-        help=" Standard deviation of the gaussian blur applied between the fine and the coarse resampling.",
+        help="Standard deviation of the Gaussian blur for oversampling. Set to 0 for traditional binned statistics (no blur), >0 for 3-step with Gaussian smoothing.",
     )
     parser.add_argument("--show", action="store_true", default=None, help="Show plots")
-
-    parser.add_argument(
-        "--oversample_strategy",
-        type=int,
-        choices=[1, 2],
-        help="Choose oversampling strategy: 1 or 2. Default is 1 when oversampling is enabled.",
-    )
 
     shift_group = parser.add_mutually_exclusive_group()
     shift_group.add_argument(
@@ -161,12 +151,10 @@ def get_merged_config() -> dict:
         "no_shift": False,
         "avg_neighbors": False,
         "avg_number": 3,
-        "oversample": True,
-        "oversample_strategy": 1,
+        "oversample": False,
         "dtheta": 2,
-        "resample1": 500,
         "resample2": 4,
-        "gaussian_sigma": 0.2,
+        "gaussian_sigma": 0.0,
         "show_plots": False,
         "hough_params": {
             "dp": 1,
@@ -210,9 +198,7 @@ def get_merged_config() -> dict:
         "avg_neighbors": "avg_neighbors",
         "avg_number": "avg_number",
         "oversample": "oversample",
-        "oversample_strategy": "oversample_strategy",
         "dtheta": "dtheta",
-        "resample1": "resample1",
         "resample2": "resample2",
         "gaussian_sigma": "gaussian_sigma",
         "auto_shift": "auto_shift",
@@ -293,9 +279,8 @@ def validate_args(args: dict) -> None:
     if args.get("oversample"):
         if args.get("dtheta") is None or args["dtheta"] <= 0:
             raise ValueError("dtheta must be a positive number for oversampling.")
-        if args.get("resample1") is None or args["resample1"] <= 0:
-            raise ValueError("resample1 must be a positive number for oversampling.")
         if args.get("resample2") is None or args["resample2"] <= 0:
             raise ValueError("resample2 must be a positive number for oversampling.")
-        if args.get("gaussian_sigma") is None or args["gaussian_sigma"] < 0:
+        # gaussian_sigma can be None (treated as 0) or any non-negative number
+        if args.get("gaussian_sigma") is not None and args["gaussian_sigma"] < 0:
             raise ValueError("gaussian_sigma must be non-negative for oversampling.")

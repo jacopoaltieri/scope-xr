@@ -5,6 +5,15 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.7] - 2026-01-16
+
+### Changed
+
+- Simplified PSF oversampling to a single pipeline controlled by `gaussian_sigma` (0/None = direct binning, >0 = fine-grid blur)
+- Removed `oversample_strategy` and `resample1` flags from CLI/YAML/GUI; final coarse resample now always uses binned statistics
+- Gaussian and non-Gaussian oversampling paths share unified binning logic for consistency
+- Updated docs to reflect the new oversampling interface
+
 ## [1.1.6] - 2026-01-15
 
 ### Changed

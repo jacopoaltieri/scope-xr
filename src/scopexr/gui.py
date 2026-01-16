@@ -637,7 +637,6 @@ class ScopeXRApp(QMainWindow):
             self.psf_sym.setChecked(bool(new_data["symmetrize"]))
 
         set_spin(self.psf_dtheta, "dtheta", float)
-        set_spin(self.psf_resample1, "resample1", float)
         set_spin(self.psf_resample2, "resample2", float)
         set_spin(self.psf_gaussian_sigma, "gaussian_sigma", float)
 
@@ -657,18 +656,9 @@ class ScopeXRApp(QMainWindow):
         elif new_data.get("no_avg", False):
             self.psf_avg_checkbox.setChecked(False)
 
-        # Oversample selection
-        oversample_mode = 0
-        if new_data.get("no_oversample", False):
-            oversample_mode = 0
-        elif str(new_data.get("oversample_strategy")) == "2":
-            oversample_mode = 2
-        elif (
-            new_data.get("oversample", False)
-            or str(new_data.get("oversample_strategy")) == "1"
-        ):
-            oversample_mode = 1
-        self.psf_oversample_choice.setCurrentIndex(oversample_mode)
+        # Oversample checkbox
+        if "oversample" in new_data:
+            self.psf_oversample_checkbox.setChecked(bool(new_data["oversample"]))
         self.update_psf_oversample_controls()
 
         if "show_plots" in new_data:
@@ -762,44 +752,23 @@ class ScopeXRApp(QMainWindow):
         self.psf_dtheta.setValue(config_data.get("dtheta", 10.0))
         layout.addRow("Oversample Angle (deg) [--dtheta]:", self.psf_dtheta)
 
-        self.psf_resample1 = QDoubleSpinBox()
-        self.psf_resample1.setValue(config_data.get("resample1", 5))
-        layout.addRow("Resample 1 (fine) [--resample1]:", self.psf_resample1)
-
         self.psf_resample2 = QDoubleSpinBox()
         self.psf_resample2.setValue(config_data.get("resample2", 2))
-        layout.addRow("Resample 2 (coarse) [--resample2]:", self.psf_resample2)
+        layout.addRow("Resample factor [--resample2]:", self.psf_resample2)
 
         self.psf_gaussian_sigma = QDoubleSpinBox()
         self.psf_gaussian_sigma.setDecimals(2)
-        self.psf_gaussian_sigma.setValue(config_data.get("gaussian_sigma", 1.0))
-        layout.addRow("Gaussian Sigma [--gaussian_sigma]:", self.psf_gaussian_sigma)
-
-        self.psf_oversample_choice = QComboBox()
-        self.psf_oversample_choice.addItems(
-            [
-                "No oversampling",
-                "Oversample 1 (resample2 only)",
-                "Oversample 2 (resample1 + resample2 + gaussian sigma)",
-            ]
+        self.psf_gaussian_sigma.setValue(config_data.get("gaussian_sigma", 0.0))
+        layout.addRow(
+            "Gaussian Sigma (0=no blur) [--gaussian_sigma]:", self.psf_gaussian_sigma
         )
-        self.psf_oversample_choice.currentIndexChanged.connect(
+
+        self.psf_oversample_checkbox = QCheckBox("Enable oversampling (--oversample)")
+        self.psf_oversample_checkbox.setChecked(config_data.get("oversample", True))
+        self.psf_oversample_checkbox.stateChanged.connect(
             self.update_psf_oversample_controls
         )
-
-        oversample_mode = 0
-        if config_data.get("no_oversample", False):
-            oversample_mode = 0
-        elif str(config_data.get("oversample_strategy", "")) == "2":
-            oversample_mode = 2
-        elif (
-            config_data.get("oversample", False)
-            or str(config_data.get("oversample_strategy", "")) == "1"
-        ):
-            oversample_mode = 1
-
-        self.psf_oversample_choice.setCurrentIndex(oversample_mode)
-        layout.addRow("Oversampling mode:", self.psf_oversample_choice)
+        layout.addRow("Oversampling:", self.psf_oversample_checkbox)
 
         self.psf_avg_checkbox = QCheckBox("Enable profile averaging (--avg)")
         if config_data.get("avg_neighbors", False):
@@ -848,24 +817,11 @@ class ScopeXRApp(QMainWindow):
         return tab_widget
 
     def update_psf_oversample_controls(self) -> None:
-        """Enable/disable PSF oversampling controls based on selection."""
-        mode = self.psf_oversample_choice.currentIndex()
-
-        if mode == 0:
-            # No oversampling
-            self.psf_resample1.setEnabled(False)
-            self.psf_resample2.setEnabled(False)
-            self.psf_gaussian_sigma.setEnabled(False)
-        elif mode == 1:
-            # Oversample 1: only resample2 matters
-            self.psf_resample1.setEnabled(False)
-            self.psf_resample2.setEnabled(True)
-            self.psf_gaussian_sigma.setEnabled(False)
-        else:
-            # Oversample 2: use all
-            self.psf_resample1.setEnabled(True)
-            self.psf_resample2.setEnabled(True)
-            self.psf_gaussian_sigma.setEnabled(True)
+        """Enable/disable PSF oversampling controls based on checkbox state."""
+        enabled = self.psf_oversample_checkbox.isChecked()
+        self.psf_dtheta.setEnabled(enabled)
+        self.psf_resample2.setEnabled(enabled)
+        self.psf_gaussian_sigma.setEnabled(enabled)
 
     def create_advanced_tab(
         self, fs_config_data: dict, psf_config_data: dict
@@ -1244,21 +1200,15 @@ class ScopeXRApp(QMainWindow):
                 command.append("--no_avg")
 
             # Oversample
-            oversample_mode = self.psf_oversample_choice.currentIndex()
-            if oversample_mode == 0:
-                command.append("--no_oversample")
-            elif oversample_mode == 1:
+            if self.psf_oversample_checkbox.isChecked():
                 command.append("--oversample")
-                command.extend(["--oversample_strategy", "1"])
-                command.extend(["--resample2", str(self.psf_resample2.value())])
-            else:
-                command.append("--oversample")
-                command.extend(["--oversample_strategy", "2"])
-                command.extend(["--resample1", str(self.psf_resample1.value())])
+                command.extend(["--dtheta", str(self.psf_dtheta.value())])
                 command.extend(["--resample2", str(self.psf_resample2.value())])
                 command.extend(
                     ["--gaussian_sigma", str(self.psf_gaussian_sigma.value())]
                 )
+            else:
+                command.append("--no_oversample")
 
             if self.psf_radio_manual.isChecked():
                 command.extend(

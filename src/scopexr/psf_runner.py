@@ -53,9 +53,7 @@ def run_pipeline_psf():
     avg_neighbors = args["avg_neighbors"]
     avg_number = args["avg_number"]
     oversample = args["oversample"]
-    oversample_strategy = args["oversample_strategy"]
     dtheta = args["dtheta"]
-    resample1 = args["resample1"]
     resample2 = args["resample2"]
     gaussian_sigma = args["gaussian_sigma"]
     show_plots = args["show_plots"]
@@ -311,41 +309,27 @@ def run_pipeline_psf():
                 f"Caution!: The provided oversampling angle {dtheta}° is larger than the suggested maximum {max_os_angle:.2f}°. This may cause cross-talk between neighboring profiles."
             )
 
-        if oversample_strategy == 1:
-            print("Using oversampling strategy 1 (traditional).")
-            sub_profiles, sub_sinogram = (
-                sr.compute_subpixel_profiles_and_sinogram_traditional(
-                    cropped,
-                    cx,
-                    cy,
-                    radius,
-                    n_angles,
-                    profile_half_length,
-                    derivative_step,
-                    dtheta,
-                    resample2,
-                )
+        # Treat None the same as 0 for gaussian_sigma
+        if gaussian_sigma is None or gaussian_sigma == 0.0:
+            gaussian_sigma = 0.0
+            print("Using oversampling with binned statistics (no Gaussian blur).")
+        else:
+            print(
+                f"Using oversampling with 3-step Gaussian blur (sigma={gaussian_sigma})."
             )
 
-        elif oversample_strategy == 2:
-            print("Using oversampling strategy 2 (3-step).")
-            sub_profiles, sub_sinogram = (
-                sr.compute_subpixel_profiles_and_sinogram_3step(
-                    cropped,
-                    cx,
-                    cy,
-                    radius,
-                    n_angles,
-                    profile_half_length,
-                    derivative_step,
-                    dtheta,
-                    gaussian_sigma,
-                    resample1,
-                    resample2,
-                )
-            )
-        else:
-            raise ValueError(f"Invalid oversample strategy: {oversample_strategy}")
+        sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram(
+            cropped,
+            cx,
+            cy,
+            radius,
+            n_angles,
+            profile_half_length,
+            derivative_step,
+            dtheta,
+            resample=resample2,
+            gaussian_sigma=gaussian_sigma,
+        )
 
         applied_shift_ov = 0  # New variable for oversampled shift
         if manual_shift is not None:

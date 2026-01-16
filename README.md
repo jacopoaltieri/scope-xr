@@ -2,7 +2,7 @@
 <img src="src/scopexr/scopexr_logo.png" width="300">
 </h1><br>
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.1.5-blue)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.1.7-blue)
 
 📚 **Full documentation:** [scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/)
 
@@ -43,7 +43,7 @@
 **Key capabilities:**
 
 - **Focal Spot:** Automated reconstruction of 2D focal spot distribution and dimensions based on the methodology by [Di Domenico et al.](https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.4938414), which is available in the form of an [ImageJ plugin](https://medical-physics.unife.it/downloads/imagej-plugins).
-- **PSF:** Automated reconstruction of 2D PSF distribution of the detector, based on the methodology by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach), with optional sub-pixel oversampling for a high-resolution reconstruction.
+- **PSF:** Automated reconstruction of 2D PSF distribution of the detector, based on the methodology by [Forster et al.](https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach), with optional sub-pixel oversampling controlled by a single `gaussian_sigma` parameter (0/None = direct binning, >0 = fine-grid blur).
 
 # Quick Start
 
