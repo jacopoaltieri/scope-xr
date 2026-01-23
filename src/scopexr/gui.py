@@ -1,5 +1,5 @@
 # SCOPE-XR (Single-image Characterization Of PErformance in X-Ray systems)
-# Copyright (C) 2025  Jacopo Altieri
+# Copyright (C) 2026  Jacopo Altieri
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
