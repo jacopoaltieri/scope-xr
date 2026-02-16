@@ -2,7 +2,7 @@
 <img src="src/scopexr/scopexr_logo.png" width="300">
 </h1><br>
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.1.7-blue)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.1.8-blue)
 
 📚 **Full documentation:** [scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/)
 
@@ -128,8 +128,9 @@ You can find an example of these files in the `examples` folder, along with some
 The supported input image formats are:
 
 - `.png`
-- `.tif`
+- `.tif` / `.tiff`
 - `.raw` (must be accompanied by a corresponding `.xml` metadata file)
+- `.dcm` (DICOM)
 
 ## GUI Execution
 
@@ -144,7 +145,7 @@ GUI Features:
 
 - **Easy Mode Selection**: Separate tabs for "Focal Spot (FS)" and "PSF" analysis.
 - **Automatic Configuration**: The GUI automatically loads all default parameters from `fs_args.yaml` or `psf_args.yaml` on startup.
-- **Image Preview**: Load any .png or .tif image to see a preview directly in the app.
+- **Image Preview**: Load .png, .tif/.tiff, or .dcm images to see a preview directly in the app.
 - **Full Parameter Control**: All CLI flags are editable via interactive widgets.
 - **Edit Config Files**: A button allows you to directly open and edit the default .yaml config file for the active tab.
 - **Live Output**: All console output from the analysis script is printed directly to a text box within the GUI.

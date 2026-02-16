@@ -35,7 +35,7 @@ The easiest way to start is with the graphical interface:
 1. The GUI opens with two tabs: "Focal Spot (FS)" and "PSF"
 2. Click the **Focal Spot (FS)** tab
 3. Click **"Browse"** to select ``Image_FS2_Double_Asym_Clean.tif``
-4. The image preview appears in the GUI
+4. The image preview appears in the GUI (PNG, TIFF, and DICOM images show previews)
 5. Click **"Run Analysis"**
 6. Watch the output in the console window
 7. Results are saved to the output directory (default: ``output_fs/``)

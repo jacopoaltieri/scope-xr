@@ -4,11 +4,15 @@ from pathlib import Path
 import numpy as np
 import pytest
 from PIL import Image
+import pydicom
+from pydicom.dataset import Dataset, FileDataset
+from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 
 from scopexr.image_opening import (
     load_raw_as_ndarray,
     load_tiff_as_ndarray,
     load_png_as_ndarray,
+    load_dicom_as_ndarray,
     load_image,
 )
 
@@ -62,6 +66,45 @@ def _create_test_png(
         data = (np.arange(width * height) % 256).astype(np.uint8).reshape(height, width)
     img = Image.fromarray(data)
     img.save(png_path)
+    return data
+
+
+def _create_test_dicom(
+    dcm_path: Path, width: int, height: int, data: np.ndarray = None
+) -> np.ndarray:
+    """Helper function to create a test DICOM image file."""
+    if data is None:
+        data = np.arange(width * height, dtype=np.uint16).reshape(height, width)
+
+    file_meta = Dataset()
+    file_meta.MediaStorageSOPClassUID = generate_uid()
+    file_meta.MediaStorageSOPInstanceUID = generate_uid()
+    file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+
+    dataset = FileDataset(
+        dcm_path,
+        {},
+        file_meta=file_meta,
+        preamble=b"\0" * 128,
+    )
+
+    dataset.Rows = height
+    dataset.Columns = width
+    dataset.SamplesPerPixel = 1
+    dataset.PhotometricInterpretation = "MONOCHROME2"
+    dataset.BitsAllocated = 16
+    dataset.BitsStored = 16
+    dataset.HighBit = 15
+    dataset.PixelRepresentation = 0
+    dataset.PixelData = data.tobytes()
+
+    pydicom.dcmwrite(
+        dcm_path,
+        dataset,
+        implicit_vr=False,
+        little_endian=True,
+        enforce_file_format=True,
+    )
     return data
 
 
@@ -198,6 +241,36 @@ class TestLoadPngAsNdarray:
             load_png_as_ndarray("nonexistent.png")
 
 
+class TestLoadDicomAsNdarray:
+    def test_load_dicom_basic(self, tmp_path):
+        """Test basic loading of DICOM image."""
+        width, height = 64, 48
+        dcm_path = tmp_path / "test_image.dcm"
+
+        expected_data = _create_test_dicom(dcm_path, width, height)
+        result = load_dicom_as_ndarray(str(dcm_path))
+
+        assert result.shape == (height, width)
+        np.testing.assert_array_equal(result, expected_data)
+
+    def test_load_dicom_different_dimensions(self, tmp_path):
+        """Test loading DICOM images with different dimensions."""
+        test_cases = [(16, 16), (128, 32), (32, 128)]
+
+        for width, height in test_cases:
+            dcm_path = tmp_path / f"test_{width}x{height}.dcm"
+            expected_data = _create_test_dicom(dcm_path, width, height)
+            result = load_dicom_as_ndarray(str(dcm_path))
+
+            assert result.shape == (height, width)
+            np.testing.assert_array_equal(result, expected_data)
+
+    def test_load_dicom_nonexistent_file(self):
+        """Test that appropriate error is raised for non-existent DICOM file."""
+        with pytest.raises(FileNotFoundError):
+            load_dicom_as_ndarray("nonexistent.dcm")
+
+
 class TestLoadImage:
     def test_load_image_raw(self, tmp_path):
         """Test load_image dispatches correctly for RAW files."""
@@ -246,6 +319,17 @@ class TestLoadImage:
         assert result.shape == (height, width)
         np.testing.assert_array_equal(result, expected_data)
 
+    def test_load_image_dcm(self, tmp_path):
+        """Test load_image dispatches correctly for DICOM files."""
+        width, height = 64, 48
+        dcm_path = tmp_path / "test_image.dcm"
+
+        expected_data = _create_test_dicom(dcm_path, width, height)
+        result = load_image(str(dcm_path))
+
+        assert result.shape == (height, width)
+        np.testing.assert_array_equal(result, expected_data)
+
     def test_load_image_case_insensitive(self, tmp_path):
         """Test that file extensions are case-insensitive."""
         test_cases = [
@@ -254,6 +338,7 @@ class TestLoadImage:
             ("test.TIFF", "tiff"),
             ("test.PNG", "png"),
             ("test.Png", "png"),
+            ("test.DCM", "dicom"),
         ]
 
         for filename, file_type in test_cases:
@@ -271,6 +356,10 @@ class TestLoadImage:
                 png_path = tmp_path / filename
                 _create_test_png(png_path, 50, 50)
                 result = load_image(str(png_path))
+            elif file_type == "dicom":
+                dcm_path = tmp_path / filename
+                _create_test_dicom(dcm_path, 50, 50)
+                result = load_image(str(dcm_path))
 
             assert result.shape == (50, 50)
 

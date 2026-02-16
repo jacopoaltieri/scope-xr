@@ -5,6 +5,17 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-02-16
+
+### Added
+
+- DICOM (`.dcm`) image loading support
+- DICOM preview support in the GUI file picker
+
+### Changed
+
+- Updated docs, README, and tests to cover DICOM support
+
 ## [1.1.7] - 2026-01-16
 
 ### Changed

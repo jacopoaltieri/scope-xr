@@ -11,8 +11,9 @@ Supported Image Formats
 The supported input image formats are:
 
 * ``.png``
-* ``.tif``
+* ``.tif`` / ``.tiff``
 * ``.raw`` (must be accompanied by a corresponding ``.xml`` metadata file)
+* ``.dcm`` (DICOM)
 
 GUI Execution
 -------------
@@ -27,7 +28,7 @@ The recommended way for routine analysis. It features live image previews and in
 
 * **Easy Mode Selection**: Separate tabs for "Focal Spot (FS)" and "PSF" analysis.
 * **Automatic Configuration**: The GUI automatically loads all default parameters from ``fs_args.yaml`` or ``psf_args.yaml`` on startup.
-* **Image Preview**: Load any .png or .tif image to see a preview directly in the app.
+* **Image Preview**: Load .png, .tif/.tiff, or .dcm images to see a preview directly in the app.
 * **Full Parameter Control**: All CLI flags are editable via interactive widgets.
 * **Edit Config Files**: A button allows you to directly open and edit the default .yaml config file for the active tab.
 * **Live Output**: All console output from the analysis script is printed directly to a text box within the GUI.
@@ -71,7 +72,7 @@ Focal Spot CLI
 +=========================+===============================================================================================================================================+
 | ``--config`` (str)      | Path to the YAML configuration file.                                                                                                          |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--f`` (str)           | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``).                                                                    |
+| ``--f`` (str)           | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``/``.tiff``, ``.dcm``).                                                |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--o`` (str)           | Output directory to store results.                                                                                                            |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
@@ -119,7 +120,7 @@ PSF CLI
 +==========================+========================================================================================================================================================================+
 | ``--config`` (str)       | Path to the YAML configuration file.                                                                                                                                   |
 +--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--f`` (str)            | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``).                                                                                             |
+| ``--f`` (str)            | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``/``.tiff``, ``.dcm``).                                                                         |
 +--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--o`` (str)            | Output directory to store results.                                                                                                                                     |
 +--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -147,7 +148,7 @@ PSF CLI
 +--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--resample2`` (int)    | Radial sampling density for the coarse grid when oversampling is enabled.                                                                                              |
 +--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--gaussian_sigma``     | Controls oversampling mode: ``0``/``None`` uses direct binned statistics; ``>0`` applies fine-grid resample + Gaussian blur before coarse binning.                      |
+| ``--gaussian_sigma``     | Controls oversampling mode: ``0``/``None`` uses direct binned statistics; ``>0`` applies fine-grid resample + Gaussian blur before coarse binning.                     |
 +--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--shift``              | Enable automatic sinogram shifting.                                                                                                                                    |
 +--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+

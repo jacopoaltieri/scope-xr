@@ -18,6 +18,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import numpy as np
 from PIL import Image
+import pydicom
 
 
 def load_raw_as_ndarray(img_path: str) -> np.ndarray:
@@ -94,6 +95,24 @@ def load_png_as_ndarray(img_path: str) -> np.ndarray:
         return np.array(img)
 
 
+def load_dicom_as_ndarray(img_path: str) -> np.ndarray:
+    """
+    Load a DICOM image using pydicom and convert it to a numpy array.
+
+    Parameters
+    ----------
+    img_path
+        Path to the DICOM image file (.dcm)
+
+    Returns
+    -------
+    np.ndarray
+        2D numpy ndarray representing the image.
+    """
+    dataset = pydicom.dcmread(img_path)
+    return dataset.pixel_array
+
+
 def load_image(img_path: str) -> np.ndarray:
     """
     Load an image and dispatch to the correct loader based on file extension.
@@ -107,6 +126,11 @@ def load_image(img_path: str) -> np.ndarray:
     -------
     np.ndarray
         2D numpy ndarray representing the image.
+
+    Notes
+    -----
+    Supported formats: ``.raw`` (with matching ``.xml``), ``.tif``/``.tiff``,
+    ``.png``, and ``.dcm``.
     """
     ext = Path(img_path).suffix.lower()
     if ext == ".raw":
@@ -115,5 +139,7 @@ def load_image(img_path: str) -> np.ndarray:
         return load_tiff_as_ndarray(img_path)
     elif ext == ".png":
         return load_png_as_ndarray(img_path)
+    elif ext == ".dcm":
+        return load_dicom_as_ndarray(img_path)
     else:
         raise ValueError(f"Unsupported image format: {ext}")

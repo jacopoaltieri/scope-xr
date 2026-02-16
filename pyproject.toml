@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scopexr"
-version = "1.1.5"
+version = "1.1.8"
 description = "Single-image Characterization Of PErformance in X-Ray systems"
 authors = [
   { name = "Jacopo Altieri", email = "jacopo.altieri@gmail.com" },
@@ -18,7 +18,8 @@ dependencies = [
     "PyQt6",
     "PyYAML",
     "scikit-image",
-    "opencv-python"
+    "opencv-python",
+    "pydicom"
 ]
 
 [project.optional-dependencies]
@@ -31,7 +32,8 @@ docs = [
 test = [
     "pytest",
     "pytest-cov",
-    "numpy"
+    "numpy",
+    "pydicom"
 ]
 
 dev = [

@@ -54,8 +54,10 @@ from PyQt6.QtWidgets import (
     QRadioButton,
     QMessageBox,
 )
+import numpy as np
+import pydicom
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
-from PyQt6.QtGui import QPixmap, QIcon, QResizeEvent
+from PyQt6.QtGui import QPixmap, QIcon, QResizeEvent, QImage
 
 
 def load_config(filename: str) -> dict:
@@ -90,12 +92,9 @@ class RunThread(QThread):
     the GUI from freezing during long-running analyses. Emits output
     signals that can be connected to GUI elements for real-time feedback.
 
-    Attributes
-    ----------
-    output : pyqtSignal
-        Signal emitting str output from the subprocess
     """
 
+    # Signal emitting subprocess output text.
     output = pyqtSignal(str)
 
     def __init__(self, cmd_list: list) -> None:
@@ -969,24 +968,71 @@ class ScopeXRApp(QMainWindow):
     def open_image_file(self) -> None:
         """Open file dialog to select and load an image.
 
-        Allows selection of PNG, TIF, or RAW image files. Updates the
-        image display with a preview (except for RAW files) and stores
-        the file path for analysis.
+        Allows selection of PNG, TIF, RAW, or DICOM image files. Updates the
+        image display with a preview (except for RAW files) and stores the
+        file path for analysis.
         """
         file_name, _ = QFileDialog.getOpenFileName(
-            self, "Select Image", "", "Image Files (*.png *.tif *.raw)"
+            self, "Select Image", "", "Image Files (*.png *.tif *.tiff *.raw *.dcm)"
         )
         if file_name:
             self.image_path = file_name
-            if file_name.endswith(".raw"):
+            ext = Path(file_name).suffix.lower()
+            if ext == ".raw":
                 self.image_display_label.setText(
                     f"RAW file selected:\n{Path(file_name).name}\n(Preview not available)"
                 )
                 self.image_display_label.setStyleSheet("")
+            elif ext == ".dcm":
+                pixmap = self._dicom_to_qpixmap(file_name)
+                if pixmap is None:
+                    self.image_display_label.setText(
+                        f"DICOM file selected:\n{Path(file_name).name}\n(Preview not available)"
+                    )
+                    self.image_display_label.setStyleSheet("")
+                else:
+                    self.update_image_display(pixmap)
+                    self.image_display_label.setStyleSheet("")
             else:
                 pixmap = QPixmap(self.image_path)
                 self.update_image_display(pixmap)
                 self.image_display_label.setStyleSheet("")
+
+    def _dicom_to_qpixmap(self, file_name: str) -> QPixmap | None:
+        """Load a DICOM file and return a preview pixmap, if possible."""
+        try:
+            dataset = pydicom.dcmread(file_name)
+            data = dataset.pixel_array
+        except Exception:
+            return None
+
+        if data is None:
+            return None
+
+        if data.ndim > 2:
+            data = data[0]
+
+        data = self._normalize_to_uint8(data)
+        height, width = data.shape
+        bytes_per_line = width
+        qimage = QImage(
+            data.tobytes(),
+            width,
+            height,
+            bytes_per_line,
+            QImage.Format.Format_Grayscale8,
+        )
+        return QPixmap.fromImage(qimage)
+
+    def _normalize_to_uint8(self, data: np.ndarray) -> np.ndarray:
+        """Normalize a DICOM pixel array to 8-bit for preview."""
+        data = data.astype(np.float32)
+        min_val = float(np.min(data))
+        max_val = float(np.max(data))
+        if max_val <= min_val:
+            return np.zeros_like(data, dtype=np.uint8)
+        scaled = (data - min_val) / (max_val - min_val)
+        return np.clip(scaled * 255.0, 0, 255).astype(np.uint8)
 
     def update_image_display(self, pixmap: QPixmap) -> None:
         """Update the image display label with a scaled pixmap.
@@ -1011,8 +1057,16 @@ class ScopeXRApp(QMainWindow):
         event
             The resize event
         """
-        if self.image_path and not self.image_path.endswith(".raw"):
-            self.update_image_display(QPixmap(self.image_path))
+        if self.image_path:
+            ext = Path(self.image_path).suffix.lower()
+            if ext == ".raw":
+                pass
+            elif ext == ".dcm":
+                pixmap = self._dicom_to_qpixmap(self.image_path)
+                if pixmap is not None:
+                    self.update_image_display(pixmap)
+            else:
+                self.update_image_display(QPixmap(self.image_path))
         super().resizeEvent(event)
 
     def edit_config(self) -> None:
