@@ -35,6 +35,20 @@ def run_pipeline_fs():
     for k, v in args.items():
         if k != "hough_params":
             print(f"  {k:18}: {v}")
+    hough_params = args.get("hough_params", {})
+    if hough_params:
+        print("Hough params:")
+        for key in (
+            "dp",
+            "min_dist",
+            "param1",
+            "param2",
+            "min_radius",
+            "max_radius",
+            "debug",
+        ):
+            if key in hough_params:
+                print(f"  {key:18}: {hough_params[key]}")
 
     # ----------------------------------------------------------------------------------#
     img_path = args["img_path"]
@@ -97,7 +111,7 @@ def run_pipeline_fs():
         x, y, r = hough_circle
         print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
         cropped = utils.crop_square_roi(
-            img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
+            img, center=(x, y), radius=r, width_factor=1.8, output_path=out_dir
         )
 
     cx, cy, radius = circ.estimate_circle(cropped)

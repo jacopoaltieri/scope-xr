@@ -73,7 +73,12 @@ def detect_circle_hough(
     """
     if img is None:
         raise FileNotFoundError(f"Could not open '{img}'")
-    img_8bit = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    p1 = np.percentile(img, 1)
+    p99 = np.percentile(img, 99)
+    img_clipped = np.clip(img, p1, p99)
+
+    # Normalize to 0-255
+    img_8bit = ((img_clipped - p1) / (p99 - p1) * 255).astype(np.uint8)
     blurred = cv2.medianBlur(img_8bit, 5)
 
     # Perform Hough Circle Transform

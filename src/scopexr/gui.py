@@ -25,8 +25,7 @@ with real-time output feedback.
 import os
 import sys
 import subprocess
-
-# import tempfile
+import tempfile
 from pathlib import Path
 import platform
 import yaml
@@ -126,7 +125,7 @@ class RunThread(QThread):
                 text=True,
                 check=True,
                 encoding="cp1252" if is_windows else "utf-8",
-                shell=is_windows,
+                shell=False,
             )
             self.output.emit(process.stdout)
         except subprocess.CalledProcessError as e:
@@ -279,6 +278,7 @@ class ScopeXRApp(QMainWindow):
         self.resize(1100, 800)
 
         self.image_path = None
+        self._temp_config_paths: list[str] = []
 
         try:
             self.base_dir = Path(__file__).parent
@@ -421,7 +421,9 @@ class ScopeXRApp(QMainWindow):
         if "no_hough" in new_data:
             self.fs_no_hough.setChecked(bool(new_data["no_hough"]))
         set_spin(self.fs_magnification, "m", float)
-        set_spin(self.fs_min_pixels, "n", int)
+        min_n = new_data.get("min_n", new_data.get("n"))
+        if min_n is not None:
+            self.fs_min_pixels.setValue(int(min_n))
         set_spin(self.fs_nangles, "n_angles", int)
         set_spin(self.fs_half_length, "profile_half_length", int)
         set_spin(self.fs_derivative_step, "derivative_step", int)
@@ -452,6 +454,23 @@ class ScopeXRApp(QMainWindow):
 
         if "show_plots" in new_data:
             self.fs_show.setChecked(bool(new_data["show_plots"]))
+
+        hough_params = new_data.get("hough_params", {})
+        if hough_params:
+            if "dp" in hough_params:
+                self.fs_hough_dp.setValue(float(hough_params["dp"]))
+            if "min_dist" in hough_params:
+                self.fs_hough_min_dist.setValue(int(hough_params["min_dist"]))
+            if "param1" in hough_params:
+                self.fs_hough_param1.setValue(int(hough_params["param1"]))
+            if "param2" in hough_params:
+                self.fs_hough_param2.setValue(int(hough_params["param2"]))
+            if "min_radius" in hough_params:
+                self.fs_hough_min_radius.setValue(int(hough_params["min_radius"]))
+            if "max_radius" in hough_params:
+                self.fs_hough_max_radius.setValue(int(hough_params["max_radius"]))
+            if "debug" in hough_params:
+                self.fs_hough_debug.setChecked(bool(hough_params["debug"]))
 
         print(f"FS GUI updated from {path}")
 
@@ -509,7 +528,8 @@ class ScopeXRApp(QMainWindow):
 
         self.fs_min_pixels = QSpinBox()
         self.fs_min_pixels.setRange(0, 500)
-        self.fs_min_pixels.setValue(config_data.get("n", 10))
+        min_n = config_data.get("min_n", config_data.get("n", 10))
+        self.fs_min_pixels.setValue(min_n)
         layout.addRow("Min. Pixels [--n]:", self.fs_min_pixels)
 
         self.fs_nangles = QSpinBox()
@@ -662,6 +682,23 @@ class ScopeXRApp(QMainWindow):
 
         if "show_plots" in new_data:
             self.psf_show.setChecked(bool(new_data["show_plots"]))
+
+        hough_params = new_data.get("hough_params", {})
+        if hough_params:
+            if "dp" in hough_params:
+                self.psf_hough_dp.setValue(float(hough_params["dp"]))
+            if "min_dist" in hough_params:
+                self.psf_hough_min_dist.setValue(int(hough_params["min_dist"]))
+            if "param1" in hough_params:
+                self.psf_hough_param1.setValue(int(hough_params["param1"]))
+            if "param2" in hough_params:
+                self.psf_hough_param2.setValue(int(hough_params["param2"]))
+            if "min_radius" in hough_params:
+                self.psf_hough_min_radius.setValue(int(hough_params["min_radius"]))
+            if "max_radius" in hough_params:
+                self.psf_hough_max_radius.setValue(int(hough_params["max_radius"]))
+            if "debug" in hough_params:
+                self.psf_hough_debug.setChecked(bool(hough_params["debug"]))
 
         print(f"PSF GUI updated from {path}")
 
@@ -891,7 +928,7 @@ class ScopeXRApp(QMainWindow):
         fs_hough_layout.addRow("Min Radius (px):", self.fs_hough_min_radius)
 
         self.fs_hough_max_radius = QSpinBox()
-        self.fs_hough_max_radius.setRange(1, 2000)
+        self.fs_hough_max_radius.setRange(0, 2000)
         self.fs_hough_max_radius.setValue(fs_hough.get("max_radius", 500))
         fs_hough_layout.addRow("Max Radius (px):", self.fs_hough_max_radius)
 
@@ -938,7 +975,7 @@ class ScopeXRApp(QMainWindow):
         psf_hough_layout.addRow("Min Radius (px):", self.psf_hough_min_radius)
 
         self.psf_hough_max_radius = QSpinBox()
-        self.psf_hough_max_radius.setRange(1, 2000)
+        self.psf_hough_max_radius.setRange(0, 2000)
         self.psf_hough_max_radius.setValue(psf_hough.get("max_radius", 500))
         psf_hough_layout.addRow("Max Radius (px):", self.psf_hough_max_radius)
 
@@ -1137,22 +1174,24 @@ class ScopeXRApp(QMainWindow):
             command.append("scopexr.fs_main")  # Module name
             command.extend(["--f", self.image_path])
 
-            # Update hough params in original config file
+            # Update hough params in original config file (or temp config when none)
             config_path = self.fs_config.text()
+            config_data = {}
             if config_path and Path(config_path).exists():
-                config_data = load_config(config_path)
-                config_data["hough_params"] = {
-                    "dp": self.fs_hough_dp.value(),
-                    "min_dist": self.fs_hough_min_dist.value(),
-                    "param1": self.fs_hough_param1.value(),
-                    "param2": self.fs_hough_param2.value(),
-                    "min_radius": self.fs_hough_min_radius.value(),
-                    "max_radius": self.fs_hough_max_radius.value(),
-                    "debug": self.fs_hough_debug.isChecked(),
-                }
-                with open(config_path, "w") as f:
-                    yaml.dump(config_data, f)
-                command.extend(["--config", config_path])
+                config_data = load_config(config_path) or {}
+            hough_params = {
+                "dp": self.fs_hough_dp.value(),
+                "min_dist": self.fs_hough_min_dist.value(),
+                "param1": self.fs_hough_param1.value(),
+                "param2": self.fs_hough_param2.value(),
+                "min_radius": self.fs_hough_min_radius.value(),
+                "max_radius": self.fs_hough_max_radius.value(),
+                "debug": self.fs_hough_debug.isChecked(),
+            }
+            config_data["hough_params"] = hough_params
+            temp_config_path = self._write_temp_config(config_data, config_path)
+            self._append_hough_params("FS", hough_params)
+            command.extend(["--config", temp_config_path])
 
             if self.fs_output_dir.text():
                 command.extend(["--o", self.fs_output_dir.text()])
@@ -1204,22 +1243,24 @@ class ScopeXRApp(QMainWindow):
             command.append("scopexr.psf_main")  # Module name
             command.extend(["--f", self.image_path])
 
-            # Update hough params in original config file
+            # Update hough params in original config file (or temp config when none)
             config_path = self.psf_config.text()
+            config_data = {}
             if config_path and Path(config_path).exists():
-                config_data = load_config(config_path)
-                config_data["hough_params"] = {
-                    "dp": self.psf_hough_dp.value(),
-                    "min_dist": self.psf_hough_min_dist.value(),
-                    "param1": self.psf_hough_param1.value(),
-                    "param2": self.psf_hough_param2.value(),
-                    "min_radius": self.psf_hough_min_radius.value(),
-                    "max_radius": self.psf_hough_max_radius.value(),
-                    "debug": self.psf_hough_debug.isChecked(),
-                }
-                with open(config_path, "w") as f:
-                    yaml.dump(config_data, f)
-                command.extend(["--config", config_path])
+                config_data = load_config(config_path) or {}
+            hough_params = {
+                "dp": self.psf_hough_dp.value(),
+                "min_dist": self.psf_hough_min_dist.value(),
+                "param1": self.psf_hough_param1.value(),
+                "param2": self.psf_hough_param2.value(),
+                "min_radius": self.psf_hough_min_radius.value(),
+                "max_radius": self.psf_hough_max_radius.value(),
+                "debug": self.psf_hough_debug.isChecked(),
+            }
+            config_data["hough_params"] = hough_params
+            temp_config_path = self._write_temp_config(config_data, config_path)
+            self._append_hough_params("PSF", hough_params)
+            command.extend(["--config", temp_config_path])
 
             if self.psf_output_dir.text():
                 command.extend(["--o", self.psf_output_dir.text()])
@@ -1305,6 +1346,42 @@ class ScopeXRApp(QMainWindow):
         self.run_btn.setEnabled(True)
         self.run_btn.setText("Run Analysis")
         self.output_console.insertPlainText("\n--- Analysis Finished ---\n")
+        if self._temp_config_paths:
+            for temp_path in self._temp_config_paths:
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+            self._temp_config_paths.clear()
+
+    def _write_temp_config(self, config_data: dict, source_path: str | None) -> str:
+        suffix = Path(source_path).suffix if source_path else ".yaml"
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=suffix,
+            prefix="scopexr_",
+            delete=False,
+            encoding="utf-8",
+        ) as handle:
+            yaml.safe_dump(config_data, handle, sort_keys=False)
+            temp_path = handle.name
+        self._temp_config_paths.append(temp_path)
+        return temp_path
+
+    def _append_hough_params(self, label: str, hough_params: dict) -> None:
+        lines = [f"{label} Hough params:"]
+        for key in (
+            "dp",
+            "min_dist",
+            "param1",
+            "param2",
+            "min_radius",
+            "max_radius",
+            "debug",
+        ):
+            if key in hough_params:
+                lines.append(f"  {key}: {hough_params[key]}")
+        self.output_console.insertPlainText("\n".join(lines) + "\n")
 
 
 def main() -> None:

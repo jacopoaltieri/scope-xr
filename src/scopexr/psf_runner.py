@@ -36,6 +36,20 @@ def run_pipeline_psf():
     for k, v in args.items():
         if k != "hough_params":
             print(f"  {k:18}: {v}")
+    hough_params = args.get("hough_params", {})
+    if hough_params:
+        print("Hough params:")
+        for key in (
+            "dp",
+            "min_dist",
+            "param1",
+            "param2",
+            "min_radius",
+            "max_radius",
+            "debug",
+        ):
+            if key in hough_params:
+                print(f"  {key:18}: {hough_params[key]}")
 
     # ----------------------------------------------------------------------------------#
     # Extract configuration parameters
