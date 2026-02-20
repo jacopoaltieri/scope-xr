@@ -233,3 +233,24 @@ def save_and_plot(
         plot_func(arr, out_dir, show_plots)
 
     return str(path)
+
+
+def background_percentile(profile: np.ndarray, low_frac: float = 0.15) -> float:
+    """
+    Estimate background intensity from the lower percentile of a profile.
+
+    Parameters
+    ----------
+    profile
+        1D array representing a profile.
+    low_frac
+        Fraction (0-1) to use for percentile calculation. Default is 0.5 (50th percentile).
+
+    Returns
+    -------
+    float
+        Mean intensity of values below the percentile threshold.
+    """
+    profile = np.asarray(profile)
+    threshold = np.percentile(profile, low_frac * 100)
+    return float(np.mean(profile[profile <= threshold]))

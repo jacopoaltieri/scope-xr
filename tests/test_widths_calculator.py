@@ -6,7 +6,7 @@ import pytest
 
 from scopexr.widths_calculator import (
     fwhm,
-    fw10m,
+    fw15m,
     fwhm_from_sigma,
     erf_step,
     find_extreme_profiles_erf,
@@ -101,15 +101,15 @@ class TestFwhm:
         assert not np.isnan(width)
         assert left_idx < right_idx
 
-    def test_fw10m_wider_than_fwhm(self):
-        """Test that FW10M is wider than FWHM."""
+    def test_fw15m_wider_than_fwhm(self):
+        """Test that FW15M is wider than FWHM."""
         x = np.linspace(-10, 10, 201)
         profile = np.exp(-(x**2) / 2)
 
-        width_10m, _, _ = fw10m(profile)
+        width_15m, _, _ = fw15m(profile)
         width_hm, _, _ = fwhm(profile)
 
-        assert width_10m > width_hm
+        assert width_15m > width_hm
 
     def test_fwhm_zero_denominator(self):
         """Test FWHM with zero denominator in left side interpolation."""

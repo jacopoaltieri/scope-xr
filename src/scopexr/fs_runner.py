@@ -208,15 +208,18 @@ def run_pipeline_fs():
         prof_wide_sino = sinogram[:, wide_idx]
         prof_narrow_sino = sinogram[:, narrow_idx]
 
+    prof_wide_sino -= utils.background_percentile(prof_wide_sino, low_frac=0.15)
+    prof_narrow_sino -= utils.background_percentile(prof_narrow_sino, low_frac=0.15)
+
     fw, lw, rw = wc.fwhm(prof_wide_sino)
     fn, ln, rn = wc.fwhm(prof_narrow_sino)
     print(f"Horizontal:   FWHM={fw}px (from {lw} to {rw})")
     print(f"Vertical: FWHM={fn}px (from {ln} to {rn})")
 
-    f10w, l10w, r10w = wc.fw10m(prof_wide_sino)
-    f10n, l10n, r10n = wc.fw10m(prof_narrow_sino)
-    print(f"Horizontal:   FW10M={f10w}px (from {l10w} to {r10w})")
-    print(f"Vertical: FW10M={f10n}px (from {l10n} to {r10n})")
+    f15w, l15w, r15w = wc.fw15m(prof_wide_sino)
+    f15n, l15n, r15n = wc.fw15m(prof_narrow_sino)
+    print(f"Horizontal:   FW15M={f15w}px (from {l15w} to {r15w})")
+    print(f"Vertical: FW15M={f15n}px (from {l15n} to {r15n})")
     # fw_erf = wc.fwhm_from_sigma(sigmas[wide_idx])
     # fn_erf = wc.fwhm_from_sigma(sigmas[narrow_idx])
     # print(f"Widest (ERF):   FWHM={fw_erf:.2f}px")
@@ -254,21 +257,21 @@ def run_pipeline_fs():
         show_plots,
     )
 
-    fw10m_path = out_dir / "fw10m_sinogram_profiles.png"
+    fw15m_path = out_dir / "fw15m_sinogram_profiles.png"
     plotters.plot_profiles_with_fwhm(
         radial,
         prof_wide_sino,
         prof_narrow_sino,
         wide_idx,
         narrow_idx,
-        0.1,
-        f10w,
-        l10w,
-        r10w,
-        f10n,
-        l10n,
-        r10n,
-        fw10m_path,
+        0.15,
+        f15w,
+        l15w,
+        r15w,
+        f15n,
+        l15n,
+        r15n,
+        fw15m_path,
         show_plots,
     )
 
@@ -299,10 +302,10 @@ def run_pipeline_fs():
     narrow_fs = wc.compute_fs_width(fn, pixel_size, m_fs)
     print(f"Horizontal focal spot width: {wide_fs:.3f} mm")
     print(f"Vertical focal spot width: {narrow_fs:.3f} mm")
-    wide_fs10m = wc.compute_fs_width(f10w, pixel_size, m_fs)
-    narrow_fs10m = wc.compute_fs_width(f10n, pixel_size, m_fs)
-    print(f"Horizontal focal spot width (FW10M): {wide_fs10m:.3f} mm")
-    print(f"Vertical focal spot width (FW10M): {narrow_fs10m:.3f} mm")
+    wide_fs15m = wc.compute_fs_width(f15w, pixel_size, m_fs)
+    narrow_fs15m = wc.compute_fs_width(f15n, pixel_size, m_fs)
+    print(f"Horizontal focal spot width (FW15M): {wide_fs15m:.3f} mm")
+    print(f"Vertical focal spot width (FW15M): {narrow_fs15m:.3f} mm")
 
     # wide_fs_erf = wc.compute_fs_width(fw_erf, pixel_size, m_fs)
     # narrow_fs_erf = wc.compute_fs_width(fn_erf, pixel_size, m_fs)
@@ -333,18 +336,18 @@ def run_pipeline_fs():
         f"{'Angle Index:': <{label_width}} {wide_idx}",
         f"{'Angle (Degrees):': <{label_width}} {wide_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fw:.3f} px",
-        f"{'FW10M:': <{label_width}} {f10w:.3f} px",
+        f"{'FW15M:': <{label_width}} {f15w:.3f} px",
         f"{'Spot Size (FWHM):': <{label_width}} {wide_fs:.3f} mm",
-        f"{'Spot Size (FW10M):': <{label_width}} {wide_fs10m:.3f} mm",
+        f"{'Spot Size (FW15M):': <{label_width}} {wide_fs15m:.3f} mm",
         "",
         # --- Group by Narrowest Profile ---
         "--- Vertical Profile Results ---",
         f"{'Angle Index:': <{label_width}} {narrow_idx}",
         f"{'Angle (Degrees):': <{label_width}} {narrow_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fn:.3f} px",
-        f"{'FW10M:': <{label_width}} {f10n:.3f} px",
+        f"{'FW15M:': <{label_width}} {f15n:.3f} px",
         f"{'Spot Size (FWHM):': <{label_width}} {narrow_fs:.3f} mm",
-        f"{'Spot Size (FW10M):': <{label_width}} {narrow_fs10m:.3f} mm",
+        f"{'Spot Size (FW15M):': <{label_width}} {narrow_fs15m:.3f} mm",
         "",
     ]
 

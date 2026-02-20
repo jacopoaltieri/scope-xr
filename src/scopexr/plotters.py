@@ -152,7 +152,7 @@ def plot_profiles_with_fwhm(
     show_plots: bool = False,
 ) -> None:
     """
-    Plot the widest and narrowest sinogram profiles with FWHM/FW10M lines.
+    Plot the widest and narrowest sinogram profiles with FWHM/FW15M lines.
 
     Parameters
     ----------
@@ -198,13 +198,9 @@ def plot_profiles_with_fwhm(
         radial, prof_narrow_sino, label=f"Narrowest (idx={narrow_idx})", color="orange"
     )
 
-    # Compute half-max levels
-    half_w = (
-        prof_wide_sino.max() - prof_wide_sino.min()
-    ) * height + prof_wide_sino.min()
-    half_n = (
-        prof_narrow_sino.max() - prof_narrow_sino.min()
-    ) * height + prof_narrow_sino.min()
+    # Compute threshold levels (profiles are baseline-subtracted, so use peak * height)
+    half_w = prof_wide_sino.max() * height
+    half_n = prof_narrow_sino.max() * height
 
     # Interpolate radial coordinates at fractional indices
     idx = np.arange(len(radial))

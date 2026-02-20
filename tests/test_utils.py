@@ -12,6 +12,7 @@ from scopexr.utils import (
     interpolate_nans_1d,
     suggest_os_angle,
     save_and_plot,
+    background_percentile,
 )
 
 # Ensure local src is on the path when running tests without installation
@@ -316,3 +317,124 @@ class TestSaveAndPlot:
 
         assert Path(result_path).exists()
         assert plot_called[0]  # Verify plot function was called
+
+
+class TestBackgroundPercentile:
+    def test_basic_calculation(self):
+        """Test basic background percentile calculation."""
+        profile = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+
+        result = background_percentile(profile, low_frac=0.2)
+
+        # 20th percentile of [1,2,3,4,5] is 1.8
+        # Values <= 1.8 are [1.0]
+        # Mean of [1.0] is 1.0
+        assert result == pytest.approx(1.0)
+
+    def test_default_low_frac(self):
+        """Test with default low_frac=0.15."""
+        profile = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
+
+        result = background_percentile(profile)
+
+        # Default low_frac=0.15 means 15th percentile
+        assert isinstance(result, float)
+        assert result > 0
+        threshold = np.percentile(profile, 15)
+        expected = float(np.mean(profile[profile <= threshold]))
+        assert result == pytest.approx(expected)
+
+    def test_noisy_profile(self):
+        """Test with noisy profile containing signal and background."""
+        np.random.seed(42)
+        # Low values (noise/background) and high values (signal)
+        background = np.random.rand(50) * 10
+        signal = np.random.rand(50) * 100 + 50
+        profile = np.concatenate([background, signal])
+        np.random.shuffle(profile)
+
+        result = background_percentile(profile, low_frac=0.25)
+
+        # Should estimate background (lower values)
+        assert result < np.median(profile)
+
+    def test_uniform_profile(self):
+        """Test with uniform profile."""
+        profile = np.ones(100) * 5.0
+
+        result = background_percentile(profile)
+
+        # All values are the same, so result should equal that value
+        assert result == pytest.approx(5.0)
+
+    def test_single_value(self):
+        """Test with single value array."""
+        profile = np.array([10.0])
+
+        result = background_percentile(profile)
+
+        assert result == pytest.approx(10.0)
+
+    def test_two_values(self):
+        """Test with two values."""
+        profile = np.array([1.0, 10.0])
+
+        result = background_percentile(profile, low_frac=0.5)
+
+        # 50th percentile of [1, 10] is 5.5
+        # Values <= 5.5 are [1.0]
+        # Mean is 1.0
+        assert result == pytest.approx(1.0)
+
+    def test_all_same_values_different_fraction(self):
+        """Test with all same values using different fractions."""
+        profile = np.ones(100) * 7.5
+
+        for frac in [0.1, 0.25, 0.5, 0.75]:
+            result = background_percentile(profile, low_frac=frac)
+            assert result == pytest.approx(7.5)
+
+    def test_extremes_fraction(self):
+        """Test with extreme fraction values."""
+        profile = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+
+        # Very low fraction (just the minimum)
+        result_low = background_percentile(profile, low_frac=0.01)
+        assert result_low <= np.min(profile) + 0.1
+
+        # Higher fraction
+        result_high = background_percentile(profile, low_frac=0.6)
+        assert result_high > result_low
+
+    def test_negative_values(self):
+        """Test with negative values in profile."""
+        profile = np.array([-5.0, -2.0, 0.0, 2.0, 5.0])
+
+        result = background_percentile(profile, low_frac=0.4)
+
+        # Should still work with negative values
+        assert isinstance(result, float)
+        # Result should be negative or close to zero
+        assert result < 0 or result == pytest.approx(0.0, abs=1.0)
+
+    def test_return_type(self):
+        """Test that return type is float (not numpy scalar)."""
+        profile = np.array([1.0, 2.0, 3.0])
+
+        result = background_percentile(profile)
+
+        assert isinstance(result, float)
+        assert not isinstance(result, np.ndarray)
+
+    def test_different_array_types(self):
+        """Test with different array input types."""
+        values = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+        # List input
+        result_list = background_percentile(values)
+
+        # NumPy array
+        result_array = background_percentile(np.array(values))
+
+        # Results should be the same
+        assert result_list == pytest.approx(result_array)

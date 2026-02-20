@@ -41,11 +41,9 @@ def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     profile = np.asarray(profile)
     n = len(profile)
 
-    # Find peak and half-maximum
     peak_idx = np.argmax(profile)
     peak_val = profile[peak_idx]
-    min_val = np.min(profile)
-    half_max = min_val + 0.5 * (peak_val - min_val)
+    half_max = 0.5 * peak_val
 
     # --- Find left half-maximum crossing ---
     left_idx = None
@@ -75,9 +73,9 @@ def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     return width, left_idx, right_idx
 
 
-def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
+def fw15m(profile: np.ndarray) -> tuple[float, float, float]:
     """
-    Compute the Full Width at Tenth Maximum (FWTM / 10% max) of a 1D profile using linear interpolation.
+    Compute the Full Width at 15 Percent Maximum (FW15M / 15% max) of a 1D profile using linear interpolation.
 
     Parameters
     ----------
@@ -87,30 +85,29 @@ def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
     Returns
     -------
     width : float
-        Width in pixels between 10% maximum crossings (interpolated).
+        Width in pixels between 15% maximum crossings (interpolated).
     left_idx : float
-        Fractional index of left 10% maximum crossing.
+        Fractional index of left 15% maximum crossing.
     right_idx : float
-        Fractional index of right 10% maximum crossing.
+        Fractional index of right 15% maximum crossing.
     """
     profile = np.asarray(profile)
     n = len(profile)
 
-    # Find peak and 10-maximum
+    # Find peak and 15% maximum (baseline subtraction implies min ≈ 0)
     peak_idx = np.argmax(profile)
     peak_val = profile[peak_idx]
-    min_val = np.min(profile)
-    ten_max = min_val + 0.1 * (peak_val - min_val)
+    fifteen_max = 0.15 * peak_val
 
     # --- Find left crossing ---
     left_idx = None
     for i in range(peak_idx, 0, -1):
-        if profile[i] >= ten_max > profile[i - 1]:
+        if profile[i] >= fifteen_max > profile[i - 1]:
             denominator = profile[i] - profile[i - 1]
             if denominator == 0:
                 frac = 0.5  # avoid division by zero
             else:
-                frac = (ten_max - profile[i - 1]) / denominator
+                frac = (fifteen_max - profile[i - 1]) / denominator
 
             left_idx = (i - 1) + frac
             break
@@ -118,8 +115,8 @@ def fw10m(profile: np.ndarray) -> tuple[float, float, float]:
     # --- Find right crossing ---
     right_idx = None
     for i in range(peak_idx, n - 1):
-        if profile[i] >= ten_max > profile[i + 1]:
-            frac = (ten_max - profile[i]) / (profile[i + 1] - profile[i])
+        if profile[i] >= fifteen_max > profile[i + 1]:
+            frac = (fifteen_max - profile[i]) / (profile[i + 1] - profile[i])
             right_idx = i + frac
             break
 
