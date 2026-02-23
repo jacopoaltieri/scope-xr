@@ -187,25 +187,38 @@ def run_pipeline_psf():
 
     popt_h = pops[h_idx]
     popt_v = pops[v_idx]
+    bg_h = utils.background_percentile(prof_h_sino, low_frac=0.15)
+    bg_v = utils.background_percentile(prof_v_sino, low_frac=0.15)
+    prof_h_corr = prof_h_sino - bg_h
+    prof_v_corr = prof_v_sino - bg_v
+    popt_h_corr = popt_h.copy()
+    popt_v_corr = popt_v.copy()
+    popt_h_corr[3] -= bg_h
+    popt_v_corr[3] -= bg_v
+
     fw_h = wc.fwhm_from_sigma(sigmas[h_idx])
     fw_v = wc.fwhm_from_sigma(sigmas[v_idx])
+    f15_h, l15_h, r15_h = wc.fw15m(prof_h_corr)
+    f15_v, l15_v, r15_v = wc.fw15m(prof_v_corr)
     print(f"Horizontal:   FWHM={fw_h:.2f}px")
     print(f"Vertical: FWHM={fw_v:.2f}px")
+    print(f"Horizontal: FW15M={f15_h:.2f}px (from {l15_h:.2f} to {r15_h:.2f})")
+    print(f"Vertical:   FW15M={f15_v:.2f}px (from {l15_v:.2f} to {r15_v:.2f})")
 
     radial = np.arange(sinogram.shape[0]) - (sinogram.shape[0] // 2)
 
     # Plot profiles with Gaussian fits
     plotters.plot_profile_with_gaussian(
         radial=radial,
-        sinogram_profile=prof_h_sino,
-        popt=popt_h,
+        sinogram_profile=prof_h_corr,
+        popt=popt_h_corr,
         out_path=out_dir / "sinogram_profile_horizontal.png",
         show_plots=show_plots,
     )
     plotters.plot_profile_with_gaussian(
         radial=radial,
-        sinogram_profile=prof_v_sino,
-        popt=popt_v,
+        sinogram_profile=prof_v_corr,
+        popt=popt_v_corr,
         out_path=out_dir / "sinogram_profile_vertical.png",
         show_plots=show_plots,
     )
@@ -296,6 +309,8 @@ def run_pipeline_psf():
         "--- PSF Size (FWHM from Sinogram) ---",
         f"{'FWHM Horizontal:': <{label_width}} {fw_h:.3f} px",
         f"{'FWHM Vertical:': <{label_width}} {fw_v:.3f} px",
+        f"{'FW15M Horizontal:': <{label_width}} {f15_h:.3f} px",
+        f"{'FW15M Vertical:': <{label_width}} {f15_v:.3f} px",
         "",
         "--- MTF Horizontal (from Sinogram) ---",
         f"{'MTF10:': <{label_width}} {mtf10_h:.3f} cycles/mm",
@@ -396,6 +411,14 @@ def run_pipeline_psf():
 
         popt_h_ov = pops_ov[h_idx]
         popt_v_ov = pops_ov[v_idx]
+        bg_h_ov = utils.background_percentile(prof_h_sino_ov, low_frac=0.15)
+        bg_v_ov = utils.background_percentile(prof_v_sino_ov, low_frac=0.15)
+        prof_h_corr_ov = prof_h_sino_ov - bg_h_ov
+        prof_v_corr_ov = prof_v_sino_ov - bg_v_ov
+        popt_h_corr_ov = popt_h_ov.copy()
+        popt_v_corr_ov = popt_v_ov.copy()
+        popt_h_corr_ov[3] -= bg_h_ov
+        popt_v_corr_ov[3] -= bg_v_ov
 
         # FWHM value from oversampled (in 'oversampled pixels')
         fw_h_ov_native = wc.fwhm_from_sigma(sigmas_ov[h_idx])
@@ -403,24 +426,36 @@ def run_pipeline_psf():
         # Convert FWHM to 'normal' pixel-equivalent
         fw_h_ov = fw_h_ov_native / resample2
         fw_v_ov = fw_v_ov_native / resample2
+        f15_h_ov_native, l15_h_ov, r15_h_ov = wc.fw15m(prof_h_corr_ov)
+        f15_v_ov_native, l15_v_ov, r15_v_ov = wc.fw15m(prof_v_corr_ov)
+        f15_h_ov = f15_h_ov_native / resample2
+        f15_v_ov = f15_v_ov_native / resample2
 
         print(f"Horizontal (Oversampled):  FWHM={fw_h_ov:.2f} px")
         print(f"Vertical (Oversampled): FWHM={fw_v_ov:.2f} px")
+        print(
+            f"Horizontal (Oversampled): FW15M={f15_h_ov:.2f} px "
+            f"(from {l15_h_ov / resample2:.2f} to {r15_h_ov / resample2:.2f})"
+        )
+        print(
+            f"Vertical (Oversampled):   FW15M={f15_v_ov:.2f} px "
+            f"(from {l15_v_ov / resample2:.2f} to {r15_v_ov / resample2:.2f})"
+        )
 
         # The radial axis for oversampled plot
         radial_ov = np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)
 
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
-            sinogram_profile=prof_h_sino_ov,
-            popt=popt_h_ov,
+            sinogram_profile=prof_h_corr_ov,
+            popt=popt_h_corr_ov,
             out_path=out_dir / "oversampled_sinogram_profile_horizontal.png",
             show_plots=show_plots,
         )
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
-            sinogram_profile=prof_v_sino_ov,
-            popt=popt_v_ov,
+            sinogram_profile=prof_v_corr_ov,
+            popt=popt_v_corr_ov,
             out_path=out_dir / "oversampled_sinogram_profile_vertical.png",
             show_plots=show_plots,
         )
@@ -492,6 +527,8 @@ def run_pipeline_psf():
             "--- PSF Size (Oversampled FWHM) ---",
             f"{'FWHM Horizontal:': <{label_width}} {fw_h_ov:.3f} px (native: {fw_h_ov_native:.3f})",
             f"{'FWHM Vertical:': <{label_width}} {fw_v_ov:.3f} px (native: {fw_v_ov_native:.3f})",
+            f"{'FW15M Horizontal:': <{label_width}} {f15_h_ov:.3f} px (native: {f15_h_ov_native:.3f})",
+            f"{'FW15M Vertical:': <{label_width}} {f15_v_ov:.3f} px (native: {f15_v_ov_native:.3f})",
             "",
             "--- MTF Horizontal (Oversampled) ---",
             f"{'MTF10:': <{label_width}} {mtf10_h_ov:.3f} cycles/mm",
