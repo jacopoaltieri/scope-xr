@@ -5,6 +5,17 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.9] - 2026-02-24
+
+### Changed
+
+- Now compute FW15M (Full Width at 15% Max) instead of FW10M, to comply with IEC standards
+- Implemented baseline subtraction and integral normalization for profile plotting to comply with IEC standards
+- Profiles are in mm if pixel size and magnification are given
+- Profiles are computed as projection of the penumbra rather than from a single sinogram profile
+- Removed "wide/narrow" in favor of "horizontal/vertical"
+- Updated docs
+
 ## [1.1.8] - 2026-02-16
 
 ### Added
