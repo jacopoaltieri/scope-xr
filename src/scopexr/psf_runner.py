@@ -169,43 +169,46 @@ def run_pipeline_psf():
         reconstruction_type="psf",
     )
 
-    # Find horizontal and vertical profiles
+    # Find horizontal and vertical profiles using projection-based LSF
+
+    # Horizontal LSF: sum along vertical axis (axis=0)
+    # Vertical LSF: sum along horizontal axis (axis=1)
+    prof_h_sino, prof_v_sino = wc.compute_lsf_from_projection(
+        reconstruction, normalize=False, baseline_subtraction=True
+    )
+
+    # Get Gaussian fit parameters (we can still compute these for consistency)
+    _, _, sigmas, pops = wc.find_extreme_profiles_gaussian(sinogram)
     angle_step = 360.0 / n_angles
     angles = np.arange(n_angles) * angle_step
-
     h_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
     v_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
 
-    _, _, sigmas, pops = wc.find_extreme_profiles_gaussian(sinogram)
-    # Get profiles for h and v angles
-    if avg_neighbors:
-        prof_h_sino = wc.average_neighbors(sinogram, h_idx, avg_number)
-        prof_v_sino = wc.average_neighbors(sinogram, v_idx, avg_number)
-    else:
-        prof_h_sino = sinogram[:, h_idx]
-        prof_v_sino = sinogram[:, v_idx]
-
     popt_h = pops[h_idx]
     popt_v = pops[v_idx]
-    bg_h = utils.background_percentile(prof_h_sino, low_frac=0.15)
-    bg_v = utils.background_percentile(prof_v_sino, low_frac=0.15)
-    prof_h_corr = prof_h_sino - bg_h
-    prof_v_corr = prof_v_sino - bg_v
-    popt_h_corr = popt_h.copy()
-    popt_v_corr = popt_v.copy()
-    popt_h_corr[3] -= bg_h
-    popt_v_corr[3] -= bg_v
+    # Already baseline-subtracted in compute_lsf_from_projection
+    prof_h_corr = prof_h_sino
+    prof_v_corr = prof_v_sino
 
-    fw_h = wc.fwhm_from_sigma(sigmas[h_idx])
-    fw_v = wc.fwhm_from_sigma(sigmas[v_idx])
+    # Use FWHM from projection profiles
+    fw_h, _, _ = wc.fwhm(prof_h_corr)
+    fw_v, _, _ = wc.fwhm(prof_v_corr)
     f15_h, l15_h, r15_h = wc.fw15m(prof_h_corr)
     f15_v, l15_v, r15_v = wc.fw15m(prof_v_corr)
     print(f"Horizontal:   FWHM={fw_h:.2f}px")
-    print(f"Vertical: FWHM={fw_v:.2f}px")
-    print(f"Horizontal: FW15M={f15_h:.2f}px (from {l15_h:.2f} to {r15_h:.2f})")
-    print(f"Vertical:   FW15M={f15_v:.2f}px (from {l15_v:.2f} to {r15_v:.2f})")
+    print(f"Vertical:     FWHM={fw_v:.2f}px")
+    print(f"Horizontal:   FW15M={f15_h:.2f}px (from {l15_h:.2f} to {r15_h:.2f})")
+    print(f"Vertical:     FW15M={f15_v:.2f}px (from {l15_v:.2f} to {r15_v:.2f})")
 
-    radial = np.arange(sinogram.shape[0]) - (sinogram.shape[0] // 2)
+    # Create radial coordinate array for projection profiles
+    radial = np.arange(len(prof_h_corr)) - (len(prof_h_corr) // 2)
+
+    # Adjust Gaussian fit parameters for baseline subtraction (for plotting compatibility)
+    popt_h_corr = popt_h.copy()
+    popt_v_corr = popt_v.copy()
+    # Since we're using projection profiles, adjust baseline to 0
+    popt_h_corr[3] = 0
+    popt_v_corr[3] = 0
 
     # Plot profiles with Gaussian fits
     plotters.plot_profile_with_gaussian(
@@ -214,6 +217,8 @@ def run_pipeline_psf():
         popt=popt_h_corr,
         out_path=out_dir / "sinogram_profile_horizontal.png",
         show_plots=show_plots,
+        pixel_size=pixel_size,
+        magnification=1.0,
     )
     plotters.plot_profile_with_gaussian(
         radial=radial,
@@ -221,6 +226,8 @@ def run_pipeline_psf():
         popt=popt_v_corr,
         out_path=out_dir / "sinogram_profile_vertical.png",
         show_plots=show_plots,
+        pixel_size=pixel_size,
+        magnification=1.0,
     )
 
     # Plot sinogram and reconstruction with lines
@@ -305,20 +312,21 @@ def run_pipeline_psf():
         "--- Setup Parameters ---",
         f"{'COM Circle Center:': <{label_width}} ({cx:.2f}, {cy:.2f}) px",
         f"{'COM Circle Radius:': <{label_width}} {radius:.2f} px",
+        f"{'LSF Method:': <{label_width}} Projection-based",
         "",
-        "--- PSF Size (FWHM from Sinogram) ---",
+        "--- PSF Size (FWHM from Projection) ---",
         f"{'FWHM Horizontal:': <{label_width}} {fw_h:.3f} px",
         f"{'FWHM Vertical:': <{label_width}} {fw_v:.3f} px",
         f"{'FW15M Horizontal:': <{label_width}} {f15_h:.3f} px",
         f"{'FW15M Vertical:': <{label_width}} {f15_v:.3f} px",
         "",
-        "--- MTF Horizontal (from Sinogram) ---",
+        "--- MTF Horizontal (from Projection) ---",
         f"{'MTF10:': <{label_width}} {mtf10_h:.3f} cycles/mm",
         f"{'MTF @ 1.0 cy/mm:': <{label_width}} {mtf1_h:.3f}",
         f"{'MTF @ 2.0 cy/mm:': <{label_width}} {mtf2_h:.3f}",
         f"{'MTF @ 3.0 cy/mm:': <{label_width}} {mtf3_h:.3f}",
         "",
-        "--- MTF Vertical (from Sinogram) ---",
+        "--- MTF Vertical (from Projection) ---",
         f"{'MTF10:': <{label_width}} {mtf10_v:.3f} cycles/mm",
         f"{'MTF @ 1.0 cy/mm:': <{label_width}} {mtf1_v:.3f}",
         f"{'MTF @ 2.0 cy/mm:': <{label_width}} {mtf2_v:.3f}",
@@ -399,30 +407,31 @@ def run_pipeline_psf():
             suffix="_oversampled",
         )
 
-        # Find extreme profiles oversampled
-        _, _, sigmas_ov, pops_ov = wc.find_extreme_profiles_gaussian(sub_sinogram)
-        # Get profiles for h and v angles
-        if avg_neighbors:
-            prof_h_sino_ov = wc.average_neighbors(sub_sinogram, h_idx, avg_number)
-            prof_v_sino_ov = wc.average_neighbors(sub_sinogram, v_idx, avg_number)
-        else:
-            prof_h_sino_ov = sub_sinogram[:, h_idx]
-            prof_v_sino_ov = sub_sinogram[:, v_idx]
+        # Find extreme profiles oversampled using projection-based LSF
+        print("Using projection-based LSF method (oversampled)")
 
+        # Compute LSF from projection of the oversampled PSF reconstruction
+        prof_h_sino_ov, prof_v_sino_ov = wc.compute_lsf_from_projection(
+            recon_sub, normalize=False, baseline_subtraction=True
+        )
+
+        # Get Gaussian fit parameters for consistency
+        _, _, sigmas_ov, pops_ov = wc.find_extreme_profiles_gaussian(sub_sinogram)
         popt_h_ov = pops_ov[h_idx]
         popt_v_ov = pops_ov[v_idx]
-        bg_h_ov = utils.background_percentile(prof_h_sino_ov, low_frac=0.15)
-        bg_v_ov = utils.background_percentile(prof_v_sino_ov, low_frac=0.15)
-        prof_h_corr_ov = prof_h_sino_ov - bg_h_ov
-        prof_v_corr_ov = prof_v_sino_ov - bg_v_ov
+        # Already baseline-subtracted in compute_lsf_from_projection
+        prof_h_corr_ov = prof_h_sino_ov
+        prof_v_corr_ov = prof_v_sino_ov
+
+        # Adjust Gaussian fit parameters for baseline subtraction
         popt_h_corr_ov = popt_h_ov.copy()
         popt_v_corr_ov = popt_v_ov.copy()
-        popt_h_corr_ov[3] -= bg_h_ov
-        popt_v_corr_ov[3] -= bg_v_ov
+        popt_h_corr_ov[3] = 0
+        popt_v_corr_ov[3] = 0
 
         # FWHM value from oversampled (in 'oversampled pixels')
-        fw_h_ov_native = wc.fwhm_from_sigma(sigmas_ov[h_idx])
-        fw_v_ov_native = wc.fwhm_from_sigma(sigmas_ov[v_idx])
+        fw_h_ov_native, _, _ = wc.fwhm(prof_h_corr_ov)
+        fw_v_ov_native, _, _ = wc.fwhm(prof_v_corr_ov)
         # Convert FWHM to 'normal' pixel-equivalent
         fw_h_ov = fw_h_ov_native / resample2
         fw_v_ov = fw_v_ov_native / resample2
@@ -432,18 +441,18 @@ def run_pipeline_psf():
         f15_v_ov = f15_v_ov_native / resample2
 
         print(f"Horizontal (Oversampled):  FWHM={fw_h_ov:.2f} px")
-        print(f"Vertical (Oversampled): FWHM={fw_v_ov:.2f} px")
+        print(f"Vertical (Oversampled):    FWHM={fw_v_ov:.2f} px")
         print(
-            f"Horizontal (Oversampled): FW15M={f15_h_ov:.2f} px "
+            f"Horizontal (Oversampled):  FW15M={f15_h_ov:.2f} px "
             f"(from {l15_h_ov / resample2:.2f} to {r15_h_ov / resample2:.2f})"
         )
         print(
-            f"Vertical (Oversampled):   FW15M={f15_v_ov:.2f} px "
+            f"Vertical (Oversampled):    FW15M={f15_v_ov:.2f} px "
             f"(from {l15_v_ov / resample2:.2f} to {r15_v_ov / resample2:.2f})"
         )
 
         # The radial axis for oversampled plot
-        radial_ov = np.arange(sub_sinogram.shape[0]) - (sub_sinogram.shape[0] // 2)
+        radial_ov = np.arange(len(prof_h_corr_ov)) - (len(prof_h_corr_ov) // 2)
 
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,

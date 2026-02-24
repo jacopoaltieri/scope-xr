@@ -137,101 +137,127 @@ def plot_profiles_and_reconstruction(
 
 def plot_profiles_with_fwhm(
     radial: np.ndarray,
-    prof_wide_sino: np.ndarray,
-    prof_narrow_sino: np.ndarray,
-    wide_idx: int,
-    narrow_idx: int,
+    prof_horizontal_sino: np.ndarray,
+    prof_vertical_sino: np.ndarray,
+    horizontal_idx: int,
+    vertical_idx: int,
     height: float,
-    fw: float,
-    lw: float,
-    rw: float,
-    fn: float,
-    ln: float,
-    rn: float,
+    fh: float,
+    lh: float,
+    rh: float,
+    fv: float,
+    lv: float,
+    rv: float,
     out_path: str,
     show_plots: bool = False,
+    pixel_size: float = None,
+    magnification: float = None,
 ) -> None:
     """
-    Plot the widest and narrowest sinogram profiles with FWHM/FW15M lines.
+    Plot the horizontal and vertical sinogram profiles with FWHM/FW15M lines.
 
     Parameters
     ----------
     radial
-        Radial coordinates array.
-    prof_wide_sino
-        Intensity array of the widest profile.
-    prof_narrow_sino
-        Intensity array of the narrowest profile.
-    wide_idx
-        Index of the widest profile.
-    narrow_idx
-        Index of the narrowest profile.
+        Radial coordinates array (in pixels).
+    prof_horizontal_sino
+        Intensity array of the horizontal profile.
+    prof_vertical_sino
+        Intensity array of the vertical profile.
+    horizontal_idx
+        Index of the horizontal profile.
+    vertical_idx
+        Index of the vertical profile.
     height
         Relative height for the width measurement (e.g., 0.5 for FWHM).
-    fw
-        Width of the widest profile.
-    lw
-        Left coordinate of the widest profile width.
-    rw
-        Right coordinate of the widest profile width.
-    fn
-        Width of the narrowest profile.
-    ln
-        Left coordinate of the narrowest profile width.
-    rn
-        Right coordinate of the narrowest profile width.
+    fh
+        Width of the horizontal profile (in pixels).
+    lh
+        Left coordinate of the horizontal profile width.
+    rh
+        Right coordinate of the horizontal profile width.
+    fv
+        Width of the vertical profile (in pixels).
+    lv
+        Left coordinate of the vertical profile width.
+    rv
+        Right coordinate of the vertical profile width.
     out_path
         Path to save the figure.
     show_plots
         If True, display the plot.
+    pixel_size
+        Pixel size in mm. If provided with magnification, x-axis will be in mm.
+    magnification
+        Magnification factor. If provided with pixel_size, x-axis will be in mm.
 
     Returns
     -------
     None
         This function saves a file and does not return a value.
     """
+    # Convert to mm if pixel_size and magnification are provided
+    if pixel_size is not None and magnification is not None:
+        scale_factor = pixel_size / magnification
+        radial_display = radial * scale_factor
+        fh_display = fh * scale_factor
+        fv_display = fv * scale_factor
+        x_label = "Radial Offset (mm)"
+        width_unit = "mm"
+    else:
+        radial_display = radial
+        fh_display = fh
+        fv_display = fv
+        x_label = "Radial Offset (pixels)"
+        width_unit = "px"
+
     fig, ax = plt.subplots(figsize=(8, 4))
 
     # Plot the two sinogram profiles
-    ax.plot(radial, prof_wide_sino, label=f"Widest (idx={wide_idx})", color="teal")
     ax.plot(
-        radial, prof_narrow_sino, label=f"Narrowest (idx={narrow_idx})", color="orange"
+        radial_display, prof_horizontal_sino, label=f"Horizontal (idx={horizontal_idx})", color="teal"
+    )
+    ax.plot(
+        radial_display,
+        prof_vertical_sino,
+        label=f"Vertical (idx={vertical_idx})",
+        color="orange",
     )
 
     # Compute threshold levels (profiles are baseline-subtracted, so use peak * height)
-    half_w = prof_wide_sino.max() * height
-    half_n = prof_narrow_sino.max() * height
+    half_h = prof_horizontal_sino.max() * height
+    half_v = prof_vertical_sino.max() * height
 
     # Interpolate radial coordinates at fractional indices
     idx = np.arange(len(radial))
-    lw_val = np.interp(lw, idx, radial)
-    rw_val = np.interp(rw, idx, radial)
-    ln_val = np.interp(ln, idx, radial)
-    rn_val = np.interp(rn, idx, radial)
+    lh_val = np.interp(lh, idx, radial_display)
+    rh_val = np.interp(rh, idx, radial_display)
+    lv_val = np.interp(lv, idx, radial_display)
+    rv_val = np.interp(rv, idx, radial_display)
 
     # Draw the half-max horizontal lines spanning between left/right edges
     ax.hlines(
-        half_w,
-        lw_val,
-        rw_val,
+        half_h,
+        lh_val,
+        rh_val,
         linestyles="-.",
         color="teal",
-        label=f"Widest FWHM = {fw:.2f}px",
+        label=f"Horizontal FWHM = {fh_display:.2f}{width_unit}",
     )
     ax.hlines(
-        half_n,
-        ln_val,
-        rn_val,
+        half_v,
+        lv_val,
+        rv_val,
         linestyles="--",
         color="orange",
-        label=f"Narrowest FWHM = {fn:.2f}px",
+        label=f"Vertical FWHM = {fv_display:.2f}{width_unit}",
     )
 
     ax.grid(which="major", linestyle="-", linewidth=0.8, alpha=0.7)
     ax.grid(which="minor", linestyle=":", linewidth=0.5, alpha=0.5)
     ax.minorticks_on()
 
-    ax.set_xlabel("Radial Offset (pixels)")
+    ax.set_xlabel(x_label)
     ax.set_ylabel("Intensity")
     ax.set_title("Central FWHM on Sinogram Profiles")
     ax.legend(loc="upper right")
@@ -245,8 +271,8 @@ def plot_profiles_with_fwhm(
 
 def plot_sinogram_with_traced_profiles(
     sinogram: np.ndarray,
-    wide_idx: int,
-    narrow_idx: int,
+    horizontal_idx: int,
+    vertical_idx: int,
     out_path: str,
     reconstruction_type: str,
     show_plots: bool,
@@ -258,10 +284,10 @@ def plot_sinogram_with_traced_profiles(
     ----------
     sinogram
         The sinogram image/array.
-    wide_idx
-        Index of the widest (or horizontal) profile.
-    narrow_idx
-        Index of the narrowest (or vertical) profile.
+    horizontal_idx
+        Index of the horizontal profile.
+    vertical_idx
+        Index of the vertical profile.
     out_path
         Path to save the figure.
     reconstruction_type
@@ -278,36 +304,36 @@ def plot_sinogram_with_traced_profiles(
     ax.imshow(sinogram, cmap="gray", aspect="auto")
 
     if reconstruction_type == "psf":
-        ax.set_title("Sinogram with Horizontal & Vertical Profiles")
+        ax.set_title("Sinogram with Horizontal and Vertical Profiles")
         ax.axvline(
-            wide_idx,
+            horizontal_idx,
             color="red",
             linestyle="--",
             linewidth=2,
-            label=f"Horizontal (idx={wide_idx})",
+            label=f"Horizontal (idx={horizontal_idx})",
         )
         ax.axvline(
-            narrow_idx,
+            vertical_idx,
             color="blue",
             linestyle="--",
             linewidth=2,
-            label=f"Vertical (idx={narrow_idx})",
+            label=f"Vertical (idx={vertical_idx})",
         )
     else:
-        ax.set_title("Sinogram with Widest & Narrowest Profiles")
+        ax.set_title("Sinogram with Horizontal and Vertical Profiles")
         ax.axvline(
-            wide_idx,
+            horizontal_idx,
             color="red",
             linestyle="--",
             linewidth=2,
-            label=f"Widest (idx={wide_idx})",
+            label=f"Horizontal (idx={horizontal_idx})",
         )
         ax.axvline(
-            narrow_idx,
+            vertical_idx,
             color="blue",
             linestyle="--",
             linewidth=2,
-            label=f"Narrowest (idx={narrow_idx})",
+            label=f"Vertical (idx={vertical_idx})",
         )
 
     ax.set_xlabel("Angle Index")
@@ -323,8 +349,8 @@ def plot_sinogram_with_traced_profiles(
 
 def plot_recon_with_lines(
     recon: np.ndarray,
-    angle_wide: float,
-    angle_narrow: float,
+    angle_horizontal: float,
+    angle_vertical: float,
     out_path: str,
     show_plots: bool = False,
     reconstruction_type: str = "fs",
@@ -336,10 +362,10 @@ def plot_recon_with_lines(
     ----------
     recon
         2D reconstruction image.
-    angle_wide
-        Angle in degrees for the widest profile.
-    angle_narrow
-        Angle in degrees for the narrowest profile.
+    angle_horizontal
+        Angle in degrees for the horizontal profile.
+    angle_vertical
+        Angle in degrees for the vertical profile.
     out_path
         Path to save the figure.
     show_plots
@@ -364,20 +390,20 @@ def plot_recon_with_lines(
     ax.set_aspect("equal")
 
     half_diag = int(np.sqrt(h**2 + w**2) / 2) + 10
-    for angle, color in [(angle_wide, "red"), (angle_narrow, "blue")]:
+    for angle, color in [(angle_horizontal, "red"), (angle_vertical, "blue")]:
         theta = np.deg2rad(angle)
         dx = half_diag * np.cos(theta)
         dy = half_diag * np.sin(theta)
         ax.plot([cx - dx, cx + dx], [cy - dy, cy + dy], color=color, linewidth=2)
 
     if reconstruction_type == "psf":
-        ax.set_title("PSF with Horizontal & Vertical Profiles")
+        ax.set_title("PSF with Horizontal and Vertical Profiles")
         legend_labels = ["Horizontal (0°)", "Vertical (90°)"]
     else:
-        ax.set_title("Focal Spot with Widest & Narrowest Profiles")
+        ax.set_title("Focal Spot with Horizontal and Vertical Profiles")
         legend_labels = [
-            f"Widest (angle={angle_wide}°)",
-            f"Narrowest (angle={angle_narrow}°)",
+            f"Horizontal (angle={angle_horizontal}°)",
+            f"Vertical (angle={angle_vertical}°)",
         ]
 
     ax.legend(legend_labels)
@@ -395,6 +421,8 @@ def plot_profile_with_gaussian(
     popt: tuple[float, float, float, float],
     out_path: str,
     show_plots: bool = False,
+    pixel_size: float = None,
+    magnification: float = None,
 ) -> None:
     """
     Plot a sinogram profile with its Gaussian fit.
@@ -402,7 +430,7 @@ def plot_profile_with_gaussian(
     Parameters
     ----------
     radial
-        1D array of radial positions (centered, e.g. -L..+L).
+        1D array of radial positions (centered, e.g. -L..+L, in pixels).
     sinogram_profile
         1D array of intensity values.
     popt
@@ -412,6 +440,10 @@ def plot_profile_with_gaussian(
         Path to save the plot.
     show_plots
         Whether to display the plot interactively.
+    pixel_size
+        Pixel size in mm. If provided with magnification, x-axis will be in mm.
+    magnification
+        Magnification factor. If provided with pixel_size, x-axis will be in mm.
 
     Returns
     -------
@@ -426,19 +458,28 @@ def plot_profile_with_gaussian(
     mu_phys = (mu - center) * spacing
     sigma_phys = sigma * spacing
 
+    # Convert to mm if pixel_size and magnification are provided
+    if pixel_size is not None and magnification is not None:
+        scale_factor = pixel_size / magnification
+        radial_display = radial * scale_factor
+        x_label = "Radial Position (mm)"
+    else:
+        radial_display = radial
+        x_label = "Radial Position (px)"
+
     # Create a dense index axis for smooth curve
-    radial_dense = np.linspace(radial[0], radial[-1], 500)
+    radial_dense = np.linspace(radial_display[0], radial_display[-1], 500)
     # Compute fitted Gaussian in index‐space
     fitted_dense = (
         A * np.exp(-((radial_dense - mu_phys) ** 2) / (2 * sigma_phys**2)) + B
     )
 
     plt.figure(figsize=(8, 4))
-    plt.plot(radial, sinogram_profile, label="Data")
+    plt.plot(radial_display, sinogram_profile, label="Data")
     plt.plot(radial_dense, fitted_dense, linestyle="--", label="Gaussian Fit")
 
     plt.title("Sinogram Profile with Gaussian Fit")
-    plt.xlabel("Radial Position (px)")
+    plt.xlabel(x_label)
     plt.ylabel("Intensity")
     plt.legend()
     plt.grid(True)
