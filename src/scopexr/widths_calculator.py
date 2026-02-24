@@ -19,6 +19,8 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.special import erf
 
+from . import utils
+
 
 def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
     """
@@ -396,3 +398,49 @@ def find_extreme_profiles_gaussian(
         narrow_idx = 0
 
     return wide_idx, narrow_idx, sigmas, popts
+
+
+def compute_lsf_from_projection(
+    reconstruction: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute LSF by projecting the focal spot reconstruction along each axis.
+
+    This method sums all horizontal profiles across the FS to compute the vertical profile,
+    and sums all vertical profiles to compute the horizontal profile.
+
+    Parameters
+    ----------
+    reconstruction
+        2D array representing the reconstructed focal spot.
+
+    Returns
+    -------
+    horizontal_lsf : np.ndarray
+        1D profile along horizontal axis (sum along vertical direction, axis=0).
+    vertical_lsf : np.ndarray
+        1D profile along vertical axis (sum along horizontal direction, axis=1).
+    """
+    # Sum along axis=0 gives horizontal profile (collapse vertical)
+    horizontal_lsf = np.sum(reconstruction, axis=0)
+
+    # Sum along axis=1 gives vertical profile (collapse horizontal)
+    vertical_lsf = np.sum(reconstruction, axis=1)
+
+    # Baseline subtraction
+    h_baseline = utils.background_percentile(horizontal_lsf, low_frac=0.15)
+    v_baseline = utils.background_percentile(vertical_lsf, low_frac=0.15)
+    horizontal_lsf = horizontal_lsf - h_baseline
+    vertical_lsf = vertical_lsf - v_baseline
+
+    horizontal_lsf = np.clip(horizontal_lsf, 0, None)
+    vertical_lsf = np.clip(vertical_lsf, 0, None)
+
+    h_sum = np.sum(horizontal_lsf)
+    v_sum = np.sum(vertical_lsf)
+    if h_sum > 0:
+        horizontal_lsf = horizontal_lsf / h_sum
+    if v_sum > 0:
+        vertical_lsf = vertical_lsf / v_sum
+
+    return horizontal_lsf, vertical_lsf

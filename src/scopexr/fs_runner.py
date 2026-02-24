@@ -184,49 +184,32 @@ def run_pipeline_fs():
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    # Find narrow profile only, then compute the wide profile as perpendicular
-    wide_idx, _, _ = wc.find_extreme_profiles_erf(profiles)
-    narrow_idx = (wide_idx + 90) % sinogram.shape[1]
+    # Compute LSF from projection of the focal spot reconstruction
+    # Horizontal LSF: sum along vertical axis (axis=0), Vertical LSF: sum along horizontal axis (axis=1)
+    prof_wide_sino, prof_narrow_sino = wc.compute_lsf_from_projection(
+        reconstruction)
 
-    # THIS OVERRIDES THE ABOVE, AS IT IS COMMON IN NORMATIVES
-    # Find horizontal and vertical profiles
-    angle_step = 360.0 / n_angles
-    angles = np.arange(n_angles) * angle_step
-
-    wide_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
-    narrow_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
-
-    # print(f"Widest edge at angle idx {wide_idx}")
-    # print(f"Narrowest edge at angle idx {narrow_idx}")
-    print(f"Horizontal edge at angle idx {wide_idx}")
-    print(f"Vertical edge at angle idx {narrow_idx}")
-
-    if avg_neighbors:
-        prof_wide_sino = wc.average_neighbors(sinogram, wide_idx, avg_number)
-        prof_narrow_sino = wc.average_neighbors(sinogram, narrow_idx, avg_number)
-    else:
-        prof_wide_sino = sinogram[:, wide_idx]
-        prof_narrow_sino = sinogram[:, narrow_idx]
-
-    prof_wide_sino -= utils.background_percentile(prof_wide_sino, low_frac=0.15)
-    prof_narrow_sino -= utils.background_percentile(prof_narrow_sino, low_frac=0.15)
-
+    # Calculate FWHM and FW15M
     fw, lw, rw = wc.fwhm(prof_wide_sino)
     fn, ln, rn = wc.fwhm(prof_narrow_sino)
-    print(f"Horizontal:   FWHM={fw}px (from {lw} to {rw})")
-    print(f"Vertical: FWHM={fn}px (from {ln} to {rn})")
+    print(f"Horizontal:   FWHM={fw:.2f}px")
+    print(f"Vertical:     FWHM={fn:.2f}px")
 
     f15w, l15w, r15w = wc.fw15m(prof_wide_sino)
     f15n, l15n, r15n = wc.fw15m(prof_narrow_sino)
-    print(f"Horizontal:   FW15M={f15w}px (from {l15w} to {r15w})")
-    print(f"Vertical: FW15M={f15n}px (from {l15n} to {r15n})")
-    # fw_erf = wc.fwhm_from_sigma(sigmas[wide_idx])
-    # fn_erf = wc.fwhm_from_sigma(sigmas[narrow_idx])
-    # print(f"Widest (ERF):   FWHM={fw_erf:.2f}px")
-    # print(f"Narrowest (ERF): FWHM={fn_erf:.2f}px")
+    print(f"Horizontal:   FW15M={f15w:.2f}px")
+    print(f"Vertical:     FW15M={f15n:.2f}px")
 
-    n_rays = sinogram.shape[0]
-    radial = np.arange(n_rays) - n_rays // 2
+    # Create radial coordinate array for projection profiles
+    angle_step = 360.0 / n_angles
+    angles = np.arange(n_angles) * angle_step
+    wide_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
+    narrow_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
+    angle_wide_deg = angles[wide_idx]
+    angle_narrow_deg = angles[narrow_idx]
+    
+    n_h = len(prof_wide_sino)
+    radial = np.arange(n_h) - n_h // 2
 
     data = np.column_stack((radial, prof_wide_sino, prof_narrow_sino))
 
@@ -234,12 +217,12 @@ def run_pipeline_fs():
         out_dir / "profiles.csv",
         data,
         delimiter=",",
-        header="radial,wide_profile,narrow_profile",
+        header="radial,horizontal_lsf,vertical_lsf",
         comments="",
-        fmt=["%d", "%.6f", "%.6f"],
+        fmt=["%.6f", "%.6f", "%.6f"],
     )
 
-    fwhm_path = out_dir / "fwhm_sinogram_profiles.png"
+    fwhm_path = out_dir / "fwhm_profiles.png"
     plotters.plot_profiles_with_fwhm(
         radial,
         prof_wide_sino,
@@ -257,7 +240,7 @@ def run_pipeline_fs():
         show_plots,
     )
 
-    fw15m_path = out_dir / "fw15m_sinogram_profiles.png"
+    fw15m_path = out_dir / "fw15m_profiles.png"
     plotters.plot_profiles_with_fwhm(
         radial,
         prof_wide_sino,
@@ -275,6 +258,81 @@ def run_pipeline_fs():
         show_plots,
     )
 
+    # Compute LSF from projection of the focal spot reconstruction
+    horizontal_lsf_proj, vertical_lsf_proj = wc.compute_lsf_from_projection(
+        reconstruction, 
+    )
+
+    # Calculate FWHM and FW15M for projection-based profiles
+    fw_proj, lw_proj, rw_proj = wc.fwhm(horizontal_lsf_proj)
+    fn_proj, ln_proj, rn_proj = wc.fwhm(vertical_lsf_proj)
+    f15w_proj, l15w_proj, r15w_proj = wc.fw15m(horizontal_lsf_proj)
+    f15n_proj, l15n_proj, r15n_proj = wc.fw15m(vertical_lsf_proj)
+
+    print(
+        f"Horizontal: FWHM={fw_proj:.2f}px, FW15M={f15w_proj:.2f}px"
+    )
+    print(
+        f"Vertical:   FWHM={fn_proj:.2f}px, FW15M={f15n_proj:.2f}px"
+    )
+
+    # Save projection-based LSF profiles to file
+    n_h = len(horizontal_lsf_proj)
+    n_v = len(vertical_lsf_proj)
+    radial_h_proj = np.arange(n_h) - n_h // 2
+    radial_v_proj = np.arange(n_v) - n_v // 2
+
+    proj_data = np.column_stack(
+        (
+            (
+                radial_h_proj
+                if len(radial_h_proj) >= len(radial_v_proj)
+                else np.pad(
+                    radial_h_proj,
+                    (0, len(radial_v_proj) - len(radial_h_proj)),
+                    constant_values=np.nan,
+                )
+            ),
+            (
+                horizontal_lsf_proj
+                if len(horizontal_lsf_proj) >= len(vertical_lsf_proj)
+                else np.pad(
+                    horizontal_lsf_proj,
+                    (0, len(vertical_lsf_proj) - len(horizontal_lsf_proj)),
+                    constant_values=np.nan,
+                )
+            ),
+            (
+                radial_v_proj
+                if len(radial_v_proj) >= len(radial_h_proj)
+                else np.pad(
+                    radial_v_proj,
+                    (0, len(radial_h_proj) - len(radial_v_proj)),
+                    constant_values=np.nan,
+                )
+            ),
+            (
+                vertical_lsf_proj
+                if len(vertical_lsf_proj) >= len(horizontal_lsf_proj)
+                else np.pad(
+                    vertical_lsf_proj,
+                    (0, len(horizontal_lsf_proj) - len(vertical_lsf_proj)),
+                    constant_values=np.nan,
+                )
+            ),
+        )
+    )
+
+    np.savetxt(
+        out_dir / "lsf_projection.csv",
+        proj_data,
+        delimiter=",",
+        header="radial_h,horizontal_lsf,radial_v,vertical_lsf",
+        comments="",
+        fmt="%.6f",
+    )
+
+
     sino_with_lines_path = out_dir / "sinogram_traced_profiles.png"
     plotters.plot_sinogram_with_traced_profiles(
         sinogram,
@@ -285,9 +343,6 @@ def run_pipeline_fs():
         show_plots=show_plots,
     )
 
-    angle_step = 360.0 / n_angles
-    angle_wide_deg = wide_idx * angle_step
-    angle_narrow_deg = narrow_idx * angle_step
     spot_with_lines_path = out_dir / "focal_spot_traced_profiles.png"
     plotters.plot_recon_with_lines(
         reconstruction,
@@ -298,14 +353,15 @@ def run_pipeline_fs():
         reconstruction_type="fs",
     )
 
+    # Compute focal spot physical dimensions
     wide_fs = wc.compute_fs_width(fw, pixel_size, m_fs)
     narrow_fs = wc.compute_fs_width(fn, pixel_size, m_fs)
-    print(f"Horizontal focal spot width: {wide_fs:.3f} mm")
-    print(f"Vertical focal spot width: {narrow_fs:.3f} mm")
+    print(f"Horizontal focal spot width (FWHM): {wide_fs:.3f} mm")
+    print(f"Vertical focal spot width (FWHM):   {narrow_fs:.3f} mm")
     wide_fs15m = wc.compute_fs_width(f15w, pixel_size, m_fs)
     narrow_fs15m = wc.compute_fs_width(f15n, pixel_size, m_fs)
     print(f"Horizontal focal spot width (FW15M): {wide_fs15m:.3f} mm")
-    print(f"Vertical focal spot width (FW15M): {narrow_fs15m:.3f} mm")
+    print(f"Vertical focal spot width (FW15M):   {narrow_fs15m:.3f} mm")
 
     # wide_fs_erf = wc.compute_fs_width(fw_erf, pixel_size, m_fs)
     # narrow_fs_erf = wc.compute_fs_width(fn_erf, pixel_size, m_fs)
@@ -333,8 +389,6 @@ def run_pipeline_fs():
         "",
         # --- Group by Widest Profile ---
         "--- Horizontal Profile Results ---",
-        f"{'Angle Index:': <{label_width}} {wide_idx}",
-        f"{'Angle (Degrees):': <{label_width}} {wide_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fw:.3f} px",
         f"{'FW15M:': <{label_width}} {f15w:.3f} px",
         f"{'Spot Size (FWHM):': <{label_width}} {wide_fs:.3f} mm",
@@ -342,8 +396,6 @@ def run_pipeline_fs():
         "",
         # --- Group by Narrowest Profile ---
         "--- Vertical Profile Results ---",
-        f"{'Angle Index:': <{label_width}} {narrow_idx}",
-        f"{'Angle (Degrees):': <{label_width}} {narrow_idx * angle_step:.1f}deg",
         f"{'FWHM:': <{label_width}} {fn:.3f} px",
         f"{'FW15M:': <{label_width}} {f15n:.3f} px",
         f"{'Spot Size (FWHM):': <{label_width}} {narrow_fs:.3f} mm",
