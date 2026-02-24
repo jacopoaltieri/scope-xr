@@ -221,6 +221,7 @@ def run_pipeline_fs():
         fmt=["%.6f", "%.6f", "%.6f"],
     )
 
+
     fwhm_path = out_dir / "fwhm_profiles.png"
     plotters.plot_profiles_with_fwhm(
         radial,
@@ -232,9 +233,9 @@ def run_pipeline_fs():
         fh,
         lh,
         rh,
-        f15v,
-        l15v,
-        r15v,
+        fv,
+        lv,
+        rv,
         fwhm_path,
         show_plots,
         pixel_size,
@@ -322,14 +323,7 @@ def run_pipeline_fs():
         )
     )
 
-    np.savetxt(
-        out_dir / "lsf_projection.csv",
-        proj_data,
-        delimiter=",",
-        header="radial_h,horizontal_lsf,radial_v,vertical_lsf",
-        comments="",
-        fmt="%.6f",
-    )
+
 
     sino_with_lines_path = out_dir / "sinogram_traced_profiles.png"
     plotters.plot_sinogram_with_traced_profiles(
