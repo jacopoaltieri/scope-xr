@@ -46,7 +46,10 @@ class TestCompute1dMtf:
         psf = create_gaussian_psf(100, 5.0)
         pixel_size = 0.1  # mm
 
-        freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
+        # Extract 1D LSF from center row
+        lsf = psf[psf.shape[0] // 2, :]
+
+        freq, mtf_1d, mtf10 = compute_1d_mtf(lsf, pixel_size)
 
         assert len(freq) > 0
         assert len(mtf_1d) == len(freq)
@@ -58,7 +61,10 @@ class TestCompute1dMtf:
         psf = create_gaussian_psf(100, 5.0)
         pixel_size = 0.1
 
-        freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
+        # Extract 1D LSF from center row
+        lsf = psf[psf.shape[0] // 2, :]
+
+        freq, mtf_1d, mtf10 = compute_1d_mtf(lsf, pixel_size)
 
         # MTF should generally decrease
         assert mtf_1d[0] > mtf_1d[len(mtf_1d) // 2]
@@ -69,8 +75,12 @@ class TestCompute1dMtf:
         psf = create_gaussian_psf(100, 5.0)
         pixel_size = 0.1
 
-        freq0, mtf0, mtf10_0 = compute_1d_mtf(psf, pixel_size, axis=0)
-        freq1, mtf1, mtf10_1 = compute_1d_mtf(psf, pixel_size, axis=1)
+        # Extract 1D LSF from different axes
+        lsf0 = psf[psf.shape[0] // 2, :]
+        lsf1 = psf[:, psf.shape[1] // 2]
+
+        freq0, mtf0, mtf10_0 = compute_1d_mtf(lsf0, pixel_size)
+        freq1, mtf1, mtf10_1 = compute_1d_mtf(lsf1, pixel_size)
 
         # For symmetric PSF, results should be similar
         assert len(freq0) == len(freq1)
@@ -83,8 +93,11 @@ class TestCompute1dMtf:
         psf_narrow = create_gaussian_psf(100, 2.0)
         psf_wide = create_gaussian_psf(100, 5.0)
 
-        _, _, mtf10_narrow = compute_1d_mtf(psf_narrow, pixel_size, axis=0)
-        _, _, mtf10_wide = compute_1d_mtf(psf_wide, pixel_size, axis=0)
+        lsf_narrow = psf_narrow[psf_narrow.shape[0] // 2, :]
+        lsf_wide = psf_wide[psf_wide.shape[0] // 2, :]
+
+        _, _, mtf10_narrow = compute_1d_mtf(lsf_narrow, pixel_size)
+        _, _, mtf10_wide = compute_1d_mtf(lsf_wide, pixel_size)
 
         # Narrower PSF should have higher MTF10 (if not NaN)
         if not np.isnan(mtf10_narrow) and not np.isnan(mtf10_wide):
@@ -94,8 +107,10 @@ class TestCompute1dMtf:
         """Test effect of pixel size on frequency axis."""
         psf = create_gaussian_psf(100, 5.0)
 
-        freq_small, _, _ = compute_1d_mtf(psf, 0.05, axis=0)
-        freq_large, _, _ = compute_1d_mtf(psf, 0.1, axis=0)
+        lsf = psf[psf.shape[0] // 2, :]
+
+        freq_small, _, _ = compute_1d_mtf(lsf, 0.05)
+        freq_large, _, _ = compute_1d_mtf(lsf, 0.1)
 
         # Smaller pixel size should give higher max frequency
         assert np.max(freq_small) > np.max(freq_large)
@@ -105,7 +120,9 @@ class TestCompute1dMtf:
         psf = create_gaussian_psf(100, 5.0)
         pixel_size = 0.1
 
-        freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
+        lsf = psf[psf.shape[0] // 2, :]
+
+        freq, mtf_1d, mtf10 = compute_1d_mtf(lsf, pixel_size)
 
         if not np.isnan(mtf10):
             # MTF10 should be a positive frequency
@@ -122,7 +139,9 @@ class TestCompute1dMtf:
         psf = psf / np.sum(psf)
         pixel_size = 0.1
 
-        freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
+        lsf = psf[psf.shape[0] // 2, :]
+
+        freq, mtf_1d, mtf10 = compute_1d_mtf(lsf, pixel_size)
 
         # If MTF drops to 0.1 at first index, it should return freq_pos[0]
         if not np.isnan(mtf10) and len(freq) > 0:
@@ -181,7 +200,9 @@ class TestCompute1dMtf:
         psf[50, 50] = 1.0  # Delta function
         pixel_size = 0.1
 
-        freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
+        lsf = psf[psf.shape[0] // 2, :]
+
+        freq, mtf_1d, mtf10 = compute_1d_mtf(lsf, pixel_size)
 
         # MTF10 may be NaN if never reaches 0.1
         assert len(freq) > 0
@@ -197,7 +218,9 @@ class TestCompute1dMtf:
         psf = psf / np.sum(psf)
         pixel_size = 0.01  # Very small pixel for high frequencies
 
-        freq, mtf_1d, mtf10 = compute_1d_mtf(psf, pixel_size, axis=0)
+        lsf = psf[psf.shape[0] // 2, :]
+
+        freq, mtf_1d, mtf10 = compute_1d_mtf(lsf, pixel_size)
 
         # This PSF should have rapidly decreasing MTF
         assert len(freq) > 0

@@ -18,19 +18,17 @@ import numpy as np
 
 
 def compute_1d_mtf(
-    psf: np.ndarray, pixel_size: float, axis: int
+    lsf: np.ndarray, pixel_size: float
 ) -> tuple[np.ndarray, np.ndarray, float]:
     """
-    Compute 1D MTF from 2D PSF by integrating to LSF along specified axis.
+    Compute 1D MTF from LSF.
 
     Parameters
     ----------
-    psf
-        2D array representing the point spread function (PSF).
+    lsf
+        1D array representing the line spread function (LSF).
     pixel_size
         Pixel size in mm.
-    axis
-        Axis along which to integrate (0 for rows, 1 for columns).
 
     Returns
     -------
@@ -41,8 +39,6 @@ def compute_1d_mtf(
     mtf10: float
         Frequency at which MTF drops to 10% (cycles/mm).
     """
-    # Compute LSF
-    lsf = np.sum(psf, axis=axis)
     lsf = lsf / np.sum(lsf) if np.sum(lsf) != 0 else lsf
 
     # Compute FFT and frequencies

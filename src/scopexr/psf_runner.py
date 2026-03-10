@@ -16,6 +16,7 @@
 
 from pathlib import Path
 import numpy as np
+from scipy.optimize import curve_fit
 
 
 from . import utils, plotters
@@ -133,7 +134,6 @@ def run_pipeline_psf():
         cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
     )
 
-    # Center sinogram if requested
     if manual_shift is not None:
         print(f"Applying manual shift: {manual_shift} px")
         centered_sino, applied_shift = sr.manual_center_sinogram(sinogram, manual_shift)
@@ -149,13 +149,6 @@ def run_pipeline_psf():
 
     reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
-    # Shift the central axis and save as a sequence. Useful to check if the centering is correct.
-    shift_list = list(range(-axis_shifts, axis_shifts))
-    shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
-    sr.reconstruct_with_axis_shifts(
-        sinogram, shift_tiff_path, filter_name, shifts=shift_list
-    )
-
     utils.save_and_plot("profiles", profiles, out_dir)
     utils.save_and_plot("sinogram", sinogram, out_dir)
     utils.save_and_plot("reconstruction", reconstruction, out_dir)
@@ -168,63 +161,84 @@ def run_pipeline_psf():
         show_plots,
         reconstruction_type="psf",
     )
-
-    # Find horizontal and vertical profiles using projection-based LSF
-
-    # Horizontal LSF: sum along vertical axis (axis=0)
-    # Vertical LSF: sum along horizontal axis (axis=1)
-    prof_h_sino, prof_v_sino = wc.compute_lsf_from_projection(
-        reconstruction, normalize=False, baseline_subtraction=True
+    
+    # Sinogram reconstruction with axis shifts
+    shift_list = list(range(-axis_shifts, axis_shifts))
+    shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
+    sr.reconstruct_with_axis_shifts(
+        sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
-    # Get Gaussian fit parameters (we can still compute these for consistency)
-    _, _, sigmas, pops = wc.find_extreme_profiles_gaussian(sinogram)
-    angle_step = 360.0 / n_angles
-    angles = np.arange(n_angles) * angle_step
-    h_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
-    v_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
+    # Compute LSF from projection of the focal spot reconstruction
+    # Horizontal LSF: sum along vertical axis (axis=0), Vertical LSF: sum along horizontal axis (axis=1)
+    prof_horizontal, prof_vertical = wc.compute_lsf_from_projection(reconstruction)
 
-    popt_h = pops[h_idx]
-    popt_v = pops[v_idx]
-    # Already baseline-subtracted in compute_lsf_from_projection
-    prof_h_corr = prof_h_sino
-    prof_v_corr = prof_v_sino
+    # Calculate FWHM and FW15M
+    fh, lh, rh = wc.fwhm(prof_horizontal)
+    fv, lv, rv = wc.fwhm(prof_vertical)
+    print(f"Horizontal:   FWHM={fh:.2f}px")
+    print(f"Vertical:     FWHM={fv:.2f}px")
 
-    # Use FWHM from projection profiles
-    fw_h, _, _ = wc.fwhm(prof_h_corr)
-    fw_v, _, _ = wc.fwhm(prof_v_corr)
-    f15_h, l15_h, r15_h = wc.fw15m(prof_h_corr)
-    f15_v, l15_v, r15_v = wc.fw15m(prof_v_corr)
-    print(f"Horizontal:   FWHM={fw_h:.2f}px")
-    print(f"Vertical:     FWHM={fw_v:.2f}px")
-    print(f"Horizontal:   FW15M={f15_h:.2f}px (from {l15_h:.2f} to {r15_h:.2f})")
-    print(f"Vertical:     FW15M={f15_v:.2f}px (from {l15_v:.2f} to {r15_v:.2f})")
 
     # Create radial coordinate array for projection profiles
-    radial = np.arange(len(prof_h_corr)) - (len(prof_h_corr) // 2)
+    angle_step = 360.0 / n_angles
+    angles = np.arange(n_angles) * angle_step
+    horizontal_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
+    vertical_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
+    angle_horizontal_deg = angles[horizontal_idx]
+    angle_vertical_deg = angles[vertical_idx]
 
-    # Adjust Gaussian fit parameters for baseline subtraction (for plotting compatibility)
-    popt_h_corr = popt_h.copy()
-    popt_v_corr = popt_v.copy()
-    # Since we're using projection profiles, adjust baseline to 0
-    popt_h_corr[3] = 0
-    popt_v_corr[3] = 0
+    radial = np.arange(len(prof_horizontal)) - (len(prof_horizontal) // 2)
+    data = np.column_stack((radial, prof_horizontal, prof_vertical))
+
+    np.savetxt(
+        out_dir / "profiles.csv",
+        data,
+        delimiter=",",
+        header="radial,horizontal_lsf,vertical_lsf",
+        comments="",
+        fmt=["%.6f", "%.6f", "%.6f"],
+    )
+
+    # Fit Gaussian to projection-based profiles for plotting 
+    def gaussian_fit(x, A, mu, sigma, B):
+        return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
+    
+    try:
+        popt_h_corr, _ = curve_fit(
+            gaussian_fit, radial, prof_horizontal,
+            p0=[np.max(prof_horizontal), 0, fh / 2.355, 0],
+            maxfev=5000
+        )
+
+    except Exception:
+        popt_h_corr = np.array([np.max(prof_horizontal), 0, fh / 2.355, 0])
+    
+    try:
+        popt_v_corr, _ = curve_fit(
+            gaussian_fit, radial, prof_vertical,
+            p0=[np.max(prof_vertical), 0, fv / 2.355, 0],
+            maxfev=5000
+        )
+    except Exception:
+        popt_v_corr = np.array([np.max(prof_vertical), 0, fv / 2.355, 0])
 
     # Plot profiles with Gaussian fits
     plotters.plot_profile_with_gaussian(
         radial=radial,
-        sinogram_profile=prof_h_corr,
+        intensity_profile=prof_horizontal,
         popt=popt_h_corr,
-        out_path=out_dir / "sinogram_profile_horizontal.png",
+        out_path=out_dir / "lsf_profile_horizontal.png",
         show_plots=show_plots,
         pixel_size=pixel_size,
         magnification=1.0,
     )
+    
     plotters.plot_profile_with_gaussian(
         radial=radial,
-        sinogram_profile=prof_v_corr,
+        intensity_profile=prof_vertical,
         popt=popt_v_corr,
-        out_path=out_dir / "sinogram_profile_vertical.png",
+        out_path=out_dir / "lsf_profile_vertical.png",
         show_plots=show_plots,
         pixel_size=pixel_size,
         magnification=1.0,
@@ -233,16 +247,16 @@ def run_pipeline_psf():
     # Plot sinogram and reconstruction with lines
     plotters.plot_sinogram_with_traced_profiles(
         sinogram,
-        h_idx,
-        v_idx,
+        horizontal_idx,
+        vertical_idx,
         out_dir / "sinogram_traced_profiles.png",
         reconstruction_type="psf",
         show_plots=show_plots,
     )
     plotters.plot_recon_with_lines(
         reconstruction,
-        h_idx,
-        v_idx,
+        horizontal_idx,
+        vertical_idx,
         out_dir / "psf_traced_profiles.png",
         show_plots=show_plots,
         reconstruction_type="psf",
@@ -250,20 +264,14 @@ def run_pipeline_psf():
 
     # Compute MTF in horizontal and vertical directions
 
-    # NOTE: The reconstruction introduces a filtering effect, so we compute MTF directly from sinogram
-    # freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf(
-    #     reconstruction, axis=0, pixel_size=pixel_size
-    # )
-    # freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(
-    #     reconstruction, axis=1, pixel_size=pixel_size
-    # )
-    freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf_from_sino(sinogram, pixel_size, h_idx)
+    # Compute MTF from the projection-based LSF profiles
+    freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf(prof_horizontal, pixel_size)
 
     mtf1_h = mtfc.get_mtf_at_freq(1.0, freq_h, mtf_h)
     mtf2_h = mtfc.get_mtf_at_freq(2.0, freq_h, mtf_h)
     mtf3_h = mtfc.get_mtf_at_freq(3.0, freq_h, mtf_h)
 
-    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf_from_sino(sinogram, pixel_size, v_idx)
+    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(prof_vertical, pixel_size,)
 
     mtf1_v = mtfc.get_mtf_at_freq(1.0, freq_v, mtf_v)
     mtf2_v = mtfc.get_mtf_at_freq(2.0, freq_v, mtf_v)
@@ -315,10 +323,8 @@ def run_pipeline_psf():
         f"{'LSF Method:': <{label_width}} Projection-based",
         "",
         "--- PSF Size (FWHM from Projection) ---",
-        f"{'FWHM Horizontal:': <{label_width}} {fw_h:.3f} px",
-        f"{'FWHM Vertical:': <{label_width}} {fw_v:.3f} px",
-        f"{'FW15M Horizontal:': <{label_width}} {f15_h:.3f} px",
-        f"{'FW15M Vertical:': <{label_width}} {f15_v:.3f} px",
+        f"{'FWHM Horizontal:': <{label_width}} {fh:.3f} px",
+        f"{'FWHM Vertical:': <{label_width}} {fv:.3f} px",
         "",
         "--- MTF Horizontal (from Projection) ---",
         f"{'MTF10:': <{label_width}} {mtf10_h:.3f} cycles/mm",
@@ -355,7 +361,7 @@ def run_pipeline_psf():
                 f"Using oversampling with 3-step Gaussian blur (sigma={gaussian_sigma})."
             )
 
-        sub_profiles, sub_sinogram = sr.compute_subpixel_profiles_and_sinogram(
+        profiles_oversampled, sinogram_oversampled = sr.compute_subpixel_profiles_and_sinogram(
             cropped,
             cx,
             cy,
@@ -375,128 +381,144 @@ def run_pipeline_psf():
             print(
                 f"Applying manual shift to oversampled sinogram: {manual_shift_ov} px"
             )
-            # Apply shift to sub_sinogram
+            # Apply shift to sinogram_oversampled
             centered_sino, applied_shift_ov = sr.manual_center_sinogram(
-                sub_sinogram, manual_shift_ov
+                sinogram_oversampled, manual_shift_ov
             )
-            sub_sinogram = centered_sino
+            sinogram_oversampled = centered_sino
         elif auto_shift:
             print("Running automatic sinogram centering (oversampled)...")
-            # Apply auto-shift to sub_sinogram
-            centered_sino, applied_shift_ov = sr.auto_center_sinogram(sub_sinogram)
-            sub_sinogram = centered_sino
+            # Apply auto-shift to sinogram_oversampled
+            centered_sino, applied_shift_ov = sr.auto_center_sinogram(sinogram_oversampled)
+            sinogram_oversampled = centered_sino
             print(f"Applied automatic axis shift: {applied_shift_ov} px (oversampled)")
         else:
             # No shift is applied
             applied_shift_ov = 0
             print("Sinogram shifting is disabled (oversampled).")
 
-        recon_sub = sr.reconstruct_focal_spot(sub_sinogram, filter_name, symmetrize)
+        recon_oversampled = sr.reconstruct_focal_spot(sinogram_oversampled, filter_name, symmetrize)
 
-        utils.save_and_plot("profiles_oversampled", sub_profiles, out_dir)
-        utils.save_and_plot("sinogram_oversampled", sub_sinogram, out_dir)
-        utils.save_and_plot("reconstruction_oversampled", recon_sub, out_dir)
+        utils.save_and_plot("profiles_oversampled", profiles_oversampled, out_dir)
+        utils.save_and_plot("sinogram_oversampled", sinogram_oversampled, out_dir)
+        utils.save_and_plot("reconstruction_oversampled", recon_oversampled, out_dir)
 
         plotters.plot_profiles_and_reconstruction(
-            sub_profiles,
-            sub_sinogram,
-            recon_sub,
+            profiles_oversampled,
+            sinogram_oversampled,
+            recon_oversampled,
             out_dir,
             show_plots,
             reconstruction_type="psf",
             suffix="_oversampled",
         )
 
-        # Find extreme profiles oversampled using projection-based LSF
-        print("Using projection-based LSF method (oversampled)")
-
-        # Compute LSF from projection of the oversampled PSF reconstruction
-        prof_h_sino_ov, prof_v_sino_ov = wc.compute_lsf_from_projection(
-            recon_sub, normalize=False, baseline_subtraction=True
+        # Oversampled sinogram reconstruction with axis shifts
+        shift_list = list(range(-axis_shifts, axis_shifts))
+        shift_tiff_path = out_dir / "oversampled_recon_axis_shifts.tiff"
+        sr.reconstruct_with_axis_shifts(
+            sinogram_oversampled, shift_tiff_path, filter_name, shifts=shift_list
         )
-
-        # Get Gaussian fit parameters for consistency
-        _, _, sigmas_ov, pops_ov = wc.find_extreme_profiles_gaussian(sub_sinogram)
-        popt_h_ov = pops_ov[h_idx]
-        popt_v_ov = pops_ov[v_idx]
-        # Already baseline-subtracted in compute_lsf_from_projection
-        prof_h_corr_ov = prof_h_sino_ov
-        prof_v_corr_ov = prof_v_sino_ov
-
-        # Adjust Gaussian fit parameters for baseline subtraction
-        popt_h_corr_ov = popt_h_ov.copy()
-        popt_v_corr_ov = popt_v_ov.copy()
-        popt_h_corr_ov[3] = 0
-        popt_v_corr_ov[3] = 0
+    
+        # Compute LSF from projection of the oversampled PSF reconstruction
+        prof_h_ov, prof_v_ov = wc.compute_lsf_from_projection(recon_oversampled)
 
         # FWHM value from oversampled (in 'oversampled pixels')
-        fw_h_ov_native, _, _ = wc.fwhm(prof_h_corr_ov)
-        fw_v_ov_native, _, _ = wc.fwhm(prof_v_corr_ov)
+        fw_h_ov_native, _, _ = wc.fwhm(prof_h_ov)
+        fw_v_ov_native, _, _ = wc.fwhm(prof_v_ov)
         # Convert FWHM to 'normal' pixel-equivalent
         fw_h_ov = fw_h_ov_native / resample2
         fw_v_ov = fw_v_ov_native / resample2
-        f15_h_ov_native, l15_h_ov, r15_h_ov = wc.fw15m(prof_h_corr_ov)
-        f15_v_ov_native, l15_v_ov, r15_v_ov = wc.fw15m(prof_v_corr_ov)
-        f15_h_ov = f15_h_ov_native / resample2
-        f15_v_ov = f15_v_ov_native / resample2
 
+        
         print(f"Horizontal (Oversampled):  FWHM={fw_h_ov:.2f} px")
         print(f"Vertical (Oversampled):    FWHM={fw_v_ov:.2f} px")
-        print(
-            f"Horizontal (Oversampled):  FW15M={f15_h_ov:.2f} px "
-            f"(from {l15_h_ov / resample2:.2f} to {r15_h_ov / resample2:.2f})"
-        )
-        print(
-            f"Vertical (Oversampled):    FW15M={f15_v_ov:.2f} px "
-            f"(from {l15_v_ov / resample2:.2f} to {r15_v_ov / resample2:.2f})"
-        )
+
 
         # The radial axis for oversampled plot
-        radial_ov = np.arange(len(prof_h_corr_ov)) - (len(prof_h_corr_ov) // 2)
+        radial_ov = np.arange(len(prof_h_ov)) - (len(prof_h_ov) // 2)
+
+        data_oversampled = np.column_stack((radial_ov, prof_h_ov, prof_v_ov))
+
+        np.savetxt(
+            out_dir / "profiles_oversampled.csv",
+            data_oversampled,
+            delimiter=",",
+            header="radial,horizontal_lsf,vertical_lsf",
+            comments="",
+            fmt=["%.6f", "%.6f", "%.6f"],
+        )
+
+        def gaussian_fit(x, A, mu, sigma, B):
+            return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
+        
+        try:
+            popt_h_ov, _ = curve_fit(
+                gaussian_fit, radial_ov, prof_h_ov,
+                p0=[np.max(prof_h_ov), 0, fw_h_ov / 2.355, 0],
+                maxfev=5000
+            )
+
+        except Exception:
+            popt_h_ov = np.array([np.max(prof_h_ov), 0, fw_h_ov / 2.355, 0])
+        
+        try:
+            popt_v_ov, _ = curve_fit(
+                gaussian_fit, radial_ov, prof_v_ov,
+                p0=[np.max(prof_v_ov), 0, fw_v_ov / 2.355, 0],
+                maxfev=5000
+            )
+        except Exception:
+            popt_v_ov = np.array([np.max(prof_v_ov), 0, fw_v_ov / 2.355, 0])
+
 
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
-            sinogram_profile=prof_h_corr_ov,
-            popt=popt_h_corr_ov,
-            out_path=out_dir / "oversampled_sinogram_profile_horizontal.png",
+            intensity_profile=prof_h_ov,
+            popt=popt_h_ov,
+            out_path=out_dir / "oversampled_lsf_profile_horizontal.png",
             show_plots=show_plots,
+            pixel_size=pixel_size,  # Plot against oversampled pixel size
+            magnification=1.0,
         )
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
-            sinogram_profile=prof_v_corr_ov,
-            popt=popt_v_corr_ov,
-            out_path=out_dir / "oversampled_sinogram_profile_vertical.png",
+            intensity_profile=prof_v_ov,
+            popt=popt_v_ov,
+            out_path=out_dir / "oversampled_lsf_profile_vertical.png",
             show_plots=show_plots,
+            pixel_size=pixel_size,  # Plot against oversampled pixel size
+            magnification=1.0,
         )
 
         plotters.plot_sinogram_with_traced_profiles(
-            sub_sinogram,
-            h_idx,
-            v_idx,
+            sinogram_oversampled,
+            horizontal_idx,
+            vertical_idx,
             out_dir / "oversampled_sinogram_traced_profiles.png",
             reconstruction_type="psf",
             show_plots=show_plots,
         )
         plotters.plot_recon_with_lines(
-            recon_sub,
-            h_idx,
-            v_idx,
+            recon_oversampled,
+            horizontal_idx,
+            vertical_idx,
             out_dir / "psf_traced_profiles_oversampled.png",
             show_plots=show_plots,
             reconstruction_type="psf",
         )
 
-        # Compute MTF
-        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf_from_sino(
-            sub_sinogram, pixel_size / resample2, h_idx
+        # Compute MTF from projection-based LSF profiles
+        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
+            prof_h_ov, pixel_size / resample2
         )
 
         mtf1_h_ov = mtfc.get_mtf_at_freq(1.0, freq_h_ov, mtf_h_ov)
         mtf2_h_ov = mtfc.get_mtf_at_freq(2.0, freq_h_ov, mtf_h_ov)
         mtf3_h_ov = mtfc.get_mtf_at_freq(3.0, freq_h_ov, mtf_h_ov)
 
-        freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf_from_sino(
-            sub_sinogram, pixel_size / resample2, v_idx
+        freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
+            prof_v_ov, pixel_size / resample2
         )
 
         mtf1_v_ov = mtfc.get_mtf_at_freq(1.0, freq_v_ov, mtf_v_ov)
@@ -536,8 +558,6 @@ def run_pipeline_psf():
             "--- PSF Size (Oversampled FWHM) ---",
             f"{'FWHM Horizontal:': <{label_width}} {fw_h_ov:.3f} px (native: {fw_h_ov_native:.3f})",
             f"{'FWHM Vertical:': <{label_width}} {fw_v_ov:.3f} px (native: {fw_v_ov_native:.3f})",
-            f"{'FW15M Horizontal:': <{label_width}} {f15_h_ov:.3f} px (native: {f15_h_ov_native:.3f})",
-            f"{'FW15M Vertical:': <{label_width}} {f15_v_ov:.3f} px (native: {f15_v_ov_native:.3f})",
             "",
             "--- MTF Horizontal (Oversampled) ---",
             f"{'MTF10:': <{label_width}} {mtf10_h_ov:.3f} cycles/mm",

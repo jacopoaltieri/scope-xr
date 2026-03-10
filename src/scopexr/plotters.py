@@ -417,7 +417,7 @@ def plot_recon_with_lines(
 
 def plot_profile_with_gaussian(
     radial: np.ndarray,
-    sinogram_profile: np.ndarray,
+    intensity_profile: np.ndarray,
     popt: tuple[float, float, float, float],
     out_path: str,
     show_plots: bool = False,
@@ -425,60 +425,37 @@ def plot_profile_with_gaussian(
     magnification: float = None,
 ) -> None:
     """
-    Plot a sinogram profile with its Gaussian fit.
-
-    Parameters
-    ----------
-    radial
-        1D array of radial positions (centered, e.g. -L..+L, in pixels).
-    sinogram_profile
-        1D array of intensity values.
-    popt
-        Optimal parameters from Gaussian fit [A, mu, sigma, B]
-        where mu is in index space (0..n-1).
-    out_path
-        Path to save the plot.
-    show_plots
-        Whether to display the plot interactively.
-    pixel_size
-        Pixel size in mm. If provided with magnification, x-axis will be in mm.
-    magnification
-        Magnification factor. If provided with pixel_size, x-axis will be in mm.
-
-    Returns
-    -------
-    None
-        This function saves a file and does not return a value.
+    Plot an intensity profile (from sinogram or projection) with its Gaussian fit.
     """
-    n = sinogram_profile.size
-    center = n // 2
-    spacing = radial[1] - radial[0]
-
     A, mu, sigma, B = popt
-    mu_phys = (mu - center) * spacing
-    sigma_phys = sigma * spacing
 
     # Convert to mm if pixel_size and magnification are provided
     if pixel_size is not None and magnification is not None:
         scale_factor = pixel_size / magnification
         radial_display = radial * scale_factor
         x_label = "Radial Position (mm)"
+        
+        mu_display = mu * scale_factor
+        sigma_display = sigma * scale_factor
     else:
         radial_display = radial
         x_label = "Radial Position (px)"
+        mu_display = mu
+        sigma_display = sigma
 
     # Create a dense index axis for smooth curve
     radial_dense = np.linspace(radial_display[0], radial_display[-1], 500)
-    # Compute fitted Gaussian in index‐space
+    
+    # Compute fitted Gaussian using the properly scaled parameters
     fitted_dense = (
-        A * np.exp(-((radial_dense - mu_phys) ** 2) / (2 * sigma_phys**2)) + B
+        A * np.exp(-((radial_dense - mu_display) ** 2) / (2 * sigma_display**2)) + B
     )
 
     plt.figure(figsize=(8, 4))
-    plt.plot(radial_display, sinogram_profile, label="Data")
+    plt.plot(radial_display, intensity_profile, label="Data")
     plt.plot(radial_dense, fitted_dense, linestyle="--", label="Gaussian Fit")
 
-    plt.title("Sinogram Profile with Gaussian Fit")
+    plt.title("Intensity Profile with Gaussian Fit")
     plt.xlabel(x_label)
     plt.ylabel("Intensity")
     plt.legend()
@@ -489,7 +466,6 @@ def plot_profile_with_gaussian(
     if show_plots:
         plt.show()
     plt.close()
-
 
 def plot_1d_mtf(
     freq: np.ndarray,

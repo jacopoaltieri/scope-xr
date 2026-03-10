@@ -406,7 +406,7 @@ def compute_lsf_from_projection(
     """
     Compute LSF by projecting the focal spot reconstruction along each axis.
 
-    This method sums all horizontal profiles across the FS to compute the vertical profile,
+    This method sums all horizontal profiles across the 2D distribution to compute the vertical profile,
     and sums all vertical profiles to compute the horizontal profile.
 
     Parameters
