@@ -57,7 +57,6 @@ def get_merged_config() -> dict:
     parser.add_argument("--ds", type=int, help="Derivative step size")
     parser.add_argument("--axis_shifts", type=int, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
-    parser.add_argument("--avg_number", type=int, help="Number of profiles to average")
     parser.add_argument(
         "--sym", action="store_true", default=None, help="Symmetrize the sinogram"
     )
@@ -83,22 +82,6 @@ def get_merged_config() -> dict:
         help="Disable all sinogram shifting.",
     )
 
-    avg_group = parser.add_mutually_exclusive_group()
-    avg_group.add_argument(
-        "--avg",
-        dest="avg_neighbors",
-        action="store_true",
-        default=None,  # Use None as default
-        help="Enable averaging neighboring profiles",
-    )
-    avg_group.add_argument(
-        "--no_avg",
-        dest="avg_neighbors",
-        action="store_false",
-        default=None,  # Use None as default
-        help="Disable averaging neighboring profiles",
-    )
-
     args, unknown = parser.parse_known_args()
 
     # 1. Set code defaults (lowest priority)
@@ -117,8 +100,6 @@ def get_merged_config() -> dict:
         "auto_shift": True,
         "manual_shift": None,
         "no_shift": False,
-        "avg_neighbors": False,
-        "avg_number": 1,
         "no_hough": False,
         "symmetrize": False,
         "show_plots": False,
@@ -162,8 +143,6 @@ def get_merged_config() -> dict:
         "axis_shifts": "axis_shifts",
         "filter": "filter_name",
         "sym": "symmetrize",
-        "avg_neighbors": "avg_neighbors",
-        "avg_number": "avg_number",
         "show": "show_plots",
         "auto_shift": "auto_shift",
         "manual_shift": "manual_shift",
@@ -235,11 +214,6 @@ def validate_args(args: dict) -> None:
         raise ValueError("Derivative step size must be a positive integer.")
     if args.get("axis_shifts") is None or args["axis_shifts"] < 0:
         raise ValueError("Axis shifts must be a non-negative integer.")
-
-    avg_num = args.get("avg_number")
-    if args.get("avg_neighbors") and avg_num is not None:
-        if avg_num <= 0 or avg_num % 2 == 0:
-            raise ValueError("Average number must be a positive odd integer.")
 
     if args.get("manual_shift") is not None and not isinstance(
         args["manual_shift"], int

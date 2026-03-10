@@ -431,7 +431,6 @@ class ScopeXRApp(QMainWindow):
 
         if "filter_name" in new_data:
             self.fs_filter.setCurrentText(str(new_data["filter_name"]))
-        set_spin(self.fs_avg_number, "avg_number", int)
         if "symmetrize" in new_data:
             self.fs_sym.setChecked(bool(new_data["symmetrize"]))
 
@@ -446,11 +445,6 @@ class ScopeXRApp(QMainWindow):
         else:
             # auto_shift is default if nothing else is set
             self.fs_radio_auto.setChecked(True)
-
-        if new_data.get("avg_neighbors", False):
-            self.fs_avg_checkbox.setChecked(True)
-        elif new_data.get("no_avg", False):
-            self.fs_avg_checkbox.setChecked(False)
 
         if "show_plots" in new_data:
             self.fs_show.setChecked(bool(new_data["show_plots"]))
@@ -559,22 +553,9 @@ class ScopeXRApp(QMainWindow):
         self.fs_filter.setCurrentText(str(config_data.get("filter_name", "ramp")))
         layout.addRow("Filter [--filter]:", self.fs_filter)
 
-        self.fs_avg_number = QSpinBox()
-        self.fs_avg_number.setRange(1, 99)
-        self.fs_avg_number.setSingleStep(2)
-        self.fs_avg_number.setValue(config_data.get("avg_number", 3))
-        layout.addRow("Avg. Number (must be odd) [--avg_number]:", self.fs_avg_number)
-
         self.fs_sym = QCheckBox("Symmetrize Sinogram")
         self.fs_sym.setChecked(config_data.get("symmetrize", False))
         layout.addRow("[--sym]:", self.fs_sym)
-
-        self.fs_avg_checkbox = QCheckBox("Enable profile averaging (--avg)")
-        if config_data.get("avg_neighbors", False):
-            self.fs_avg_checkbox.setChecked(True)
-        elif config_data.get("no_avg", False):
-            self.fs_avg_checkbox.setChecked(False)
-        layout.addRow("Profile Averaging:", self.fs_avg_checkbox)
 
         self.fs_show = QCheckBox("Show Matplotlib plots")
         self.fs_show.setChecked(config_data.get("show_plots", True))
@@ -651,7 +632,6 @@ class ScopeXRApp(QMainWindow):
 
         if "filter_name" in new_data:
             self.psf_filter.setCurrentText(str(new_data["filter_name"]))
-        set_spin(self.psf_avg_number, "avg_number", int)
         if "symmetrize" in new_data:
             self.psf_sym.setChecked(bool(new_data["symmetrize"]))
 
@@ -669,11 +649,6 @@ class ScopeXRApp(QMainWindow):
             self.psf_radio_auto.setChecked(True)
         else:
             self.psf_radio_auto.setChecked(True)
-
-        if new_data.get("avg_neighbors", False):
-            self.psf_avg_checkbox.setChecked(True)
-        elif new_data.get("no_avg", False):
-            self.psf_avg_checkbox.setChecked(False)
 
         # Oversample checkbox
         if "oversample" in new_data:
@@ -773,12 +748,6 @@ class ScopeXRApp(QMainWindow):
         self.psf_filter.setCurrentText(str(config_data.get("filter_name", "ramp")))
         layout.addRow("Filter [--filter]:", self.psf_filter)
 
-        self.psf_avg_number = QSpinBox()
-        self.psf_avg_number.setRange(1, 99)
-        self.psf_avg_number.setSingleStep(2)
-        self.psf_avg_number.setValue(config_data.get("avg_number", 3))
-        layout.addRow("Avg. Number (must be odd) [--avg_number]:", self.psf_avg_number)
-
         self.psf_sym = QCheckBox("Symmetrize Sinogram")
         self.psf_sym.setChecked(config_data.get("symmetrize", False))
         layout.addRow("[--sym]:", self.psf_sym)
@@ -805,13 +774,6 @@ class ScopeXRApp(QMainWindow):
             self.update_psf_oversample_controls
         )
         layout.addRow("Oversampling:", self.psf_oversample_checkbox)
-
-        self.psf_avg_checkbox = QCheckBox("Enable profile averaging (--avg)")
-        if config_data.get("avg_neighbors", False):
-            self.psf_avg_checkbox.setChecked(True)
-        elif config_data.get("no_avg", False):
-            self.psf_avg_checkbox.setChecked(False)
-        layout.addRow("Profile Averaging:", self.psf_avg_checkbox)
 
         self.psf_show = QCheckBox("Show Matplotlib plots")
         self.psf_show.setChecked(config_data.get("show_plots", True))
@@ -1217,17 +1179,10 @@ class ScopeXRApp(QMainWindow):
             else:
                 command.extend(["--filter", "None"])
 
-            command.extend(["--avg_number", str(self.fs_avg_number.value())])
-
             if self.fs_sym.isChecked():
                 command.append("--sym")
             if self.fs_show.isChecked():
                 command.append("--show")
-
-            if self.fs_avg_checkbox.isChecked():
-                command.append("--avg")
-            else:
-                command.append("--no_avg")
 
             if self.fs_radio_manual.isChecked():
                 command.extend(
@@ -1282,17 +1237,10 @@ class ScopeXRApp(QMainWindow):
             else:
                 command.extend(["--filter", "None"])
 
-            command.extend(["--avg_number", str(self.psf_avg_number.value())])
-
             if self.psf_sym.isChecked():
                 command.append("--sym")
 
             command.extend(["--dtheta", str(self.psf_dtheta.value())])
-
-            if self.psf_avg_checkbox.isChecked():
-                command.append("--avg")
-            else:
-                command.append("--no_avg")
 
             # Oversample
             if self.psf_oversample_checkbox.isChecked():

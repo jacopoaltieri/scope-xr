@@ -33,8 +33,6 @@ def _valid_config() -> dict:
         "auto_shift": True,
         "manual_shift": None,
         "no_shift": False,
-        "avg_neighbors": True,
-        "avg_number": 3,
         "no_hough": False,
         "symmetrize": False,
         "show_plots": False,
@@ -51,8 +49,6 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
         "out_dir": "./yaml_out",
         "pixel_size": 0.2,
         "circle_diameter": 1.1,
-        "avg_neighbors": False,
-        "avg_number": 5,
         "auto_shift": False,
         "manual_shift": 3,
         "n_angles": 200,
@@ -71,7 +67,6 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
         "./cli_out",
         "--p",
         "0.4",
-        "--avg",
         "--auto_shift",
         "--no_oversample",
     ]
@@ -83,8 +78,6 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
     assert config["out_dir"] == "./cli_out"
     assert config["pixel_size"] == 0.4  # CLI overrides YAML
     assert config["circle_diameter"] == 1.1  # YAML retained
-    assert config["avg_neighbors"] is True  # CLI flag
-    assert config["avg_number"] == 5  # YAML retained
     assert config["auto_shift"] is True  # CLI flag wins
     assert config["manual_shift"] is None  # auto_shift clears manual
     assert config["n_angles"] == 200  # YAML retained
@@ -165,10 +158,6 @@ def test_validate_args_with_oversample():
         ({"n_angles": 0}, "Number of angles must be a positive integer"),
         ({"profile_half_length": 0}, "Half profile length must be a positive integer"),
         ({"derivative_step": 0}, "Derivative step size must be a positive integer"),
-        (
-            {"avg_neighbors": True, "avg_number": 2},
-            "Average number must be a positive odd integer",
-        ),
         ({"manual_shift": 1.5}, "Manual shift must be an integer"),
         (
             {"oversample": True, "dtheta": 0},
@@ -194,18 +183,6 @@ def test_validate_args_failures(mutations, expected_message):
     cfg.update(mutations)
     with pytest.raises(ValueError, match=expected_message):
         validate_args(cfg)
-
-
-def test_no_avg_cli_flag(tmp_path, monkeypatch):
-    yaml_data = {"avg_neighbors": True}
-    yaml_path = _write_yaml(tmp_path, yaml_data)
-
-    cli_args = ["prog", "--config", str(yaml_path), "--no_avg"]
-    monkeypatch.setattr(sys, "argv", cli_args)
-
-    config = get_merged_config()
-
-    assert config["avg_neighbors"] is False
 
 
 def test_symmetrize_and_show_plots_flags(tmp_path, monkeypatch):
@@ -249,8 +226,6 @@ def test_all_numeric_params(tmp_path, monkeypatch):
         "2",
         "--axis_shifts",
         "10",
-        "--avg_number",
-        "7",
         "--dtheta",
         "25.5",
         "--resample2",
@@ -266,7 +241,6 @@ def test_all_numeric_params(tmp_path, monkeypatch):
     assert config["profile_half_length"] == 100
     assert config["derivative_step"] == 2
     assert config["axis_shifts"] == 10
-    assert config["avg_number"] == 7
     assert config["dtheta"] == 25.5
     assert config["resample2"] == 2.5
     assert config["gaussian_sigma"] == 1.2

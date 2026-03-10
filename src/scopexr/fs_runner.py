@@ -65,8 +65,6 @@ def run_pipeline_fs():
     symmetrize = args["symmetrize"]
     manual_shift = args["manual_shift"]
     auto_shift = args["auto_shift"]
-    avg_neighbors = args["avg_neighbors"]
-    avg_number = args["avg_number"]
     show_plots = args["show_plots"]
 
     # ----------------------------------------------------------------------------------#
@@ -186,7 +184,9 @@ def run_pipeline_fs():
 
     # Compute LSF from projection of the focal spot reconstruction
     # Horizontal LSF: sum along vertical axis (axis=0), Vertical LSF: sum along horizontal axis (axis=1)
-    prof_horizontal_sino, prof_vertical_sino = wc.compute_lsf_from_projection(reconstruction)
+    prof_horizontal_sino, prof_vertical_sino = wc.compute_lsf_from_projection(
+        reconstruction
+    )
 
     # Calculate FWHM and FW15M
     fh, lh, rh = wc.fwhm(prof_horizontal_sino)
@@ -220,7 +220,6 @@ def run_pipeline_fs():
         comments="",
         fmt=["%.6f", "%.6f", "%.6f"],
     )
-
 
     fwhm_path = out_dir / "fwhm_profiles.png"
     plotters.plot_profiles_with_fwhm(
@@ -322,8 +321,6 @@ def run_pipeline_fs():
             ),
         )
     )
-
-
 
     sino_with_lines_path = out_dir / "sinogram_traced_profiles.png"
     plotters.plot_sinogram_with_traced_profiles(

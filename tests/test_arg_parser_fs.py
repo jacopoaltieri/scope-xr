@@ -35,8 +35,6 @@ def _valid_config() -> dict:
         "auto_shift": True,
         "manual_shift": None,
         "no_shift": False,
-        "avg_neighbors": False,
-        "avg_number": 3,
         "no_hough": False,
         "symmetrize": False,
         "show_plots": False,
@@ -51,8 +49,6 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
         "pixel_size": 0.2,
         "circle_diameter": 1.1,
         "magnification": 1.5,
-        "avg_neighbors": False,
-        "avg_number": 5,
         "auto_shift": False,
         "manual_shift": 3,
         "n_angles": 200,
@@ -69,7 +65,6 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
         "./cli_out",
         "--p",
         "0.4",
-        "--avg",
         "--auto_shift",
     ]
     monkeypatch.setattr(sys, "argv", cli_args)
@@ -81,8 +76,6 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
     assert config["pixel_size"] == 0.4  # CLI overrides YAML
     assert config["circle_diameter"] == 1.1  # YAML retained
     assert config["magnification"] == 1.5  # YAML retained
-    assert config["avg_neighbors"] is True  # CLI flag
-    assert config["avg_number"] == 5  # YAML retained
     assert config["auto_shift"] is True  # CLI flag wins
     assert config["manual_shift"] is None  # auto_shift clears manual
     assert config["n_angles"] == 200  # YAML retained
@@ -120,10 +113,6 @@ def test_validate_args_success():
         ({"profile_half_length": 0}, "Half profile length must be a positive integer"),
         ({"derivative_step": 0}, "Derivative step size must be a positive integer"),
         ({"axis_shifts": -1}, "Axis shifts must be a non-negative integer"),
-        (
-            {"avg_neighbors": True, "avg_number": 2},
-            "Average number must be a positive odd integer",
-        ),
         ({"manual_shift": 1.5}, "Manual shift must be an integer"),
     ],
 )

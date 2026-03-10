@@ -58,7 +58,6 @@ def get_merged_config() -> dict:
     parser.add_argument("--ds", type=int, help="Derivative step size")
     parser.add_argument("--axis_shifts", type=int, help="Number of axis shift steps")
     parser.add_argument("--filter", type=str, help="Reconstruction filter name")
-    parser.add_argument("--avg_number", type=int, help="Number of profiles to average")
     parser.add_argument(
         "--sym", action="store_true", default=None, help="Symmetrize the sinogram"
     )
@@ -99,22 +98,6 @@ def get_merged_config() -> dict:
         help="Disable all sinogram shifting.",
     )
 
-    avg_group = parser.add_mutually_exclusive_group()
-    avg_group.add_argument(
-        "--avg",
-        dest="avg_neighbors",
-        action="store_true",
-        default=None,
-        help="Enable averaging neighboring profiles",
-    )
-    avg_group.add_argument(
-        "--no_avg",
-        dest="avg_neighbors",
-        action="store_false",
-        default=None,
-        help="Disable averaging neighboring profiles",
-    )
-
     oversample_group = parser.add_mutually_exclusive_group()
     oversample_group.add_argument(
         "--oversample",
@@ -149,8 +132,6 @@ def get_merged_config() -> dict:
         "symmetrize": False,
         "auto_shift": True,
         "no_shift": False,
-        "avg_neighbors": False,
-        "avg_number": 3,
         "oversample": False,
         "dtheta": 2,
         "resample2": 4,
@@ -195,8 +176,6 @@ def get_merged_config() -> dict:
         "filter": "filter_name",
         "sym": "symmetrize",
         "show": "show_plots",
-        "avg_neighbors": "avg_neighbors",
-        "avg_number": "avg_number",
         "oversample": "oversample",
         "dtheta": "dtheta",
         "resample2": "resample2",
@@ -264,11 +243,6 @@ def validate_args(args: dict) -> None:
         raise ValueError("Half profile length must be a positive integer.")
     if args.get("derivative_step") is None or args["derivative_step"] <= 0:
         raise ValueError("Derivative step size must be a positive integer.")
-
-    avg_num = args.get("avg_number")
-    if args.get("avg_neighbors") and avg_num is not None:
-        if avg_num <= 0 or avg_num % 2 == 0:
-            raise ValueError("Average number must be a positive odd integer.")
 
     if args.get("manual_shift") is not None and not isinstance(
         args["manual_shift"], int

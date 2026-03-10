@@ -65,8 +65,6 @@ def run_pipeline_psf():
     symmetrize = args["symmetrize"]
     manual_shift = args["manual_shift"]
     auto_shift = args["auto_shift"]
-    avg_neighbors = args["avg_neighbors"]
-    avg_number = args["avg_number"]
     oversample = args["oversample"]
     dtheta = args["dtheta"]
     resample2 = args["resample2"]
@@ -161,7 +159,7 @@ def run_pipeline_psf():
         show_plots,
         reconstruction_type="psf",
     )
-    
+
     # Sinogram reconstruction with axis shifts
     shift_list = list(range(-axis_shifts, axis_shifts))
     shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
@@ -178,7 +176,6 @@ def run_pipeline_psf():
     fv, lv, rv = wc.fwhm(prof_vertical)
     print(f"Horizontal:   FWHM={fh:.2f}px")
     print(f"Vertical:     FWHM={fv:.2f}px")
-
 
     # Create radial coordinate array for projection profiles
     angle_step = 360.0 / n_angles
@@ -200,25 +197,29 @@ def run_pipeline_psf():
         fmt=["%.6f", "%.6f", "%.6f"],
     )
 
-    # Fit Gaussian to projection-based profiles for plotting 
+    # Fit Gaussian to projection-based profiles for plotting
     def gaussian_fit(x, A, mu, sigma, B):
         return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
-    
+
     try:
         popt_h_corr, _ = curve_fit(
-            gaussian_fit, radial, prof_horizontal,
+            gaussian_fit,
+            radial,
+            prof_horizontal,
             p0=[np.max(prof_horizontal), 0, fh / 2.355, 0],
-            maxfev=5000
+            maxfev=5000,
         )
 
     except Exception:
         popt_h_corr = np.array([np.max(prof_horizontal), 0, fh / 2.355, 0])
-    
+
     try:
         popt_v_corr, _ = curve_fit(
-            gaussian_fit, radial, prof_vertical,
+            gaussian_fit,
+            radial,
+            prof_vertical,
             p0=[np.max(prof_vertical), 0, fv / 2.355, 0],
-            maxfev=5000
+            maxfev=5000,
         )
     except Exception:
         popt_v_corr = np.array([np.max(prof_vertical), 0, fv / 2.355, 0])
@@ -233,7 +234,7 @@ def run_pipeline_psf():
         pixel_size=pixel_size,
         magnification=1.0,
     )
-    
+
     plotters.plot_profile_with_gaussian(
         radial=radial,
         intensity_profile=prof_vertical,
@@ -271,7 +272,10 @@ def run_pipeline_psf():
     mtf2_h = mtfc.get_mtf_at_freq(2.0, freq_h, mtf_h)
     mtf3_h = mtfc.get_mtf_at_freq(3.0, freq_h, mtf_h)
 
-    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(prof_vertical, pixel_size,)
+    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(
+        prof_vertical,
+        pixel_size,
+    )
 
     mtf1_v = mtfc.get_mtf_at_freq(1.0, freq_v, mtf_v)
     mtf2_v = mtfc.get_mtf_at_freq(2.0, freq_v, mtf_v)
@@ -361,17 +365,19 @@ def run_pipeline_psf():
                 f"Using oversampling with 3-step Gaussian blur (sigma={gaussian_sigma})."
             )
 
-        profiles_oversampled, sinogram_oversampled = sr.compute_subpixel_profiles_and_sinogram(
-            cropped,
-            cx,
-            cy,
-            radius,
-            n_angles,
-            profile_half_length,
-            derivative_step,
-            dtheta,
-            resample=resample2,
-            gaussian_sigma=gaussian_sigma,
+        profiles_oversampled, sinogram_oversampled = (
+            sr.compute_subpixel_profiles_and_sinogram(
+                cropped,
+                cx,
+                cy,
+                radius,
+                n_angles,
+                profile_half_length,
+                derivative_step,
+                dtheta,
+                resample=resample2,
+                gaussian_sigma=gaussian_sigma,
+            )
         )
 
         applied_shift_ov = 0  # New variable for oversampled shift
@@ -389,7 +395,9 @@ def run_pipeline_psf():
         elif auto_shift:
             print("Running automatic sinogram centering (oversampled)...")
             # Apply auto-shift to sinogram_oversampled
-            centered_sino, applied_shift_ov = sr.auto_center_sinogram(sinogram_oversampled)
+            centered_sino, applied_shift_ov = sr.auto_center_sinogram(
+                sinogram_oversampled
+            )
             sinogram_oversampled = centered_sino
             print(f"Applied automatic axis shift: {applied_shift_ov} px (oversampled)")
         else:
@@ -397,7 +405,9 @@ def run_pipeline_psf():
             applied_shift_ov = 0
             print("Sinogram shifting is disabled (oversampled).")
 
-        recon_oversampled = sr.reconstruct_focal_spot(sinogram_oversampled, filter_name, symmetrize)
+        recon_oversampled = sr.reconstruct_focal_spot(
+            sinogram_oversampled, filter_name, symmetrize
+        )
 
         utils.save_and_plot("profiles_oversampled", profiles_oversampled, out_dir)
         utils.save_and_plot("sinogram_oversampled", sinogram_oversampled, out_dir)
@@ -419,7 +429,7 @@ def run_pipeline_psf():
         sr.reconstruct_with_axis_shifts(
             sinogram_oversampled, shift_tiff_path, filter_name, shifts=shift_list
         )
-    
+
         # Compute LSF from projection of the oversampled PSF reconstruction
         prof_h_ov, prof_v_ov = wc.compute_lsf_from_projection(recon_oversampled)
 
@@ -430,10 +440,8 @@ def run_pipeline_psf():
         fw_h_ov = fw_h_ov_native / resample2
         fw_v_ov = fw_v_ov_native / resample2
 
-        
         print(f"Horizontal (Oversampled):  FWHM={fw_h_ov:.2f} px")
         print(f"Vertical (Oversampled):    FWHM={fw_v_ov:.2f} px")
-
 
         # The radial axis for oversampled plot
         radial_ov = np.arange(len(prof_h_ov)) - (len(prof_h_ov) // 2)
@@ -451,26 +459,29 @@ def run_pipeline_psf():
 
         def gaussian_fit(x, A, mu, sigma, B):
             return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
-        
+
         try:
             popt_h_ov, _ = curve_fit(
-                gaussian_fit, radial_ov, prof_h_ov,
+                gaussian_fit,
+                radial_ov,
+                prof_h_ov,
                 p0=[np.max(prof_h_ov), 0, fw_h_ov / 2.355, 0],
-                maxfev=5000
+                maxfev=5000,
             )
 
         except Exception:
             popt_h_ov = np.array([np.max(prof_h_ov), 0, fw_h_ov / 2.355, 0])
-        
+
         try:
             popt_v_ov, _ = curve_fit(
-                gaussian_fit, radial_ov, prof_v_ov,
+                gaussian_fit,
+                radial_ov,
+                prof_v_ov,
                 p0=[np.max(prof_v_ov), 0, fw_v_ov / 2.355, 0],
-                maxfev=5000
+                maxfev=5000,
             )
         except Exception:
             popt_v_ov = np.array([np.max(prof_v_ov), 0, fw_v_ov / 2.355, 0])
-
 
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
