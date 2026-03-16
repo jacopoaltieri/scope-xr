@@ -5,6 +5,16 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-16
+
+### Changed
+
+- Refactored sinogram processing into two dedicated modules: `scopexr.sinogram_extraction` (profile/sinogram extraction and centering) and `scopexr.sinogram_reconstruction` (filtered back-projection reconstruction)
+- Updated FS/PSF runners to use the new extraction and reconstruction modules directly
+- Renamed sinogram test module to `tests/test_sinogram_extraction_reconstruction.py`
+- Removed profile-averaging workflow from the analysis pipeline
+
+
 ## [1.1.9] - 2026-02-24
 
 ### Changed

@@ -15,10 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import tifffile
-from scipy.ndimage import map_coordinates, shift, gaussian_filter1d
+from scipy.ndimage import map_coordinates, gaussian_filter1d
 from scipy.stats import binned_statistic
-from skimage.transform import iradon
 
 
 def _check_phl(
@@ -266,7 +264,7 @@ def compute_subpixel_profiles_and_sinogram(
 
     This is a unified function that handles both traditional and Gaussian-smoothed approaches:
     - If gaussian_sigma=0: Uses direct binned statistics with interpolation (traditional approach)
-    - If gaussian_sigma>0: Uses fine grid → Gaussian blur → coarse grid pipeline (3-step approach)
+    - If gaussian_sigma>0: Uses fine grid -> Gaussian blur -> coarse grid pipeline (3-step approach)
 
     For more information about the 3-step method, see:
     https://www.researchgate.net/publication/387092230_Single-shot_2D_detector_point-spread_function_analysis_employing_a_circular_aperture_and_a_back-projection_approach
@@ -282,7 +280,7 @@ def compute_subpixel_profiles_and_sinogram(
     radius
         Radius of the circle.
     n_angles
-        Number of angular samples (in full 360°).
+        Number of angular samples (in full 360 degrees).
     profile_half_length
         Half-length (in pixels) of radial sampling.
     derivative_step
@@ -357,12 +355,12 @@ def compute_subpixel_profiles_and_sinogram(
             profiles[i, :] = interp_vals
 
     else:
-        # 3-STEP APPROACH: Fine grid → Gaussian blur → Coarse grid
+        # 3-STEP APPROACH: Fine grid -> Gaussian blur -> Coarse grid
         # Compute oversampling grids
         n_bins_final = int(np.ceil((max_r - min_r) * resample))
         final_r = np.linspace(min_r, max_r, n_bins_final)
 
-        # Fine grid: oversample by 3x relative to final grid
+        # Fine grid: oversample by 100x relative to final grid
         n_bins_fine = int(np.ceil((max_r - min_r) * resample * 100))
         fine_r = np.linspace(final_r[0], final_r[-1], n_bins_fine)
 
@@ -522,7 +520,7 @@ def auto_center_sinogram(
 
 def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     """
-    Averages a full 360° sinogram into 180° by pairing angles θ and θ+180°.
+    Averages a full 360 degree sinogram into 180 degree by pairing angles theta and theta+180.
 
     Parameters
     ----------
@@ -539,8 +537,8 @@ def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     half = n_angles // 2
 
     # Split into first half [0..half-1] and second half [half..]
-    first = sino360[:, :half]  # This is theta = 0° to 179°
-    second = sino360[:, half:]  # This is theta = 180° to 359°
+    first = sino360[:, :half]  # This is theta = 0 to 179
+    second = sino360[:, half:]  # This is theta = 180 to 359
 
     # We need to average sino(r, theta) with sino(-r, theta + 180)
     # Flipping axis 0 flips r -> -r
@@ -549,81 +547,3 @@ def symmetrize_sinogram(sino360: np.ndarray) -> np.ndarray:
     # Average
     sino180 = 0.5 * (first + second_flipped_radially)
     return sino180
-
-
-def reconstruct_focal_spot(
-    sinogram: np.ndarray, filter_name: str, symmetrize: bool
-) -> np.ndarray:
-    """
-    Reconstructs the focal spot image from sinogram via filtered back-projection.
-
-    Parameters
-    ----------
-    sinogram
-        2D array of shape (n_rays, n_angles).
-    filter_name
-        Name of the filter to use in the inverse radon transform.
-    symmetrize
-        If True, average sinogram over 180° before reconstruction.
-
-    Returns
-    -------
-    np.ndarray
-        2D array representing the reconstructed focal spot.
-    """
-    if symmetrize:
-        sinogram = symmetrize_sinogram(sinogram)
-        theta = np.linspace(0.0, 180.0, sinogram.shape[1], endpoint=False)
-        reconstruction = iradon(
-            sinogram, theta=theta, filter_name=filter_name, circle=True
-        )
-    else:
-        theta = np.linspace(0.0, 360.0, sinogram.shape[1], endpoint=False)
-        reconstruction = iradon(
-            sinogram, theta=theta, filter_name=filter_name, circle=True
-        )
-    return reconstruction
-
-
-def reconstruct_with_axis_shifts(
-    sinogram: np.ndarray,
-    output_tiff_path: str,
-    filter_name: str,
-    shifts: list,
-) -> None:
-    """
-    Applies multiple vertical shifts to a sinogram, reconstructs each, and saves as a multi-page TIFF.
-
-    Parameters
-    ----------
-    sinogram
-        2D array of shape (n_rays, n_angles).
-    output_tiff_path
-        Path for the output multi-page TIFF file.
-    filter_name
-        Filter name for the inverse radon transform.
-    shifts
-        List of integer shifts (rows) to apply to sinogram.
-
-    Returns
-    -------
-    None
-        This function saves a file and does not return a value.
-    """
-    reconstructions = []
-    # Prepare angles for full 360° sinogram
-    n_angles = sinogram.shape[1]
-    theta = np.linspace(0.0, 360.0, n_angles, endpoint=False)
-
-    for delta in shifts:
-        # shift sinogram vertically:
-        #   shifting by +delta moves content down, so the effective axis moves up
-        shifted_sino = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
-
-        # reconstruct
-        rec = iradon(shifted_sino, theta=theta, filter_name=filter_name)
-        reconstructions.append(rec.astype(np.float32))
-
-    tifffile.imwrite(
-        output_tiff_path, np.stack(reconstructions, axis=0), photometric="minisblack"
-    )

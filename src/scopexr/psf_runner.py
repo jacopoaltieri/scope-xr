@@ -24,7 +24,8 @@ from . import arg_parser_psf as apsf
 from . import circle_detection as circ
 from . import image_opening as io
 from . import mtf_calc as mtfc
-from . import sinogram_recon as sr
+from . import sinogram_extraction as se
+from . import sinogram_reconstruction as srec
 from . import widths_calculator as wc
 
 
@@ -128,24 +129,24 @@ def run_pipeline_psf():
     plotters.plot_circle_on_crop(cropped, cx, cy, radius, out_dir, show_plots)
 
     # Extract profiles and sinogram
-    profiles, sinogram = sr.compute_profiles_and_sinogram(
+    profiles, sinogram = se.compute_profiles_and_sinogram(
         cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
     )
 
     if manual_shift is not None:
         print(f"Applying manual shift: {manual_shift} px")
-        centered_sino, applied_shift = sr.manual_center_sinogram(sinogram, manual_shift)
+        centered_sino, applied_shift = se.manual_center_sinogram(sinogram, manual_shift)
         sinogram = centered_sino
     elif auto_shift:
         print("Running automatic sinogram centering...")
-        centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
+        centered_sino, applied_shift = se.auto_center_sinogram(sinogram)
         sinogram = centered_sino
         print(f"Applied automatic axis shift: {applied_shift} px")
     else:
         applied_shift = 0
         print("Sinogram shifting is disabled.")
 
-    reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
+    reconstruction = srec.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
     utils.save_and_plot("profiles", profiles, out_dir)
     utils.save_and_plot("sinogram", sinogram, out_dir)
@@ -163,7 +164,7 @@ def run_pipeline_psf():
     # Sinogram reconstruction with axis shifts
     shift_list = list(range(-axis_shifts, axis_shifts))
     shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
-    sr.reconstruct_with_axis_shifts(
+    srec.reconstruct_with_axis_shifts(
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
@@ -182,8 +183,7 @@ def run_pipeline_psf():
     angles = np.arange(n_angles) * angle_step
     horizontal_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
     vertical_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
-    angle_horizontal_deg = angles[horizontal_idx]
-    angle_vertical_deg = angles[vertical_idx]
+
 
     radial = np.arange(len(prof_horizontal)) - (len(prof_horizontal) // 2)
     data = np.column_stack((radial, prof_horizontal, prof_vertical))
@@ -366,7 +366,7 @@ def run_pipeline_psf():
             )
 
         profiles_oversampled, sinogram_oversampled = (
-            sr.compute_subpixel_profiles_and_sinogram(
+            se.compute_subpixel_profiles_and_sinogram(
                 cropped,
                 cx,
                 cy,
@@ -388,14 +388,14 @@ def run_pipeline_psf():
                 f"Applying manual shift to oversampled sinogram: {manual_shift_ov} px"
             )
             # Apply shift to sinogram_oversampled
-            centered_sino, applied_shift_ov = sr.manual_center_sinogram(
+            centered_sino, applied_shift_ov = se.manual_center_sinogram(
                 sinogram_oversampled, manual_shift_ov
             )
             sinogram_oversampled = centered_sino
         elif auto_shift:
             print("Running automatic sinogram centering (oversampled)...")
             # Apply auto-shift to sinogram_oversampled
-            centered_sino, applied_shift_ov = sr.auto_center_sinogram(
+            centered_sino, applied_shift_ov = se.auto_center_sinogram(
                 sinogram_oversampled
             )
             sinogram_oversampled = centered_sino
@@ -405,7 +405,7 @@ def run_pipeline_psf():
             applied_shift_ov = 0
             print("Sinogram shifting is disabled (oversampled).")
 
-        recon_oversampled = sr.reconstruct_focal_spot(
+        recon_oversampled = srec.reconstruct_focal_spot(
             sinogram_oversampled, filter_name, symmetrize
         )
 
@@ -426,7 +426,7 @@ def run_pipeline_psf():
         # Oversampled sinogram reconstruction with axis shifts
         shift_list = list(range(-axis_shifts, axis_shifts))
         shift_tiff_path = out_dir / "oversampled_recon_axis_shifts.tiff"
-        sr.reconstruct_with_axis_shifts(
+        srec.reconstruct_with_axis_shifts(
             sinogram_oversampled, shift_tiff_path, filter_name, shifts=shift_list
         )
 

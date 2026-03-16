@@ -22,7 +22,8 @@ from . import utils, plotters
 from . import arg_parser_fs as afs
 from . import circle_detection as circ
 from . import image_opening as io
-from . import sinogram_recon as sr
+from . import sinogram_extraction as se
+from . import sinogram_reconstruction as srec
 from . import widths_calculator as wc
 
 
@@ -142,17 +143,17 @@ def run_pipeline_fs():
         )
 
     # Profiles and sinogram extraction
-    profiles, sinogram = sr.compute_profiles_and_sinogram(
+    profiles, sinogram = se.compute_profiles_and_sinogram(
         cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
     )
 
     if manual_shift is not None:
         print(f"Applying manual shift: {manual_shift} px")
-        centered_sino, applied_shift = sr.manual_center_sinogram(sinogram, manual_shift)
+        centered_sino, applied_shift = se.manual_center_sinogram(sinogram, manual_shift)
         sinogram = centered_sino
     elif auto_shift:
         print("Running automatic sinogram centering...")
-        centered_sino, applied_shift = sr.auto_center_sinogram(sinogram)
+        centered_sino, applied_shift = se.auto_center_sinogram(sinogram)
         sinogram = centered_sino
         print(f"Applied automatic axis shift: {applied_shift} px")
 
@@ -160,7 +161,7 @@ def run_pipeline_fs():
         applied_shift = 0
         print("Sinogram shifting is disabled.")
 
-    reconstruction = sr.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
+    reconstruction = srec.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
 
     utils.save_and_plot("profiles", profiles, out_dir)
     utils.save_and_plot("sinogram", sinogram, out_dir)
@@ -178,7 +179,7 @@ def run_pipeline_fs():
     # Sinogram reconstruction with axis shifts
     shift_list = list(range(-axis_shifts, axis_shifts))
     shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
-    sr.reconstruct_with_axis_shifts(
+    srec.reconstruct_with_axis_shifts(
         sinogram, shift_tiff_path, filter_name, shifts=shift_list
     )
 
@@ -281,46 +282,6 @@ def run_pipeline_fs():
     radial_h_proj = np.arange(n_h) - n_h // 2
     radial_v_proj = np.arange(n_v) - n_v // 2
 
-    proj_data = np.column_stack(
-        (
-            (
-                radial_h_proj
-                if len(radial_h_proj) >= len(radial_v_proj)
-                else np.pad(
-                    radial_h_proj,
-                    (0, len(radial_v_proj) - len(radial_h_proj)),
-                    constant_values=np.nan,
-                )
-            ),
-            (
-                horizontal_lsf_proj
-                if len(horizontal_lsf_proj) >= len(vertical_lsf_proj)
-                else np.pad(
-                    horizontal_lsf_proj,
-                    (0, len(vertical_lsf_proj) - len(horizontal_lsf_proj)),
-                    constant_values=np.nan,
-                )
-            ),
-            (
-                radial_v_proj
-                if len(radial_v_proj) >= len(radial_h_proj)
-                else np.pad(
-                    radial_v_proj,
-                    (0, len(radial_h_proj) - len(radial_v_proj)),
-                    constant_values=np.nan,
-                )
-            ),
-            (
-                vertical_lsf_proj
-                if len(vertical_lsf_proj) >= len(horizontal_lsf_proj)
-                else np.pad(
-                    vertical_lsf_proj,
-                    (0, len(horizontal_lsf_proj) - len(vertical_lsf_proj)),
-                    constant_values=np.nan,
-                )
-            ),
-        )
-    )
 
     sino_with_lines_path = out_dir / "sinogram_traced_profiles.png"
     plotters.plot_sinogram_with_traced_profiles(
