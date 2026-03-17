@@ -173,9 +173,9 @@ def run_pipeline_psf():
     # Horizontal LSF: sum along vertical axis (axis=0), Vertical LSF: sum along horizontal axis (axis=1)
     prof_horizontal, prof_vertical = wc.compute_lsf_from_projection(reconstruction)
 
-    # Calculate FWHM and FW15M
-    fh, lh, rh = wc.fwhm(prof_horizontal)
-    fv, lv, rv = wc.fwhm(prof_vertical)
+    # Calculate FWHM
+    fh, lh, rh = wc.fw_at_percent_max(prof_horizontal, 0.5)
+    fv, lv, rv = wc.fw_at_percent_max(prof_vertical, 0.5)
     print(f"Horizontal:   FWHM={fh:.2f}px")
     print(f"Vertical:     FWHM={fv:.2f}px")
 
@@ -435,8 +435,8 @@ def run_pipeline_psf():
         prof_h_ov, prof_v_ov = wc.compute_lsf_from_projection(recon_oversampled)
 
         # FWHM value from oversampled (in 'oversampled pixels')
-        fw_h_ov_native, _, _ = wc.fwhm(prof_h_ov)
-        fw_v_ov_native, _, _ = wc.fwhm(prof_v_ov)
+        fw_h_ov_native, _, _ = wc.fw_at_percent_max(prof_h_ov, 0.5)
+        fw_v_ov_native, _, _ = wc.fw_at_percent_max(prof_v_ov, 0.5)
         # Convert FWHM to 'normal' pixel-equivalent
         fw_h_ov = fw_h_ov_native / resample2
         fw_v_ov = fw_v_ov_native / resample2

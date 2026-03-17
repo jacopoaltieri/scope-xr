@@ -5,8 +5,7 @@ import numpy as np
 import pytest
 
 from scopexr.widths_calculator import (
-    fwhm,
-    fw15m,
+    fw_at_percent_max,
     fwhm_from_sigma,
     erf_step,
     find_extreme_profiles_erf,
@@ -14,6 +13,7 @@ from scopexr.widths_calculator import (
     compute_fs_width,
     gaussian,
     find_extreme_profiles_gaussian,
+    compute_lsf_from_projection,
 )
 
 # Ensure local src is on the path when running tests without installation
@@ -29,7 +29,7 @@ class TestFwhm:
         x = np.linspace(-10, 10, 201)
         profile = np.exp(-(x**2) / 2)  # Gaussian centered at 0
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         assert width > 0
         assert not np.isnan(width)
@@ -43,7 +43,7 @@ class TestFwhm:
         profile = np.zeros(100)
         profile[45:55] = 1.0  # 10-pixel wide flat top
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         assert width > 0
         assert width < 15  # Should be narrow
@@ -53,7 +53,7 @@ class TestFwhm:
         profile = np.zeros(100)
         profile[10:90] = 1.0  # 80-pixel wide flat top
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         assert width > 70  # Should be wide
 
@@ -61,7 +61,7 @@ class TestFwhm:
         """Test behavior with flat profile (no peak)."""
         profile = np.ones(100)
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         # Should return NaN if no valid FWHM can be found
         assert np.isnan(width) or width >= 0
@@ -71,7 +71,7 @@ class TestFwhm:
         x = np.linspace(-5, 5, 101)
         profile = np.exp(-(x**2) / 2) + np.random.rand(101) * 0.1
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         assert width > 0
         assert not np.isnan(width)
@@ -81,7 +81,7 @@ class TestFwhm:
         profile = np.zeros(100)
         profile[0:10] = 1.0  # Peak at start
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         # May return NaN or small width
         assert np.isnan(width) or width >= 0
@@ -91,7 +91,7 @@ class TestFwhm:
         # Create profile where slopes are exactly zero
         profile = np.array([0, 0.5, 1.0, 1.0, 1.0, 0.5, 0], dtype=float)
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         # Should handle gracefully with fallback frac=0.5
         if not np.isnan(width):
@@ -106,8 +106,8 @@ class TestFwhm:
         x = np.linspace(-10, 10, 201)
         profile = np.exp(-(x**2) / 2)
 
-        width_15m, _, _ = fw15m(profile)
-        width_hm, _, _ = fwhm(profile)
+        width_15m, _, _ = fw_at_percent_max(profile, 0.15)
+        width_hm, _, _ = fw_at_percent_max(profile, 0.5)
 
         assert width_15m > width_hm
 
@@ -116,7 +116,7 @@ class TestFwhm:
         # Create profile with flat section that causes denominator == 0
         profile = np.array([0.1, 0.1, 0.5, 1.0, 0.5, 0.1, 0.1], dtype=float)
 
-        width, left_idx, right_idx = fwhm(profile)
+        width, left_idx, right_idx = fw_at_percent_max(profile, 0.5)
 
         # Should handle gracefully
         if not np.isnan(width):
@@ -361,6 +361,23 @@ class TestFindExtremeProfilesErf:
         assert 0 <= narrow_idx < n_angles
         assert len(sigmas) == n_angles
 
+    def test_all_erf_fits_fail_uses_fallback_indices(self, monkeypatch):
+        """Test fallback indices when every ERF fit fails."""
+        n_rays = 50
+        n_angles = 8
+        profiles = np.random.rand(n_rays, n_angles)
+
+        def always_fail(*args, **kwargs):
+            raise RuntimeError("forced failure")
+
+        monkeypatch.setattr("scopexr.widths_calculator.curve_fit", always_fail)
+
+        wide_idx, narrow_idx, sigmas = find_extreme_profiles_erf(profiles)
+
+        assert wide_idx == 89
+        assert narrow_idx == 0
+        assert np.all(np.isnan(sigmas))
+
 
 class TestFindExtremeProfilesGaussian:
     def test_basic_finding(self):
@@ -439,6 +456,53 @@ class TestFindExtremeProfilesGaussian:
         assert 0 <= wide_idx < n_angles
         assert 0 <= narrow_idx < n_angles
 
+    def test_partial_gaussian_fit_failures_mark_nan_entries(self, monkeypatch):
+        """Test mixed success/failure Gaussian fitting path."""
+        n_rays = 60
+        n_angles = 6
+        x = np.arange(n_rays)
+        sinogram = np.column_stack(
+            [gaussian(x, 1.0, n_rays / 2, 4.0, 0.1) for _ in range(n_angles)]
+        )
+
+        state = {"calls": 0}
+
+        def fail_once_then_succeed(*args, **kwargs):
+            state["calls"] += 1
+            if state["calls"] == 1:
+                raise RuntimeError("forced failure")
+            return np.array([1.0, n_rays / 2, 3.0, 0.0]), np.eye(4)
+
+        monkeypatch.setattr(
+            "scopexr.widths_calculator.curve_fit", fail_once_then_succeed
+        )
+
+        wide_idx, narrow_idx, sigmas, popts = find_extreme_profiles_gaussian(sinogram)
+
+        assert 0 <= wide_idx < n_angles
+        assert 0 <= narrow_idx < n_angles
+        assert np.isnan(sigmas[0])
+        assert np.all(np.isnan(popts[0]))
+        assert np.all(sigmas[1:] == pytest.approx(3.0))
+
+    def test_all_gaussian_fits_fail_uses_fallback_indices(self, monkeypatch):
+        """Test fallback indices when every Gaussian fit fails."""
+        n_rays = 50
+        n_angles = 8
+        sinogram = np.random.rand(n_rays, n_angles)
+
+        def always_fail(*args, **kwargs):
+            raise RuntimeError("forced failure")
+
+        monkeypatch.setattr("scopexr.widths_calculator.curve_fit", always_fail)
+
+        wide_idx, narrow_idx, sigmas, popts = find_extreme_profiles_gaussian(sinogram)
+
+        assert wide_idx == 89
+        assert narrow_idx == 0
+        assert np.all(np.isnan(sigmas))
+        assert all(np.all(np.isnan(popt)) for popt in popts)
+
     def test_extreme_profiles_erf_fit_failure(self):
         """Test ERF fitting with profiles that may fail to fit."""
         n_rays = 100
@@ -453,3 +517,30 @@ class TestFindExtremeProfilesGaussian:
         assert 0 <= wide_idx < n_angles
         assert 0 <= narrow_idx < n_angles
         assert len(sigmas) == n_angles
+
+
+class TestComputeLsfFromProjection:
+    def test_normalized_lsf_on_nonuniform_reconstruction(self):
+        """Test projection LSF normalization and positivity."""
+        y, x = np.mgrid[-20:21, -20:21]
+        reconstruction = np.exp(-((x**2 + y**2) / (2 * 5.0**2))) + 0.05
+
+        horizontal_lsf, vertical_lsf = compute_lsf_from_projection(reconstruction)
+
+        assert horizontal_lsf.ndim == 1
+        assert vertical_lsf.ndim == 1
+        assert horizontal_lsf.shape[0] == reconstruction.shape[1]
+        assert vertical_lsf.shape[0] == reconstruction.shape[0]
+        assert np.all(horizontal_lsf >= 0)
+        assert np.all(vertical_lsf >= 0)
+        assert np.sum(horizontal_lsf) == pytest.approx(1.0)
+        assert np.sum(vertical_lsf) == pytest.approx(1.0)
+
+    def test_zero_sum_after_background_subtraction(self):
+        """Test zero-sum branch when reconstruction is flat."""
+        reconstruction = np.ones((25, 30), dtype=float) * 7.0
+
+        horizontal_lsf, vertical_lsf = compute_lsf_from_projection(reconstruction)
+
+        assert np.all(horizontal_lsf == 0)
+        assert np.all(vertical_lsf == 0)

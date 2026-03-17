@@ -190,13 +190,13 @@ def run_pipeline_fs():
     )
 
     # Calculate FWHM and FW15M
-    fh, lh, rh = wc.fwhm(prof_horizontal_sino)
-    fv, lv, rv = wc.fwhm(prof_vertical_sino)
+    fh, lh, rh = wc.fw_at_percent_max(prof_horizontal_sino, 0.5)
+    fv, lv, rv = wc.fw_at_percent_max(prof_vertical_sino, 0.5)
     print(f"Horizontal:   FWHM={fh:.2f}px")
     print(f"Vertical:     FWHM={fv:.2f}px")
 
-    f15h, l15h, r15h = wc.fw15m(prof_horizontal_sino)
-    f15v, l15v, r15v = wc.fw15m(prof_vertical_sino)
+    f15h, l15h, r15h = wc.fw_at_percent_max(prof_horizontal_sino, 0.15)
+    f15v, l15v, r15v = wc.fw_at_percent_max(prof_vertical_sino, 0.15)
     print(f"Horizontal:   FW15M={f15h:.2f}px")
     print(f"Vertical:     FW15M={f15v:.2f}px")
 
@@ -268,10 +268,10 @@ def run_pipeline_fs():
     )
 
     # Calculate FWHM and FW15M for projection-based profiles
-    fh_proj, lh_proj, rh_proj = wc.fwhm(horizontal_lsf_proj)
-    fv_proj, lv_proj, rv_proj = wc.fwhm(vertical_lsf_proj)
-    f15h_proj, l15h_proj, r15h_proj = wc.fw15m(horizontal_lsf_proj)
-    f15v_proj, l15v_proj, r15v_proj = wc.fw15m(vertical_lsf_proj)
+    fh_proj, lh_proj, rh_proj = wc.fw_at_percent_max(horizontal_lsf_proj, 0.5)
+    fv_proj, lv_proj, rv_proj = wc.fw_at_percent_max(vertical_lsf_proj, 0.5)
+    f15h_proj, l15h_proj, r15h_proj = wc.fw_at_percent_max(horizontal_lsf_proj, 0.15)
+    f15v_proj, l15v_proj, r15v_proj = wc.fw_at_percent_max(vertical_lsf_proj, 0.15)
 
     print(f"Horizontal: FWHM={fh_proj:.2f}px, FW15M={f15h_proj:.2f}px")
     print(f"Vertical:   FWHM={fv_proj:.2f}px, FW15M={f15v_proj:.2f}px")

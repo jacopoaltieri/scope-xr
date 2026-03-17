@@ -22,94 +22,42 @@ from scipy.special import erf
 from . import utils
 
 
-def fwhm(profile: np.ndarray) -> tuple[float, float, float]:
+def fw_at_percent_max(
+    profile: np.ndarray, percent: float
+) -> tuple[float, float, float]:
     """
-    Compute the Full Width at Half Maximum (FWHM) of a 1D profile using linear interpolation.
+    Compute the Full Width at a specified percentage of the maximum (FWxM) of a 1D profile using linear interpolation.
 
     Parameters
     ----------
     profile
         1D array representing a single profile (e.g. from a sinogram).
+    percent
+        Percentage of the maximum to compute the width at (e.g., 0.15 for 15%).
 
     Returns
     -------
     width : float
-        Width in pixels between half-maximum crossings (interpolated).
+        Width in pixels between crossings at the specified percentage of maximum (interpolated).
     left_idx : float
-        Fractional index of left half-maximum crossing.
+        Fractional index of left crossing.
     right_idx : float
-        Fractional index of right half-maximum crossing.
+        Fractional index of right crossing.
     """
     profile = np.asarray(profile)
     n = len(profile)
 
+    # Find peak and specified percentage maximum (baseline subtraction implies min ≈ 0)
     peak_idx = np.argmax(profile)
     peak_val = profile[peak_idx]
-    half_max = 0.5 * peak_val
-
-    # --- Find left half-maximum crossing ---
-    left_idx = None
-    for i in range(peak_idx, 0, -1):
-        if profile[i] >= half_max > profile[i - 1]:
-            denominator = profile[i] - profile[i - 1]
-            if denominator == 0:
-                frac = 0.5  # avoid division by zero
-            else:
-                frac = (half_max - profile[i - 1]) / denominator
-
-            left_idx = (i - 1) + frac
-            break
-
-    # --- Find right half-maximum crossing ---
-    right_idx = None
-    for i in range(peak_idx, n - 1):
-        if profile[i] >= half_max > profile[i + 1]:
-            frac = (half_max - profile[i]) / (profile[i + 1] - profile[i])
-            right_idx = i + frac
-            break
-
-    if left_idx is None or right_idx is None:
-        return np.nan, np.nan, np.nan  # no valid FWHM found
-
-    width = right_idx - left_idx
-    return width, left_idx, right_idx
-
-
-def fw15m(profile: np.ndarray) -> tuple[float, float, float]:
-    """
-    Compute the Full Width at 15 Percent Maximum (FW15M / 15% max) of a 1D profile using linear interpolation.
-
-    Parameters
-    ----------
-    profile
-        1D array representing a single profile (e.g. from a sinogram).
-
-    Returns
-    -------
-    width : float
-        Width in pixels between 15% maximum crossings (interpolated).
-    left_idx : float
-        Fractional index of left 15% maximum crossing.
-    right_idx : float
-        Fractional index of right 15% maximum crossing.
-    """
-    profile = np.asarray(profile)
-    n = len(profile)
-
-    # Find peak and 15% maximum (baseline subtraction implies min ≈ 0)
-    peak_idx = np.argmax(profile)
-    peak_val = profile[peak_idx]
-    fifteen_max = 0.15 * peak_val
+    percent_max = percent * peak_val
 
     # --- Find left crossing ---
     left_idx = None
     for i in range(peak_idx, 0, -1):
-        if profile[i] >= fifteen_max > profile[i - 1]:
+        if profile[i] >= percent_max > profile[i - 1]:
             denominator = profile[i] - profile[i - 1]
-            if denominator == 0:
-                frac = 0.5  # avoid division by zero
-            else:
-                frac = (fifteen_max - profile[i - 1]) / denominator
+            frac = (percent_max - profile[i - 1]) / denominator
 
             left_idx = (i - 1) + frac
             break
@@ -117,13 +65,13 @@ def fw15m(profile: np.ndarray) -> tuple[float, float, float]:
     # --- Find right crossing ---
     right_idx = None
     for i in range(peak_idx, n - 1):
-        if profile[i] >= fifteen_max > profile[i + 1]:
-            frac = (fifteen_max - profile[i]) / (profile[i + 1] - profile[i])
+        if profile[i] >= percent_max > profile[i + 1]:
+            frac = (percent_max - profile[i]) / (profile[i + 1] - profile[i])
             right_idx = i + frac
             break
 
     if left_idx is None or right_idx is None:
-        return np.nan, np.nan, np.nan  # no valid FWTM found
+        return np.nan, np.nan, np.nan  # no valid FWxM found
 
     width = right_idx - left_idx
     return width, left_idx, right_idx
@@ -386,9 +334,6 @@ def find_extreme_profiles_gaussian(
             sigmas[i] = np.nan
             popts.append(np.array([np.nan, np.nan, np.nan, np.nan]))
 
-    wide_idx = int(np.nanargmax(sigmas))
-    narrow_idx = int(np.nanargmin(sigmas))
-
     # If fitting failed to find meaningful extreme profiles, use indices 0 and 89
     if np.all(np.isnan(sigmas)):
         print(
@@ -396,6 +341,10 @@ def find_extreme_profiles_gaussian(
         )
         wide_idx = 89
         narrow_idx = 0
+        return wide_idx, narrow_idx, sigmas, popts
+
+    wide_idx = int(np.nanargmax(sigmas))
+    narrow_idx = int(np.nanargmin(sigmas))
 
     return wide_idx, narrow_idx, sigmas, popts
 
