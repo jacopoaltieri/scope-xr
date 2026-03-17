@@ -108,8 +108,8 @@ def plot_profiles_and_reconstruction(
     plt.subplot(1, 3, 1)
     plt.imshow(profiles, cmap="gray")
     plt.title("Aligned Profiles")
-    plt.xlabel("Profile Index")
-    plt.ylabel("Angle Index")
+    plt.xlabel("Angle Index")
+    plt.ylabel("Radial Offset (px)")
 
     plt.subplot(1, 3, 2)
     plt.imshow(sinogram, cmap="gray")
