@@ -59,13 +59,3 @@ desktop.ini
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Project-specific outputs
-analysis_results/
-output*/
-simulations/
-Focal_Spot.java
-ATS*/
-pinhole_comparison/
-
-!examples/
-!examples/**
