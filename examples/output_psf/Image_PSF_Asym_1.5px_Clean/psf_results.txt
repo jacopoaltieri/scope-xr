@@ -1,0 +1,46 @@
+========================================
+  SCOPE-XR PSF Analysis Results
+========================================
+
+Full arguments: {'img_path': 'C:/Users/jacop/Desktop/PhD/SCOPE-XR/scope-xr/examples/simulations/Image_PSF_Asym_1.5px_Clean.tif', 'out_dir': './output_psf', 'pixel_size': 0.1, 'circle_diameter': 100.0, 'no_hough': False, 'n_angles': 360, 'profile_half_length': 50, 'derivative_step': 1, 'axis_shifts': 10, 'manual_shift': None, 'filter_name': 'ramp', 'symmetrize': False, 'auto_shift': True, 'no_shift': False, 'oversample': True, 'dtheta': 1.1, 'resample2': 4.0, 'gaussian_sigma': 0.0, 'show_plots': False, 'hough_params': {'dp': 1.3, 'min_dist': 100, 'param1': 70, 'param2': 40, 'min_radius': 100, 'max_radius': 0, 'debug': False}}
+--- General Info ---
+Input Image:             Image_PSF_Asym_1.5px_Clean.tif
+Output Directory:        output_psf\Image_PSF_Asym_1.5px_Clean
+
+--- Setup Parameters ---
+COM Circle Center:       (599.60, 599.60) px
+COM Circle Radius:       500.01 px
+LSF Method:              Projection-based
+
+--- PSF Size (FWHM from Projection) ---
+FWHM Horizontal:         5.483 px
+FWHM Vertical:           4.386 px
+
+--- MTF Horizontal (from Projection) ---
+MTF10:                   1.469 cycles/mm
+MTF @ 1.0 cy/mm:         0.341
+MTF @ 2.0 cy/mm:         0.014
+MTF @ 3.0 cy/mm:         0.001
+
+--- MTF Vertical (from Projection) ---
+MTF10:                   1.848 cycles/mm
+MTF @ 1.0 cy/mm:         0.508
+MTF @ 2.0 cy/mm:         0.067
+MTF @ 3.0 cy/mm:         0.003
+
+
+--- PSF Size (Oversampled FWHM) ---
+FWHM Horizontal:         5.210 px (native: 20.841)
+FWHM Vertical:           3.594 px (native: 14.376)
+
+--- MTF Horizontal (Oversampled) ---
+MTF10:                   1.521 cycles/mm
+MTF @ 1.0 cy/mm:         0.361
+MTF @ 2.0 cy/mm:         0.019
+MTF @ 3.0 cy/mm:         0.002
+
+--- MTF Vertical (Oversampled) ---
+MTF10:                   1.976 cycles/mm
+MTF @ 1.0 cy/mm:         0.532
+MTF @ 2.0 cy/mm:         0.094
+MTF @ 3.0 cy/mm:         0.006
