@@ -37,6 +37,10 @@ dev = [
     "ruff"
 ]
 
+all = [
+    "scopexr[docs,test,dev]"
+]
+
 [project.scripts]
 scopexr-gui = "scopexr.gui:main"
 scopexr-fs = "scopexr.fs_main:main"

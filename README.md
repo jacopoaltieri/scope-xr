@@ -115,6 +115,10 @@ Recommended if you wish to modify the code or contribute:
     pip install -e .
     ```
 
+    If you want also to be able to run the tests or build the docs, run:
+    ```bash
+    pip install -e .[all]
+    ```
 # Usage
 
 SCOPE-XR provides two main interfaces designed for different user workflows.
