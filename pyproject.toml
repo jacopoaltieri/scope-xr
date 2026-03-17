@@ -26,14 +26,11 @@ dependencies = [
 docs = [
     "sphinx",
     "sphinx-rtd-theme",
-    # Add any other physical/math libraries you use like 'numpy' or 'scipy'
 ]
 
 test = [
     "pytest",
     "pytest-cov",
-    "numpy",
-    "pydicom"
 ]
 
 dev = [
