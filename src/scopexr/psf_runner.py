@@ -106,16 +106,17 @@ def run_pipeline_psf():
             debug=hough_params.get("debug", False),
         )
 
+        x, y, r = hough_circle
+        print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
+        cropped = utils.crop_square_roi(
+            img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
+        )
+        
         if not hough_circle:
             raise ValueError(
                 "Hough transform did not detect any circle. Provide a cropped image."
             )
 
-    x, y, r = hough_circle
-    print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
-    cropped = utils.crop_square_roi(
-        img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
-    )
 
     cx, cy, radius = circ.estimate_circle(cropped)
 
