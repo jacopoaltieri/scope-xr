@@ -31,7 +31,7 @@ def run_pipeline_fs():
     args = afs.get_merged_config()
     afs.validate_args(args)
 
-    print("Running focal spot reconstruction pipeline.")
+    print("Running Focal Spot reconstruction pipeline.")
     print("Arguments in use:")
     for k, v in args.items():
         if k != "hough_params":
@@ -104,7 +104,7 @@ def run_pipeline_fs():
 
         if not hough_circle:
             raise ValueError(
-                "Hough transform did not detect any circle. Provide a cropped image."
+                "Hough transform did not detect any circle. Please provide a cropped image."
             )
 
         x, y, r = hough_circle
@@ -180,7 +180,11 @@ def run_pipeline_fs():
     shift_list = list(range(-axis_shifts, axis_shifts))
     shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
     srec.reconstruct_with_axis_shifts(
-        sinogram, shift_tiff_path, filter_name, shifts=shift_list
+        sinogram,
+        shift_tiff_path,
+        filter_name,
+        shift_list,
+        symmetrize,
     )
 
     # Compute LSF from projection of the focal spot reconstruction
@@ -268,20 +272,15 @@ def run_pipeline_fs():
     )
 
     # Calculate FWHM and FW15M for projection-based profiles
-    fh_proj, lh_proj, rh_proj = wc.fw_at_percent_max(horizontal_lsf_proj, 0.5)
-    fv_proj, lv_proj, rv_proj = wc.fw_at_percent_max(vertical_lsf_proj, 0.5)
-    f15h_proj, l15h_proj, r15h_proj = wc.fw_at_percent_max(horizontal_lsf_proj, 0.15)
-    f15v_proj, l15v_proj, r15v_proj = wc.fw_at_percent_max(vertical_lsf_proj, 0.15)
+    fh_proj, _, _ = wc.fw_at_percent_max(horizontal_lsf_proj, 0.5)
+    fv_proj, _, _ = wc.fw_at_percent_max(vertical_lsf_proj, 0.5)
+    f15h_proj, _, _ = wc.fw_at_percent_max(horizontal_lsf_proj, 0.15)
+    f15v_proj, _, _ = wc.fw_at_percent_max(vertical_lsf_proj, 0.15)
 
     print(f"Horizontal: FWHM={fh_proj:.2f}px, FW15M={f15h_proj:.2f}px")
     print(f"Vertical:   FWHM={fv_proj:.2f}px, FW15M={f15v_proj:.2f}px")
 
     # Save projection-based LSF profiles to file
-    n_h = len(horizontal_lsf_proj)
-    n_v = len(vertical_lsf_proj)
-    radial_h_proj = np.arange(n_h) - n_h // 2
-    radial_v_proj = np.arange(n_v) - n_v // 2
-
 
     sino_with_lines_path = out_dir / "sinogram_traced_profiles.png"
     plotters.plot_sinogram_with_traced_profiles(

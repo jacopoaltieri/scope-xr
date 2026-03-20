@@ -111,12 +111,11 @@ def run_pipeline_psf():
         cropped = utils.crop_square_roi(
             img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
         )
-        
+
         if not hough_circle:
             raise ValueError(
                 "Hough transform did not detect any circle. Provide a cropped image."
             )
-
 
     cx, cy, radius = circ.estimate_circle(cropped)
 
@@ -166,7 +165,11 @@ def run_pipeline_psf():
     shift_list = list(range(-axis_shifts, axis_shifts))
     shift_tiff_path = out_dir / "recon_axis_shifts.tiff"
     srec.reconstruct_with_axis_shifts(
-        sinogram, shift_tiff_path, filter_name, shifts=shift_list
+        sinogram,
+        shift_tiff_path,
+        filter_name,
+        shift_list,
+        symmetrize,
     )
 
     # Compute LSF from projection of the focal spot reconstruction
@@ -184,7 +187,6 @@ def run_pipeline_psf():
     angles = np.arange(n_angles) * angle_step
     horizontal_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
     vertical_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
-
 
     radial = np.arange(len(prof_horizontal)) - (len(prof_horizontal) // 2)
     data = np.column_stack((radial, prof_horizontal, prof_vertical))
@@ -428,7 +430,11 @@ def run_pipeline_psf():
         shift_list = list(range(-axis_shifts, axis_shifts))
         shift_tiff_path = out_dir / "oversampled_recon_axis_shifts.tiff"
         srec.reconstruct_with_axis_shifts(
-            sinogram_oversampled, shift_tiff_path, filter_name, shifts=shift_list
+            sinogram_oversampled,
+            shift_tiff_path,
+            filter_name,
+            shift_list,
+            symmetrize,
         )
 
         # Compute LSF from projection of the oversampled PSF reconstruction

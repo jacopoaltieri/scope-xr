@@ -5,13 +5,20 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-03-20
+
+### Changed
+
+- Multiple shifting now calls pre-existing function instead of building its own.
+- Code linting to improve readability
+
 ## [1.2.1] - 2026-03-17
 
 ### Changed
 
 - Refactored FWHM and FW15M in a single function
 - PSF pipeline now doesn't break if no_hough is passed
-- Fixed axes labels on summary plot 
+- Fixed axes labels on summary plot
 
 ## [1.2.0] - 2026-03-16
 

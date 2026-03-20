@@ -215,7 +215,10 @@ def plot_profiles_with_fwhm(
 
     # Plot the two sinogram profiles
     ax.plot(
-        radial_display, prof_horizontal_sino, label=f"Horizontal (idx={horizontal_idx})", color="teal"
+        radial_display,
+        prof_horizontal_sino,
+        label=f"Horizontal (idx={horizontal_idx})",
+        color="teal",
     )
     ax.plot(
         radial_display,
@@ -434,7 +437,7 @@ def plot_profile_with_gaussian(
         scale_factor = pixel_size / magnification
         radial_display = radial * scale_factor
         x_label = "Radial Position (mm)"
-        
+
         mu_display = mu * scale_factor
         sigma_display = sigma * scale_factor
     else:
@@ -445,7 +448,7 @@ def plot_profile_with_gaussian(
 
     # Create a dense index axis for smooth curve
     radial_dense = np.linspace(radial_display[0], radial_display[-1], 500)
-    
+
     # Compute fitted Gaussian using the properly scaled parameters
     fitted_dense = (
         A * np.exp(-((radial_dense - mu_display) ** 2) / (2 * sigma_display**2)) + B
@@ -466,6 +469,7 @@ def plot_profile_with_gaussian(
     if show_plots:
         plt.show()
     plt.close()
+
 
 def plot_1d_mtf(
     freq: np.ndarray,

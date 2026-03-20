@@ -16,10 +16,9 @@
 
 import numpy as np
 import tifffile
-from scipy.ndimage import shift
 from skimage.transform import iradon
 
-from .sinogram_extraction import symmetrize_sinogram
+from .sinogram_extraction import symmetrize_sinogram, manual_center_sinogram
 
 
 def reconstruct_focal_spot(
@@ -61,6 +60,7 @@ def reconstruct_with_axis_shifts(
     output_tiff_path: str,
     filter_name: str,
     shifts: list,
+    symmetrize: bool = False,
 ) -> None:
     """
     Applies multiple vertical shifts to a sinogram, reconstructs each, and saves as a multi-page TIFF.
@@ -75,6 +75,8 @@ def reconstruct_with_axis_shifts(
         Filter name for the inverse radon transform.
     shifts
         List of integer shifts (rows) to apply to sinogram.
+    symmetrize
+        If True, reconstruction is performed with 180-degree sinogram symmetrization.
 
     Returns
     -------
@@ -82,17 +84,19 @@ def reconstruct_with_axis_shifts(
         This function saves a file and does not return a value.
     """
     reconstructions = []
-    # Prepare angles for full 360 degree sinogram
-    n_angles = sinogram.shape[1]
-    theta = np.linspace(0.0, 360.0, n_angles, endpoint=False)
+
+    max_abs_shift = max(abs(int(s)) for s in shifts) if shifts else 0
+    target_rows = sinogram.shape[0] - max_abs_shift
+    if target_rows <= 0:
+        raise ValueError("Axis shifts are too large for the sinogram height.")
 
     for delta in shifts:
-        # shift sinogram vertically:
-        #   shifting by +delta moves content down, so the effective axis moves up
-        shifted_sino = shift(sinogram, shift=[delta, 0], order=3, mode="nearest")
-
-        # reconstruct
-        rec = iradon(shifted_sino, theta=theta, filter_name=filter_name)
+        shifted_sino, _ = manual_center_sinogram(sinogram, delta)
+        if shifted_sino.shape[0] > target_rows:
+            trim = shifted_sino.shape[0] - target_rows
+            top = trim // 2
+            shifted_sino = shifted_sino[top : top + target_rows, :]
+        rec = reconstruct_focal_spot(shifted_sino, filter_name, symmetrize)
         reconstructions.append(rec.astype(np.float32))
 
     tifffile.imwrite(
