@@ -9,11 +9,11 @@ It can be shown that, for any arbitrary edge orientation, the derivative of the 
 Focal Spot Analysis
 -------------------
 
-For the FS analysis, the test object is placed close to the x-ray source, so that the blurring kernel corresponds to the focal spot distribution, magnified on the image plane. The focal spot size (:math:`fs`) is then computed from the Full Width at Half Maximum (FWHM) of the reconstructed 2D distribution using the relation:
+For the FS analysis, the test object is placed close to the x-ray source, so that the blurring kernel corresponds to the focal spot distribution, magnified on the image plane. The focal spot size (:math:`fs`) is then computed from the Full Width at 15% Maximum (FW15M) of the reconstructed 2D distribution using the relation:
 
 .. math::
 
-   fs = \frac{FWHM \cdot P}{M_{fs}}
+   fs = \frac{FW15M \cdot P}{M_{fs}}
 
 Where:
    * :math:`P` is the pixel size (mm).
