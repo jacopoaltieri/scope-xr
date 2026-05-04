@@ -344,7 +344,7 @@ class TestComputeSubpixelProfilesTraditional:
             profile_half_length=30,
             derivative_step=1,
             dtheta=5.0,
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=0.0,
         )
 
@@ -373,7 +373,7 @@ class TestComputeSubpixelProfilesTraditional:
                 profile_half_length=20,
                 derivative_step=1,
                 dtheta=5.0,
-                resample=resample,
+                oversampling_factor=resample,
                 gaussian_sigma=0.0,
             )
 
@@ -405,7 +405,7 @@ class TestComputeSubpixelProfilesTraditionalEdgeCases:
             profile_half_length=5,
             derivative_step=1,
             dtheta=0.1,  # Very narrow wedge
-            resample=1.0,
+            oversampling_factor=1.0,
             gaussian_sigma=0.0,
         )
 
@@ -432,7 +432,7 @@ class TestComputeSubpixelProfilesTraditionalEdgeCases:
             profile_half_length=2,  # Very small
             derivative_step=1,
             dtheta=0.001,  # Extremely narrow wedge (almost no pixels)
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=0.0,
         )
 
@@ -463,7 +463,7 @@ class TestComputeSubpixelProfiles3Step:
             profile_half_length=30,
             derivative_step=1,
             dtheta=5.0,
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=1.0,
         )
 
@@ -496,7 +496,7 @@ class TestComputeSubpixelProfiles3Step:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=2.0,  # More smoothing
         )
 
@@ -509,7 +509,7 @@ class TestComputeSubpixelProfiles3Step:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=0.5,  # Less smoothing
         )
 
@@ -899,7 +899,7 @@ class TestIntegration:
             profile_half_length=30,
             derivative_step=1,
             dtheta=5.0,
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=0.0,
         )
 
@@ -935,7 +935,7 @@ class TestIntegration:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=0.0,
         )
 
@@ -949,7 +949,7 @@ class TestIntegration:
             profile_half_length=25,
             derivative_step=1,
             dtheta=5.0,
-            resample=2.0,
+            oversampling_factor=2.0,
             gaussian_sigma=1.0,
         )
 

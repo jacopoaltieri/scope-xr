@@ -378,7 +378,7 @@ def run_pipeline_psf():
                 profile_half_length,
                 derivative_step,
                 dtheta,
-                resample=resample2,
+                oversampling_factor=resample2,
                 gaussian_sigma=gaussian_sigma,
             )
         )
