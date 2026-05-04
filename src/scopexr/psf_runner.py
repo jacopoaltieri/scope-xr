@@ -191,14 +191,14 @@ def run_pipeline_psf():
     radial = np.arange(len(prof_horizontal)) - (len(prof_horizontal) // 2)
     data = np.column_stack((radial, prof_horizontal, prof_vertical))
 
-    np.savetxt(
-        out_dir / "profiles.csv",
-        data,
-        delimiter=",",
-        header="radial,horizontal_lsf,vertical_lsf",
-        comments="",
-        fmt=["%.6f", "%.6f", "%.6f"],
-    )
+    # np.savetxt(
+    #     out_dir / "profiles.csv",
+    #     data,
+    #     delimiter=",",
+    #     header="radial,horizontal_lsf,vertical_lsf",
+    #     comments="",
+    #     fmt=["%.6f", "%.6f", "%.6f"],
+    # )
 
     # Fit Gaussian to projection-based profiles for plotting
     def gaussian_fit(x, A, mu, sigma, B):
@@ -455,14 +455,14 @@ def run_pipeline_psf():
 
         data_oversampled = np.column_stack((radial_ov, prof_h_ov, prof_v_ov))
 
-        np.savetxt(
-            out_dir / "profiles_oversampled.csv",
-            data_oversampled,
-            delimiter=",",
-            header="radial,horizontal_lsf,vertical_lsf",
-            comments="",
-            fmt=["%.6f", "%.6f", "%.6f"],
-        )
+        # np.savetxt(
+        #     out_dir / "profiles_oversampled.csv",
+        #     data_oversampled,
+        #     delimiter=",",
+        #     header="radial,horizontal_lsf,vertical_lsf",
+        #     comments="",
+        #     fmt=["%.6f", "%.6f", "%.6f"],
+        # )
 
         def gaussian_fit(x, A, mu, sigma, B):
             return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
