@@ -5,6 +5,14 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-05-07
+
+### Changed
+
+- Replaced the PSF oversampled sinogram derivative with a Savitzky-Golay based derivative to reduce binning artifacts.
+- Improved robustness for low oversampling factors and empty wedge cases in sinogram extraction.
+- Updated the sinogram extraction/reconstruction tests and PSF runner to match the new extraction flow.
+
 ## [1.2.2] - 2026-03-20
 
 ### Changed
