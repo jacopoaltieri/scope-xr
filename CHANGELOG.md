@@ -5,6 +5,19 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-06-08
+
+### Added
+
+- Added `_extrapolate_lsf_tails` to extend LSF tails with an exponential fit to reduce truncation artifacts when computing the MTF.
+- Added `compute_1d_mtf_from_sino` to compute 1D MTF directly from sinogram columns.
+- Added `get_mtf_at_freq` helper for interpolated MTF values at arbitrary frequencies.
+
+### Changed
+
+- `compute_1d_mtf` now applies tail extrapolation and improved normalization for more stable MTF estimates.
+- Docstrings and example usage updated in `scopexr.mtf_calc`.
+
 ## [1.2.3] - 2026-05-07
 
 ### Changed

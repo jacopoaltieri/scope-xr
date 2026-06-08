@@ -530,6 +530,8 @@ def run_pipeline_psf():
         freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
             prof_h_ov, pixel_size / resample2
         )
+        
+        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf_from_sino(sinogram_oversampled,  pixel_size / resample2,horizontal_idx)
 
         mtf1_h_ov = mtfc.get_mtf_at_freq(1.0, freq_h_ov, mtf_h_ov)
         mtf2_h_ov = mtfc.get_mtf_at_freq(2.0, freq_h_ov, mtf_h_ov)
