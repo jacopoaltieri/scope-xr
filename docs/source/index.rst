@@ -23,6 +23,18 @@ Key Features
 * **PSF Estimation:** 2D detector Point Spread Function analysis with sub-pixel oversampling.
 * **Dual Interface:** Interactive GUI for routine analysis and CLI for batch research pipelines.
 
+
+Citation
+--------
+
+**Published paper:**
+
+The SCOPE-XR methodology and software are described in our paper; please cite it as:
+Altieri J, Cardarelli P, Di Domenico G, Taibi A. A python framework for single-image characterization of X-ray focal spot distribution and detector point spread function. Med Phys. 2026;53:e70513. https://doi.org/10.1002/mp.70513
+
+
+
+
 .. toctree::
    :maxdepth: 2
    :caption: User Guide
