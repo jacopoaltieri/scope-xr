@@ -3,26 +3,77 @@ name: Build and Release SCOPE-XR
 on:
   push:
     tags:
-      - 'v*.*.*'   # push with tag version
+      - "v*.*.*" # push with tag version
   workflow_dispatch:
-  
+
 permissions:
   contents: write
 
 jobs:
-  build-release:
+  create-tag:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # for tag
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
+
+      - name: Resolve release version
+        id: metadata
+        shell: bash
+        run: |
+          VERSION=$(python - <<'PY'
+          import pathlib
+          import re
+
+          text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
+          match = re.search(r'^version\s*=\s*"([^"]+)"\s*$', text, re.M)
+          if not match:
+              raise SystemExit("Could not find project version in pyproject.toml")
+
+          print(match.group(1))
+          PY
+          )
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push release tag
+        shell: bash
+        run: |
+          git fetch --tags origin
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.metadata.outputs.tag_name }}" >/dev/null 2>&1; then
+            echo "Tag '${{ steps.metadata.outputs.tag_name }}' already exists on origin."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.metadata.outputs.tag_name }}" -m "Release ${{ steps.metadata.outputs.version }}"
+          git push origin "${{ steps.metadata.outputs.tag_name }}"
+
+  build-release:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # for tag
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
       - name: Resolve release version
         id: metadata
