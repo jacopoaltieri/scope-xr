@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scopexr"
-version = "1.2.5"
+version = "1.2.6"
 description = "Single-image Characterization Of PErformance in X-Ray systems"
 authors = [
   { name = "Jacopo Altieri", email = "jacopo.altieri@gmail.com" },
@@ -45,6 +45,7 @@ all = [
 scopexr-gui = "scopexr.gui:main"
 scopexr-fs = "scopexr.fs_main:main"
 scopexr-psf = "scopexr.psf_main:main"
+
 
 [tool.setuptools.package-data]
 scopexr = ["*.png"]
