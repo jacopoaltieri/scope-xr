@@ -14,11 +14,11 @@ Prerequisites
 ------------
 
 If you just want to use the software without modifying the code, install
-directly from the source via pip:
+directly from PyPI:
 
 .. code:: bash
 
-   pip install git+https://github.com/jacopoaltieri/scope-xr.git
+   pip install scopexr
 
 ⚠️ **Important**: Configuration files (``.yaml``) are required for
 execution. Please download them from the ``examples`` folder and place

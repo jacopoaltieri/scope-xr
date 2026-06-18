@@ -50,8 +50,8 @@
 Get started in 3 steps:
 
 ```bash
-# 1. Install
-pip install git+https://github.com/jacopoaltieri/scope-xr.git
+# 1. Install from PyPI
+pip install scopexr
 
 # 2. Run GUI
 scopexr-gui
@@ -88,10 +88,10 @@ SCOPE-XR is installed as a standard Python package. It is recommended to use a v
   ```
 ### 1. Quick Install (For regular users)
 
-If you just want to use the software without modifying the code, install directly from the source via pip:
+If you just want to use the software without modifying the code, install directly from PyPI:
 
 ```bash
-pip install git+https://github.com/jacopoaltieri/scope-xr.git
+pip install scopexr
 ```
 
 ⚠️ **Important**: Configuration files (`.yaml`) are required for execution. Please download them from the `examples` folder and place them in your working directory.  
