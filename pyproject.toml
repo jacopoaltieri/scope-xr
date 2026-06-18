@@ -48,3 +48,16 @@ scopexr-psf = "scopexr.psf_main:main"
 
 [tool.setuptools.package-data]
 scopexr = ["*.png"]
+
+[tool.semantic_release]
+version_variable = "pyproject.toml:version"
+version_toml = "pyproject.toml:project.version"
+major_on_zero = false
+branch = "main"
+
+[tool.semantic_release.changelog]
+exclude_commit_types = ["chore", "test"]
+
+[tool.semantic_release.publish]
+dist_dir = "dist"
+upload_to_vcs_release = true

@@ -1,135 +1,23 @@
-name: Build and Release SCOPE-XR
+name: Release
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    branches:
+      - main
 
 jobs:
-  create-tag:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+  release:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write # Needed for creating tags and releases
+      id-token: write # Needed for PyPI trusted publishing
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@v9.x
         with:
-          python-version: "3.10"
-
-      - name: Resolve release version
-        id: metadata
-        shell: bash
-        run: |
-          VERSION=$(python - <<'PY'
-          import pathlib
-          import re
-
-          text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
-          match = re.search(r'^version\s*=\s*"([^"]+)"\s*$', text, re.M)
-          if not match:
-              raise SystemExit("Could not find project version in pyproject.toml")
-
-          print(match.group(1))
-          PY
-          )
-
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag_name=v${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Create and push release tag
-        shell: bash
-        run: |
-          git fetch --tags origin
-
-          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.metadata.outputs.tag_name }}" >/dev/null 2>&1; then
-            echo "Tag '${{ steps.metadata.outputs.tag_name }}' already exists on origin."
-            exit 1
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.metadata.outputs.tag_name }}" -m "Release ${{ steps.metadata.outputs.version }}"
-          git push origin "${{ steps.metadata.outputs.tag_name }}"
-
-  build-release:
-    if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # for tag
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Resolve release version
-        id: metadata
-        shell: bash
-        run: |
-          VERSION=$(python - <<'PY'
-          import pathlib
-          import re
-
-          text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
-          match = re.search(r'^version\s*=\s*"([^"]+)"\s*$', text, re.M)
-          if not match:
-              raise SystemExit("Could not find project version in pyproject.toml")
-
-          print(match.group(1))
-          PY
-          )
-
-          TAG_NAME="v${VERSION}"
-
-          if [ "${{ github.event_name }}" = "push" ]; then
-            if [ "${GITHUB_REF_NAME}" != "${TAG_NAME}" ]; then
-              echo "Tag '${GITHUB_REF_NAME}' does not match the project version '${TAG_NAME}'."
-              exit 1
-            fi
-            TAG_NAME="${GITHUB_REF_NAME}"
-          fi
-
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build
-
-      - name: Build wheel and sdist
-        run: |
-          python -m build
-          ls -lh dist/
-
-      # File.bat for windows installation
-      - name: Copy installer script
-        run: |
-          cp setup.bat dist/ || echo "No install.bat found"
-
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.metadata.outputs.tag_name }}
-          name: "SCOPE-XR ${{ steps.metadata.outputs.version }}"
-          target_commitish: ${{ github.sha }}
-          draft: false
-          prerelease: false
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
-            dist/*.bat
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # This automatically runs tests, bumps version, updates changelog,
+          # creates a tag, and publishes to PyPI if everything succeeds.
