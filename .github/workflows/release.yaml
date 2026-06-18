@@ -1,9 +1,7 @@
 name: Build and Release SCOPE-XR
-
 on:
   push:
-    tags:
-      - "v*.*.*" # push with tag version
+    branches: [main]
   workflow_dispatch:
 
 permissions:
