@@ -59,8 +59,8 @@ from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtGui import QPixmap, QIcon, QResizeEvent, QImage
 
 
-def load_config(filename: str) -> dict:
-    """Load a YAML configuration file and return its contents as a dictionary.
+def load_config(filename: str) -> tuple[dict, str | None]:
+    """Load a YAML configuration file and return its contents along with any warning.
 
     Parameters
     ----------
@@ -69,19 +69,17 @@ def load_config(filename: str) -> dict:
 
     Returns
     -------
-    dict
-        Configuration parameters loaded from the file, or an empty dict
-        if the file cannot be loaded
+    tuple[dict, str | None]
+        A tuple containing the configuration dictionary and an optional warning string.
     """
     try:
         with open(filename, "r") as f:
-            return yaml.safe_load(f)
+            data = yaml.safe_load(f)
+            return data if data is not None else {}, None
     except FileNotFoundError:
-        print(f"Warning: Config file '{filename}' not found. Using hardcoded defaults.")
-        return {}
+        return {}, f"Warning: Config file '{filename}' not found. Using hardcoded defaults."
     except Exception as e:
-        print(f"Warning: Error loading '{filename}': {e}. Using hardcoded defaults.")
-        return {}
+        return {}, f"Warning: Error loading '{filename}': {e}. Using hardcoded defaults."
 
 
 class RunThread(QThread):
@@ -251,7 +249,7 @@ class ScopeXRApp(QMainWindow):
     Provides a two-pane interface with:
 
     - Left pane: Image preview and loading controls
-    - Right pane: Tabbed parameter configuration (Focal Spot and PSF),
+    - Right pane: Tabbed parameter configuration,
       control buttons, and output console
 
     The GUI allows users to configure analysis parameters either through
@@ -288,8 +286,9 @@ class ScopeXRApp(QMainWindow):
         fs_config_path = "./fs_args.yaml"
         psf_config_path = "./psf_args.yaml"
 
-        self.fs_config_data = load_config(fs_config_path)
-        self.psf_config_data = load_config(psf_config_path)
+        # Capture configuration data and initial warning states
+        self.fs_config_data, fs_init_warn = load_config(fs_config_path)
+        self.psf_config_data, psf_init_warn = load_config(psf_config_path)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(splitter)
@@ -352,7 +351,13 @@ class ScopeXRApp(QMainWindow):
 
         self.run_thread = None
 
-        # Call this here to ensure the state is synced after all tabs are created
+        # Print initial fallback warnings cleanly inside the output box on startup
+        if fs_init_warn:
+            self.append_output(fs_init_warn + "\n")
+        if psf_init_warn:
+            self.append_output(psf_init_warn + "\n")
+
+        # Sync states after complete setup
         self.update_psf_oversample_controls()
 
     def set_app_icon(self, filename: str) -> None:
@@ -406,7 +411,9 @@ class ScopeXRApp(QMainWindow):
             )
             return
 
-        new_data = load_config(path)
+        new_data, warning = load_config(path)
+        if warning:
+            self.append_output(warning + "\n")
         if not new_data:
             QMessageBox.warning(self, "Error", "Failed to load or empty config file.")
             return
@@ -540,7 +547,9 @@ class ScopeXRApp(QMainWindow):
             )
             return
 
-        new_data = load_config(path)
+        new_data, warning = load_config(path)
+        if warning:
+            self.append_output(warning + "\n")
         if not new_data:
             QMessageBox.warning(self, "Error", "Failed to load or empty config file.")
             return
@@ -717,7 +726,6 @@ class ScopeXRApp(QMainWindow):
         """
         tab_widget, layout = self._create_scrollable_tab()
 
-        # Warning label at the top
         warning_label = QLabel(
             "ℹ️ NOTE: These parameters fine-tune the algorithm and Hough circle detection.\n"
             "The default values work well for most cases. Adjust these only if the standard analysis fails or needs tweaking."
@@ -729,9 +737,7 @@ class ScopeXRApp(QMainWindow):
         )
         layout.addRow(warning_label)
 
-        # ==========================================
         # FS ADVANCED SECTION
-        # ==========================================
         fs_adv_group = QGroupBox("Focal Spot (FS) Advanced Parameters")
         fs_adv_layout = QFormLayout()
 
@@ -856,9 +862,7 @@ class ScopeXRApp(QMainWindow):
         fs_adv_group.setLayout(fs_adv_layout)
         layout.addRow(fs_adv_group)
 
-        # ==========================================
         # PSF ADVANCED SECTION
-        # ==========================================
         psf_adv_group = QGroupBox("PSF Advanced Parameters")
         psf_adv_layout = QFormLayout()
 
@@ -1218,7 +1222,8 @@ class ScopeXRApp(QMainWindow):
             config_path = self.psf_config.text()
             config_data = {}
             if config_path and Path(config_path).exists():
-                config_data = load_config(config_path) or {}
+                config_data, _ = load_config(config_path)
+                config_data = config_data or {}
             hough_params = {
                 "dp": self.psf_hough_dp.value(),
                 "min_dist": self.psf_hough_min_dist.value(),
