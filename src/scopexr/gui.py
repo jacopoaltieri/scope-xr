@@ -352,6 +352,9 @@ class ScopeXRApp(QMainWindow):
 
         self.run_thread = None
 
+        # Call this here to ensure the state is synced after all tabs are created
+        self.update_psf_oversample_controls()
+
     def set_app_icon(self, filename: str) -> None:
         """Set the application window icon from package resources.
 
@@ -420,6 +423,8 @@ class ScopeXRApp(QMainWindow):
         set_spin(self.fs_diameter, "circle_diameter", float)
         if "no_hough" in new_data:
             self.fs_no_hough.setChecked(bool(new_data["no_hough"]))
+
+        # Advanced Tab Variables
         set_spin(self.fs_magnification, "m", float)
         min_n = new_data.get("min_n", new_data.get("n"))
         if min_n is not None:
@@ -512,85 +517,12 @@ class ScopeXRApp(QMainWindow):
         self.fs_no_hough.setChecked(config_data.get("no_hough", False))
         layout.addRow("[--no_hough]:", self.fs_no_hough)
 
-        self.fs_magnification = QDoubleSpinBox()
-        self.fs_magnification.setDecimals(3)
-        self.fs_magnification.setValue(config_data.get("m", 0.0))
-        self.fs_magnification.setToolTip(
-            "Set to 0.0 to let program estimate automatically."
-        )
-        layout.addRow("Magnification [--m]:", self.fs_magnification)
-
-        self.fs_min_pixels = QSpinBox()
-        self.fs_min_pixels.setRange(0, 500)
-        min_n = config_data.get("min_n", config_data.get("n", 10))
-        self.fs_min_pixels.setValue(min_n)
-        layout.addRow("Min. Pixels [--n]:", self.fs_min_pixels)
-
-        self.fs_nangles = QSpinBox()
-        self.fs_nangles.setRange(90, 1080)
-        self.fs_nangles.setValue(config_data.get("n_angles", 360))
-        layout.addRow("Num. Angles [--nangles]:", self.fs_nangles)
-
-        self.fs_half_length = QSpinBox()
-        self.fs_half_length.setRange(1, 10_000)
-        self.fs_half_length.setValue(config_data.get("profile_half_length", 100))
-        layout.addRow("Profile Half-Length [--hl]:", self.fs_half_length)
-
-        self.fs_derivative_step = QSpinBox()
-        self.fs_derivative_step.setRange(1, 10)
-        self.fs_derivative_step.setValue(config_data.get("derivative_step", 1))
-        layout.addRow("Derivative Step [--ds]:", self.fs_derivative_step)
-
-        self.fs_axis_shifts = QSpinBox()
-        self.fs_axis_shifts.setRange(0, 50)
-        self.fs_axis_shifts.setValue(config_data.get("axis_shifts", 10))
-        layout.addRow("Shifts Search Range [--axis_shifts]:", self.fs_axis_shifts)
-
         self.fs_filter = QComboBox()
         self.fs_filter.addItems(
             ["ramp", "shepp-logan", "cosine", "hamming", "hann", "None"]
         )
         self.fs_filter.setCurrentText(str(config_data.get("filter_name", "ramp")))
         layout.addRow("Filter [--filter]:", self.fs_filter)
-
-        self.fs_sym = QCheckBox("Symmetrize Sinogram")
-        self.fs_sym.setChecked(config_data.get("symmetrize", False))
-        layout.addRow("[--sym]:", self.fs_sym)
-
-        self.fs_show = QCheckBox("Show Matplotlib plots")
-        self.fs_show.setChecked(config_data.get("show_plots", True))
-        layout.addRow("[--show]:", self.fs_show)
-
-        fs_shift_box = QGroupBox("Sinogram Shifting")
-        fs_shift_layout = QVBoxLayout()
-        self.fs_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
-        self.fs_radio_no = QRadioButton("No Shift (--no_shift)")
-
-        self.fs_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
-        self.fs_manual_shift_val = QSpinBox()
-        self.fs_manual_shift_val.setRange(-1000, 1000)
-        self.fs_manual_shift_val.setEnabled(False)
-        self.fs_radio_manual.toggled.connect(self.fs_manual_shift_val.setEnabled)
-
-        manual_layout = QHBoxLayout()
-        manual_layout.addWidget(self.fs_radio_manual)
-        manual_layout.addWidget(self.fs_manual_shift_val)
-
-        fs_shift_layout.addWidget(self.fs_radio_auto)
-        fs_shift_layout.addLayout(manual_layout)
-        fs_shift_layout.addWidget(self.fs_radio_no)
-        fs_shift_box.setLayout(fs_shift_layout)
-
-        manual_val = config_data.get("manual_shift")
-        if manual_val is not None:
-            self.fs_radio_manual.setChecked(True)
-            self.fs_manual_shift_val.setValue(int(manual_val))
-        elif config_data.get("no_shift", False):
-            self.fs_radio_no.setChecked(True)
-        else:
-            self.fs_radio_auto.setChecked(True)
-
-        layout.addRow(fs_shift_box)
 
         return tab_widget
 
@@ -625,6 +557,8 @@ class ScopeXRApp(QMainWindow):
         set_spin(self.psf_diameter, "circle_diameter", float)
         if "no_hough" in new_data:
             self.psf_no_hough.setChecked(bool(new_data["no_hough"]))
+
+        # Advanced Tab Variables
         set_spin(self.psf_nangles, "n_angles", int)
         set_spin(self.psf_half_length, "profile_half_length", int)
         set_spin(self.psf_derivative_step, "derivative_step", int)
@@ -721,26 +655,6 @@ class ScopeXRApp(QMainWindow):
         self.psf_no_hough.setChecked(config_data.get("no_hough", False))
         layout.addRow("[--no_hough]:", self.psf_no_hough)
 
-        self.psf_nangles = QSpinBox()
-        self.psf_nangles.setRange(90, 1080)
-        self.psf_nangles.setValue(config_data.get("n_angles", 360))
-        layout.addRow("Num. Angles [--nangles]:", self.psf_nangles)
-
-        self.psf_half_length = QSpinBox()
-        self.psf_half_length.setRange(1, 10_000)
-        self.psf_half_length.setValue(config_data.get("profile_half_length", 100))
-        layout.addRow("Profile Half-Length [--hl]:", self.psf_half_length)
-
-        self.psf_derivative_step = QSpinBox()
-        self.psf_derivative_step.setRange(1, 10)
-        self.psf_derivative_step.setValue(config_data.get("derivative_step", 1))
-        layout.addRow("Derivative Step [--ds]:", self.psf_derivative_step)
-
-        self.psf_axis_shifts = QSpinBox()
-        self.psf_axis_shifts.setRange(0, 50)
-        self.psf_axis_shifts.setValue(config_data.get("axis_shifts", 10))
-        layout.addRow("Shifts Search Range [--axis_shifts]:", self.psf_axis_shifts)
-
         self.psf_filter = QComboBox()
         self.psf_filter.addItems(
             ["ramp", "shepp-logan", "cosine", "hamming", "hann", "None"]
@@ -748,69 +662,28 @@ class ScopeXRApp(QMainWindow):
         self.psf_filter.setCurrentText(str(config_data.get("filter_name", "ramp")))
         layout.addRow("Filter [--filter]:", self.psf_filter)
 
-        self.psf_sym = QCheckBox("Symmetrize Sinogram")
-        self.psf_sym.setChecked(config_data.get("symmetrize", False))
-        layout.addRow("[--sym]:", self.psf_sym)
-
-        self.psf_dtheta = QDoubleSpinBox()
-        self.psf_dtheta.setDecimals(2)
-        self.psf_dtheta.setValue(config_data.get("dtheta", 10.0))
-        layout.addRow("Oversample Angle (deg) [--dtheta]:", self.psf_dtheta)
-
-        self.psf_resample2 = QDoubleSpinBox()
-        self.psf_resample2.setValue(config_data.get("resample2", 2))
-        layout.addRow("Resample factor [--resample2]:", self.psf_resample2)
-
-        self.psf_gaussian_sigma = QDoubleSpinBox()
-        self.psf_gaussian_sigma.setDecimals(2)
-        self.psf_gaussian_sigma.setValue(config_data.get("gaussian_sigma", 0.0))
-        layout.addRow(
-            "Gaussian Sigma (0=no blur) [--gaussian_sigma]:", self.psf_gaussian_sigma
-        )
+        # Oversampling Group
+        oversampling_group = QGroupBox("Oversampling Settings")
+        oversampling_layout = QFormLayout()
 
         self.psf_oversample_checkbox = QCheckBox("Enable oversampling (--oversample)")
         self.psf_oversample_checkbox.setChecked(config_data.get("oversample", True))
         self.psf_oversample_checkbox.stateChanged.connect(
             self.update_psf_oversample_controls
         )
-        layout.addRow("Oversampling:", self.psf_oversample_checkbox)
+        oversampling_layout.addRow("Oversampling:", self.psf_oversample_checkbox)
 
-        self.psf_show = QCheckBox("Show Matplotlib plots")
-        self.psf_show.setChecked(config_data.get("show_plots", True))
-        layout.addRow("[--show]:", self.psf_show)
+        self.psf_dtheta = QDoubleSpinBox()
+        self.psf_dtheta.setDecimals(2)
+        self.psf_dtheta.setValue(config_data.get("dtheta", 10.0))
+        oversampling_layout.addRow("Oversample Angle (deg) [--dtheta]:", self.psf_dtheta)
 
-        psf_shift_box = QGroupBox("Sinogram Shifting")
-        psf_shift_layout = QVBoxLayout()
-        self.psf_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
-        self.psf_radio_no = QRadioButton("No Shift (--no_shift)")
+        self.psf_resample2 = QDoubleSpinBox()
+        self.psf_resample2.setValue(config_data.get("resample2", 2))
+        oversampling_layout.addRow("Resample factor [--resample2]:", self.psf_resample2)
 
-        self.psf_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
-        self.psf_manual_shift_val = QSpinBox()
-        self.psf_manual_shift_val.setRange(-1000, 1000)
-        self.psf_manual_shift_val.setEnabled(False)
-        self.psf_radio_manual.toggled.connect(self.psf_manual_shift_val.setEnabled)
-
-        manual_layout_psf = QHBoxLayout()
-        manual_layout_psf.addWidget(self.psf_radio_manual)
-        manual_layout_psf.addWidget(self.psf_manual_shift_val)
-
-        psf_shift_layout.addWidget(self.psf_radio_auto)
-        psf_shift_layout.addLayout(manual_layout_psf)
-        psf_shift_layout.addWidget(self.psf_radio_no)
-        psf_shift_box.setLayout(psf_shift_layout)
-
-        manual_val_psf = config_data.get("manual_shift")
-        if manual_val_psf is not None:
-            self.psf_radio_manual.setChecked(True)
-            self.psf_manual_shift_val.setValue(int(manual_val_psf))
-        elif config_data.get("no_shift", False):
-            self.psf_radio_no.setChecked(True)
-        else:
-            self.psf_radio_auto.setChecked(True)
-
-        layout.addRow(psf_shift_box)
-
-        self.update_psf_oversample_controls()
+        oversampling_group.setLayout(oversampling_layout)
+        layout.addRow(oversampling_group)
 
         return tab_widget
 
@@ -819,45 +692,124 @@ class ScopeXRApp(QMainWindow):
         enabled = self.psf_oversample_checkbox.isChecked()
         self.psf_dtheta.setEnabled(enabled)
         self.psf_resample2.setEnabled(enabled)
-        self.psf_gaussian_sigma.setEnabled(enabled)
+        if hasattr(self, "psf_gaussian_sigma"):
+            self.psf_gaussian_sigma.setEnabled(enabled)
 
     def create_advanced_tab(
         self, fs_config_data: dict, psf_config_data: dict
     ) -> QWidget:
-        """Create the Advanced tab for Hough transform parameters.
+        """Create the Advanced tab for algorithm tuning and Hough parameters.
 
         Creates a scrollable tab containing separate sections for FS and PSF
-        Hough circle detection parameters. These parameters control the circle
-        detection algorithm used to locate the focal spot or pinhole in the image.
+        advanced parameters.
 
         Parameters
         ----------
         fs_config_data : dict
-            Configuration data for focal spot including hough_params
+            Configuration data for focal spot
         psf_config_data : dict
-            Configuration data for PSF including hough_params
+            Configuration data for PSF
 
         Returns
         -------
         QWidget
-            The advanced tab widget containing all Hough parameter controls
+            The advanced tab widget containing all advanced parameter controls
         """
         tab_widget, layout = self._create_scrollable_tab()
 
         # Warning label at the top
         warning_label = QLabel(
-            "⚠️ WARNING: These parameters should only be modified if Hough circle detection fails.\n"
-            "The default values work for most cases. Only change these if you are sure what you are doing."
+            "ℹ️ NOTE: These parameters fine-tune the algorithm and Hough circle detection.\n"
+            "The default values work well for most cases. Adjust these only if the standard analysis fails or needs tweaking."
         )
         warning_label.setWordWrap(True)
         warning_label.setStyleSheet(
-            "background-color: #fff3cd; color: #856404; padding: 15px; "
-            "border: 2px solid #ffc107; border-radius: 5px; font-weight: bold; margin-bottom: 10px;"
+            "background-color: #e2f3f5; color: #0056b3; padding: 15px; "
+            "border: 2px solid #b8daff; border-radius: 5px; font-weight: bold; margin-bottom: 10px;"
         )
         layout.addRow(warning_label)
 
-        # FS Hough Parameters Section
-        fs_hough_group = QGroupBox("Focal Spot Hough Transform Parameters")
+        # ==========================================
+        # FS ADVANCED SECTION
+        # ==========================================
+        fs_adv_group = QGroupBox("Focal Spot (FS) Advanced Parameters")
+        fs_adv_layout = QFormLayout()
+
+        self.fs_magnification = QDoubleSpinBox()
+        self.fs_magnification.setDecimals(3)
+        self.fs_magnification.setValue(fs_config_data.get("m", 0.0))
+        self.fs_magnification.setToolTip(
+            "Set to 0.0 to let program estimate automatically."
+        )
+        fs_adv_layout.addRow("Magnification [--m]:", self.fs_magnification)
+
+        self.fs_min_pixels = QSpinBox()
+        self.fs_min_pixels.setRange(0, 500)
+        min_n = fs_config_data.get("min_n", fs_config_data.get("n", 10))
+        self.fs_min_pixels.setValue(min_n)
+        fs_adv_layout.addRow("Min. Pixels [--n]:", self.fs_min_pixels)
+
+        self.fs_nangles = QSpinBox()
+        self.fs_nangles.setRange(90, 1080)
+        self.fs_nangles.setValue(fs_config_data.get("n_angles", 360))
+        fs_adv_layout.addRow("Num. Angles [--nangles]:", self.fs_nangles)
+
+        self.fs_half_length = QSpinBox()
+        self.fs_half_length.setRange(1, 10_000)
+        self.fs_half_length.setValue(fs_config_data.get("profile_half_length", 100))
+        fs_adv_layout.addRow("Profile Half-Length [--hl]:", self.fs_half_length)
+
+        self.fs_derivative_step = QSpinBox()
+        self.fs_derivative_step.setRange(1, 10)
+        self.fs_derivative_step.setValue(fs_config_data.get("derivative_step", 1))
+        fs_adv_layout.addRow("Derivative Step [--ds]:", self.fs_derivative_step)
+
+        self.fs_axis_shifts = QSpinBox()
+        self.fs_axis_shifts.setRange(0, 50)
+        self.fs_axis_shifts.setValue(fs_config_data.get("axis_shifts", 10))
+        fs_adv_layout.addRow("Shifts Search Range [--axis_shifts]:", self.fs_axis_shifts)
+
+        self.fs_sym = QCheckBox("Symmetrize Sinogram")
+        self.fs_sym.setChecked(fs_config_data.get("symmetrize", False))
+        fs_adv_layout.addRow("[--sym]:", self.fs_sym)
+
+        self.fs_show = QCheckBox("Show Matplotlib plots")
+        self.fs_show.setChecked(fs_config_data.get("show_plots", True))
+        fs_adv_layout.addRow("[--show]:", self.fs_show)
+
+        # FS Shift Sub-group
+        fs_shift_box = QGroupBox("Sinogram Shifting")
+        fs_shift_layout = QVBoxLayout()
+        self.fs_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
+        self.fs_radio_no = QRadioButton("No Shift (--no_shift)")
+
+        self.fs_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
+        self.fs_manual_shift_val = QSpinBox()
+        self.fs_manual_shift_val.setRange(-1000, 1000)
+        self.fs_manual_shift_val.setEnabled(False)
+        self.fs_radio_manual.toggled.connect(self.fs_manual_shift_val.setEnabled)
+
+        manual_layout = QHBoxLayout()
+        manual_layout.addWidget(self.fs_radio_manual)
+        manual_layout.addWidget(self.fs_manual_shift_val)
+
+        fs_shift_layout.addWidget(self.fs_radio_auto)
+        fs_shift_layout.addLayout(manual_layout)
+        fs_shift_layout.addWidget(self.fs_radio_no)
+        fs_shift_box.setLayout(fs_shift_layout)
+
+        manual_val = fs_config_data.get("manual_shift")
+        if manual_val is not None:
+            self.fs_radio_manual.setChecked(True)
+            self.fs_manual_shift_val.setValue(int(manual_val))
+        elif fs_config_data.get("no_shift", False):
+            self.fs_radio_no.setChecked(True)
+        else:
+            self.fs_radio_auto.setChecked(True)
+        fs_adv_layout.addRow(fs_shift_box)
+
+        # FS Hough Sub-group
+        fs_hough_group = QGroupBox("Hough Transform Parameters")
         fs_hough_layout = QFormLayout()
 
         fs_hough = fs_config_data.get("hough_params", {})
@@ -899,10 +851,85 @@ class ScopeXRApp(QMainWindow):
         fs_hough_layout.addRow("Debug Mode:", self.fs_hough_debug)
 
         fs_hough_group.setLayout(fs_hough_layout)
-        layout.addRow(fs_hough_group)
+        fs_adv_layout.addRow(fs_hough_group)
 
-        # PSF Hough Parameters Section
-        psf_hough_group = QGroupBox("PSF Hough Transform Parameters")
+        fs_adv_group.setLayout(fs_adv_layout)
+        layout.addRow(fs_adv_group)
+
+        # ==========================================
+        # PSF ADVANCED SECTION
+        # ==========================================
+        psf_adv_group = QGroupBox("PSF Advanced Parameters")
+        psf_adv_layout = QFormLayout()
+
+        self.psf_nangles = QSpinBox()
+        self.psf_nangles.setRange(90, 1080)
+        self.psf_nangles.setValue(psf_config_data.get("n_angles", 360))
+        psf_adv_layout.addRow("Num. Angles [--nangles]:", self.psf_nangles)
+
+        self.psf_half_length = QSpinBox()
+        self.psf_half_length.setRange(1, 10_000)
+        self.psf_half_length.setValue(psf_config_data.get("profile_half_length", 100))
+        psf_adv_layout.addRow("Profile Half-Length [--hl]:", self.psf_half_length)
+
+        self.psf_derivative_step = QSpinBox()
+        self.psf_derivative_step.setRange(1, 10)
+        self.psf_derivative_step.setValue(psf_config_data.get("derivative_step", 1))
+        psf_adv_layout.addRow("Derivative Step [--ds]:", self.psf_derivative_step)
+
+        self.psf_axis_shifts = QSpinBox()
+        self.psf_axis_shifts.setRange(0, 50)
+        self.psf_axis_shifts.setValue(psf_config_data.get("axis_shifts", 10))
+        psf_adv_layout.addRow("Shifts Search Range [--axis_shifts]:", self.psf_axis_shifts)
+
+        self.psf_sym = QCheckBox("Symmetrize Sinogram")
+        self.psf_sym.setChecked(psf_config_data.get("symmetrize", False))
+        psf_adv_layout.addRow("[--sym]:", self.psf_sym)
+
+        self.psf_gaussian_sigma = QDoubleSpinBox()
+        self.psf_gaussian_sigma.setDecimals(2)
+        self.psf_gaussian_sigma.setValue(psf_config_data.get("gaussian_sigma", 0.0))
+        psf_adv_layout.addRow(
+            "Gaussian Sigma (0=no blur) [--gaussian_sigma]:", self.psf_gaussian_sigma
+        )
+
+        self.psf_show = QCheckBox("Show Matplotlib plots")
+        self.psf_show.setChecked(psf_config_data.get("show_plots", True))
+        psf_adv_layout.addRow("[--show]:", self.psf_show)
+
+        # PSF Shift Sub-group
+        psf_shift_box = QGroupBox("Sinogram Shifting")
+        psf_shift_layout = QVBoxLayout()
+        self.psf_radio_auto = QRadioButton("Auto Shift (--auto_shift)")
+        self.psf_radio_no = QRadioButton("No Shift (--no_shift)")
+
+        self.psf_radio_manual = QRadioButton("Manual Shift (--manual_shift)")
+        self.psf_manual_shift_val = QSpinBox()
+        self.psf_manual_shift_val.setRange(-1000, 1000)
+        self.psf_manual_shift_val.setEnabled(False)
+        self.psf_radio_manual.toggled.connect(self.psf_manual_shift_val.setEnabled)
+
+        manual_layout_psf = QHBoxLayout()
+        manual_layout_psf.addWidget(self.psf_radio_manual)
+        manual_layout_psf.addWidget(self.psf_manual_shift_val)
+
+        psf_shift_layout.addWidget(self.psf_radio_auto)
+        psf_shift_layout.addLayout(manual_layout_psf)
+        psf_shift_layout.addWidget(self.psf_radio_no)
+        psf_shift_box.setLayout(psf_shift_layout)
+
+        manual_val_psf = psf_config_data.get("manual_shift")
+        if manual_val_psf is not None:
+            self.psf_radio_manual.setChecked(True)
+            self.psf_manual_shift_val.setValue(int(manual_val_psf))
+        elif psf_config_data.get("no_shift", False):
+            self.psf_radio_no.setChecked(True)
+        else:
+            self.psf_radio_auto.setChecked(True)
+        psf_adv_layout.addRow(psf_shift_box)
+
+        # PSF Hough Sub-group
+        psf_hough_group = QGroupBox("Hough Transform Parameters")
         psf_hough_layout = QFormLayout()
 
         psf_hough = psf_config_data.get("hough_params", {})
@@ -946,21 +973,10 @@ class ScopeXRApp(QMainWindow):
         psf_hough_layout.addRow("Debug Mode:", self.psf_hough_debug)
 
         psf_hough_group.setLayout(psf_hough_layout)
-        layout.addRow(psf_hough_group)
+        psf_adv_layout.addRow(psf_hough_group)
 
-        # Add explanation label
-        help_text = QLabel(
-            "These parameters control the Hough Circle Transform algorithm used to detect "
-            "the circular region in the image. Adjust these if circle detection fails.\n\n"
-            "• dp: Inverse ratio of accumulator resolution to image resolution\n"
-            "• min_dist: Minimum distance between detected circle centers\n"
-            "• param1: Higher threshold for Canny edge detector\n"
-            "• param2: Accumulator threshold for circle centers (lower = more false circles)\n"
-            "• min/max_radius: Range of circle radii to search for"
-        )
-        help_text.setWordWrap(True)
-        help_text.setStyleSheet("color: #666; font-size: 10pt; padding: 10px;")
-        layout.addRow(help_text)
+        psf_adv_group.setLayout(psf_adv_layout)
+        layout.addRow(psf_adv_group)
 
         return tab_widget
 
@@ -1124,7 +1140,7 @@ class ScopeXRApp(QMainWindow):
         # Advanced tab doesn't run analysis
         if current_tab_index == 2:
             self.output_console.setText(
-                "Please select the 'Focal Spot (FS)' or 'PSF' tab to run analysis.\nThe 'Advanced' tab is for configuring Hough transform parameters only."
+                "Please select the 'Focal Spot (FS)' or 'PSF' tab to run analysis.\nThe 'Advanced' tab is for configuring extra parameters only."
             )
             self.run_btn.setEnabled(True)
             self.run_btn.setText("Run Analysis")
