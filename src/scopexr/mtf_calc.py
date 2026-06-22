@@ -16,6 +16,7 @@
 
 import numpy as np
 
+
 def _extrapolate_lsf_tails(
     lsf: np.ndarray, threshold_ratio: float = 0.1, fit_points: int = 5
 ) -> np.ndarray:
@@ -123,17 +124,17 @@ def compute_1d_mtf(
         Frequency at which MTF drops to 10% (cycles/mm).
     """
     # lsf = lsf / np.sum(lsf) if np.sum(lsf) != 0 else lsf
-    
+
     lsf = _extrapolate_lsf_tails(lsf, threshold_ratio=0.05, fit_points=5)
     # lsf = np.hanning(lsf.size) * lsf  # Apply Hanning window to reduce edge effects
-        
+
     # Compute FFT and frequencies
     otf_1d = np.fft.fft(np.fft.ifftshift(lsf))
     mtf_1d = np.abs(otf_1d)
     mtf_1d = mtf_1d / mtf_1d[0]  # Normalize to 1 at zero frequency
 
     freq = np.fft.fftfreq(lsf.size, d=pixel_size)
-       
+
     # Shift for plotting
     mtf_1d = np.fft.fftshift(mtf_1d)
     freq = np.fft.fftshift(freq)
@@ -188,14 +189,15 @@ def compute_1d_mtf_from_sino(
 
     lsf = _extrapolate_lsf_tails(lsf, threshold_ratio=0.05, fit_points=5)
 
-
-     # Compute FFT and frequencies
+    # Compute FFT and frequencies
     otf_1d = np.fft.fft(np.fft.ifftshift(lsf))
     mtf_1d = np.abs(otf_1d)
-    mtf_1d = mtf_1d / mtf_1d[0]  # Normalize to 1 at zero frequency
+    mtf_1d = (
+        mtf_1d / mtf_1d[0] if mtf_1d[0] != 0 else mtf_1d / (mtf_1d[0] + 1e-10)
+    )  # Normalize to 1 at zero frequency, avoiding division by zero
 
     freq = np.fft.fftfreq(lsf.size, d=pixel_size)
-       
+
     # Shift for plotting
     mtf_1d = np.fft.fftshift(mtf_1d)
     freq = np.fft.fftshift(freq)
