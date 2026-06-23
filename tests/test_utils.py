@@ -107,9 +107,9 @@ class TestCropSquareRoi:
         cropped = crop_square_roi(img, center, radius, width_factor=2.0)
 
         # Should be clipped to image boundaries
-        assert cropped.shape[0] <= 40
-        assert cropped.shape[1] <= 40
-
+        assert cropped.shape[0] == img.shape[0]
+        assert cropped.shape[1] == img.shape[1] 
+        
     def test_crop_with_save(self, tmp_path):
         """Test cropping with saving to file."""
         img = np.random.randint(0, 65535, (100, 100), dtype=np.uint16)

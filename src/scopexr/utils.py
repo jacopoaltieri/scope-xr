@@ -74,6 +74,8 @@ def crop_square_roi(
 ) -> np.ndarray:
     """
     Crop a square region of interest (ROI) around the specified center.
+    If the ideal crop window extends outside the image frame, falls back to 
+    returning the whole image.
 
     Parameters
     ----------
@@ -91,24 +93,37 @@ def crop_square_roi(
     Returns
     -------
     np.ndarray
-        The cropped image array.
+        The cropped image array (fallback to the full image if crop extends outside bounds).
     """
     cx, cy = center
     half_w = int(radius * width_factor)
 
-    x0 = max(cx - half_w, 0)
-    x1 = min(cx + half_w, img.shape[1])
-    y0 = max(cy - half_w, 0)
-    y1 = min(cy + half_w, img.shape[0])
+    # 1. Calculate ideal box edges before checking boundaries
+    ideal_x0 = int(cx) - half_w
+    ideal_x1 = int(cx) + half_w
+    ideal_y0 = int(cy) - half_w
+    ideal_y1 = int(cy) + half_w
+    print(f"Cropping ROI: ideal box edges = ({ideal_x0}, {ideal_y0}) to ({ideal_x1}, {ideal_y1})")
+    # 2. Check if the ideal crop box spills outside the image parameters
+    if (ideal_x0 < 0 or ideal_x1 > img.shape[1] or 
+        ideal_y0 < 0 or ideal_y1 > img.shape[0]):
+        
+        # Fallback to using the entire image frame
+        # Note: using .copy() protects the original array if downstream functions modify it
+        cropped = img.copy()
+        
+    else:
+        # 3. Perform the standard slice if it fits cleanly inside the image bounds
+        cropped = img[int(ideal_y0) : int(ideal_y1), int(ideal_x0) : int(ideal_x1)]
 
-    cropped = img[int(y0) : int(y1), int(x0) : int(x1)]
-
+    # 4. Save the resulting image array safely
     if output_path is not None:
         plt.imsave(
             Path(output_path) / "cropped.png",
             cropped.astype(np.uint16),
             cmap="gray",
         )
+        
     return cropped
 
 
