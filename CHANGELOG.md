@@ -5,6 +5,16 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-23
+
+### Changed
+
+- DEPRECATION: the parameter "resample2" has been renamed in "oversampling_factor". The deprecated name still works but will be removed in the next Major version.
+- GUI "FS" and "PSF" tabs now show only the necessary settings; all the advanced parameters are moved to the "advanced" tab.
+- The YAML configuration files are now more structured. This is only a visual change.
+- Fix: configuration loading warnings now show up in the GUI and not in the command line.
+- Fix: if the cropped ROI extends outside of the image, the full image is now passed instead of the program failing.
+
 ## [1.2.4] - 2026-06-08
 
 ### Added

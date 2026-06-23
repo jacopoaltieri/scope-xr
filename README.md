@@ -2,7 +2,7 @@
 <img src="src/scopexr/scopexr_logo.png" width="300">
 </h1><br>
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.2.4-blue)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.3.0-blue)
 
 📚 **Full documentation:** [scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/)
 
@@ -246,7 +246,7 @@ If you use SCOPE-XR in your research, please cite:
   author = {Altieri, Jacopo},
   title = {SCOPE-XR: Single-image Characterization Of PErformance in X-Ray systems},
   year = {2026},
-  version = {1.1.5},
+  version = {1.3.0},
   url = {https://github.com/jacopoaltieri/scope-xr}
 }
 ```
