@@ -67,7 +67,7 @@ def get_merged_config() -> dict:
         help="Angle of circular sector for oversampling in degrees",
     )
     parser.add_argument(
-        "--resample2",
+        "--oversampling_factor",
         type=float,
         help="Resample factor for oversampling (final grid spacing).",
     )
@@ -134,7 +134,7 @@ def get_merged_config() -> dict:
         "no_shift": False,
         "oversample": False,
         "dtheta": 2,
-        "resample2": 4,
+        "oversampling_factor": 4,
         "gaussian_sigma": 0.0,
         "show_plots": False,
         "hough_params": {
@@ -154,6 +154,20 @@ def get_merged_config() -> dict:
             yaml_config = yaml.safe_load(f)
             if yaml_config:
                 config.update(yaml_config)
+                
+            # === BACKWARDS COMPATIBILITY FOR RESAMPLE2 ===
+            if "resample2" in yaml_config:
+                print(
+                    f"Notice: Config file '{args.config}' uses the deprecated key 'resample2'.\n"
+                    f"        Please update it to 'oversampling_factor' when possible.\n",
+                    file=sys.stderr,
+                )
+                # If they didn't explicitly provide the new key, map the old key's value to it
+                if "oversampling_factor" not in yaml_config:
+                    yaml_config["oversampling_factor"] = yaml_config["resample2"]
+
+            config.update(yaml_config)
+            
     except FileNotFoundError:
         print(
             f"Warning: Config file not found at {args.config}. Using defaults.",
@@ -178,7 +192,7 @@ def get_merged_config() -> dict:
         "show": "show_plots",
         "oversample": "oversample",
         "dtheta": "dtheta",
-        "resample2": "resample2",
+        "oversampling_factor": "oversampling_factor",
         "gaussian_sigma": "gaussian_sigma",
         "auto_shift": "auto_shift",
         "manual_shift": "manual_shift",
@@ -253,8 +267,10 @@ def validate_args(args: dict) -> None:
     if args.get("oversample"):
         if args.get("dtheta") is None or args["dtheta"] <= 0:
             raise ValueError("dtheta must be a positive number for oversampling.")
-        if args.get("resample2") is None or args["resample2"] <= 0:
-            raise ValueError("resample2 must be a positive number for oversampling.")
+        if args.get("oversampling_factor") is None or args["oversampling_factor"] <= 0:
+            raise ValueError(
+                "oversampling_factor must be a positive number for oversampling."
+            )
         # gaussian_sigma can be None (treated as 0) or any non-negative number
         if args.get("gaussian_sigma") is not None and args["gaussian_sigma"] < 0:
             raise ValueError("gaussian_sigma must be non-negative for oversampling.")

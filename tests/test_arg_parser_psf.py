@@ -38,7 +38,7 @@ def _valid_config() -> dict:
         "show_plots": False,
         "oversample": False,
         "dtheta": 10.0,
-        "resample2": 1.5,
+        "oversampling_factor": 1.5,
         "gaussian_sigma": 0.5,
     }
 
@@ -117,7 +117,7 @@ def test_oversample_cli_flag(tmp_path, monkeypatch):
     yaml_data = {
         "oversample": False,
         "dtheta": 10.0,
-        "resample2": 1.5,
+        "oversampling_factor": 1.5,
         "gaussian_sigma": 0.5,
     }
     yaml_path = _write_yaml(tmp_path, yaml_data)
@@ -164,14 +164,14 @@ def test_validate_args_with_oversample():
             "dtheta must be a positive number for oversampling",
         ),
         (
-            {"oversample": True, "dtheta": 10.0, "resample2": 0},
-            "resample2 must be a positive number for oversampling",
+            {"oversample": True, "dtheta": 10.0, "oversampling_factor": 0},
+            "oversampling_factor must be a positive number for oversampling",
         ),
         (
             {
                 "oversample": True,
                 "dtheta": 10.0,
-                "resample2": 1.5,
+                "oversampling_factor": 1.5,
                 "gaussian_sigma": -1,
             },
             "gaussian_sigma must be non-negative for oversampling",
@@ -228,7 +228,7 @@ def test_all_numeric_params(tmp_path, monkeypatch):
         "10",
         "--dtheta",
         "25.5",
-        "--resample2",
+        "--oversampling_factor",
         "2.5",
         "--gaussian_sigma",
         "1.2",
@@ -242,7 +242,7 @@ def test_all_numeric_params(tmp_path, monkeypatch):
     assert config["derivative_step"] == 2
     assert config["axis_shifts"] == 10
     assert config["dtheta"] == 25.5
-    assert config["resample2"] == 2.5
+    assert config["oversampling_factor"] == 2.5
     assert config["gaussian_sigma"] == 1.2
 
 

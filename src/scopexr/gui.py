@@ -75,11 +75,34 @@ def load_config(filename: str) -> tuple[dict, str | None]:
     try:
         with open(filename, "r") as f:
             data = yaml.safe_load(f)
-            return data if data is not None else {}, None
+    # If the file was completely empty, make it an empty dictionary
+        if data is None:
+            data = {}
+            
+        warning_msg = None
+        
+        # --- BACKWARDS COMPATIBILITY FOR RESAMPLE2 ---
+        if "resample2" in data:
+            warning_msg = (
+                f"Notice: Config file '{filename}' uses the deprecated key 'resample2'. "
+                f"Please rename it to 'oversampling_factor' in your YAML file.\n"
+            )
+            # Fallback: Map the old value to the new key if the new key isn't already present
+            if "oversampling_factor" not in data:
+                data["oversampling_factor"] = data["resample2"]
+        
+        return data, warning_msg
+    
     except FileNotFoundError:
-        return {}, f"Warning: Config file '{filename}' not found. Using hardcoded defaults."
+        return (
+            {},
+            f"Warning: Config file '{filename}' not found. Using hardcoded defaults.",
+        )
     except Exception as e:
-        return {}, f"Warning: Error loading '{filename}': {e}. Using hardcoded defaults."
+        return (
+            {},
+            f"Warning: Error loading '{filename}': {e}. Using hardcoded defaults.",
+        )
 
 
 class RunThread(QThread):
@@ -579,7 +602,7 @@ class ScopeXRApp(QMainWindow):
             self.psf_sym.setChecked(bool(new_data["symmetrize"]))
 
         set_spin(self.psf_dtheta, "dtheta", float)
-        set_spin(self.psf_resample2, "resample2", float)
+        set_spin(self.psf_oversampling_factor, "oversampling_factor", float)
         set_spin(self.psf_gaussian_sigma, "gaussian_sigma", float)
 
         manual_val = new_data.get("manual_shift")
@@ -685,11 +708,15 @@ class ScopeXRApp(QMainWindow):
         self.psf_dtheta = QDoubleSpinBox()
         self.psf_dtheta.setDecimals(2)
         self.psf_dtheta.setValue(config_data.get("dtheta", 10.0))
-        oversampling_layout.addRow("Oversample Angle (deg) [--dtheta]:", self.psf_dtheta)
+        oversampling_layout.addRow(
+            "Oversample Angle (deg) [--dtheta]:", self.psf_dtheta
+        )
 
-        self.psf_resample2 = QDoubleSpinBox()
-        self.psf_resample2.setValue(config_data.get("resample2", 2))
-        oversampling_layout.addRow("Resample factor [--resample2]:", self.psf_resample2)
+        self.psf_oversampling_factor = QDoubleSpinBox()
+        self.psf_oversampling_factor.setValue(config_data.get("oversampling_factor", 2))
+        oversampling_layout.addRow(
+            "Resample factor [--oversampling_factor]:", self.psf_oversampling_factor
+        )
 
         oversampling_group.setLayout(oversampling_layout)
         layout.addRow(oversampling_group)
@@ -700,7 +727,7 @@ class ScopeXRApp(QMainWindow):
         """Enable/disable PSF oversampling controls based on checkbox state."""
         enabled = self.psf_oversample_checkbox.isChecked()
         self.psf_dtheta.setEnabled(enabled)
-        self.psf_resample2.setEnabled(enabled)
+        self.psf_oversampling_factor.setEnabled(enabled)
         if hasattr(self, "psf_gaussian_sigma"):
             self.psf_gaussian_sigma.setEnabled(enabled)
 
@@ -773,7 +800,9 @@ class ScopeXRApp(QMainWindow):
         self.fs_axis_shifts = QSpinBox()
         self.fs_axis_shifts.setRange(0, 50)
         self.fs_axis_shifts.setValue(fs_config_data.get("axis_shifts", 10))
-        fs_adv_layout.addRow("Shifts Search Range [--axis_shifts]:", self.fs_axis_shifts)
+        fs_adv_layout.addRow(
+            "Shifts Search Range [--axis_shifts]:", self.fs_axis_shifts
+        )
 
         self.fs_sym = QCheckBox("Symmetrize Sinogram")
         self.fs_sym.setChecked(fs_config_data.get("symmetrize", False))
@@ -884,7 +913,9 @@ class ScopeXRApp(QMainWindow):
         self.psf_axis_shifts = QSpinBox()
         self.psf_axis_shifts.setRange(0, 50)
         self.psf_axis_shifts.setValue(psf_config_data.get("axis_shifts", 10))
-        psf_adv_layout.addRow("Shifts Search Range [--axis_shifts]:", self.psf_axis_shifts)
+        psf_adv_layout.addRow(
+            "Shifts Search Range [--axis_shifts]:", self.psf_axis_shifts
+        )
 
         self.psf_sym = QCheckBox("Symmetrize Sinogram")
         self.psf_sym.setChecked(psf_config_data.get("symmetrize", False))
@@ -1267,7 +1298,9 @@ class ScopeXRApp(QMainWindow):
             if self.psf_oversample_checkbox.isChecked():
                 command.append("--oversample")
                 command.extend(["--dtheta", str(self.psf_dtheta.value())])
-                command.extend(["--resample2", str(self.psf_resample2.value())])
+                command.extend(
+                    ["--oversampling_factor", str(self.psf_oversampling_factor.value())]
+                )
                 command.extend(
                     ["--gaussian_sigma", str(self.psf_gaussian_sigma.value())]
                 )

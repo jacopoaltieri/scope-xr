@@ -68,7 +68,7 @@ def run_pipeline_psf():
     auto_shift = args["auto_shift"]
     oversample = args["oversample"]
     dtheta = args["dtheta"]
-    resample2 = args["resample2"]
+    oversampling_factor = args["oversampling_factor"]
     gaussian_sigma = args["gaussian_sigma"]
     show_plots = args["show_plots"]
 
@@ -350,7 +350,7 @@ def run_pipeline_psf():
     # ----------------------------------------------------------------------------------#
     # Oversampling section
     if oversample:
-        max_os_angle = utils.suggest_os_angle(pixel_size, resample2, radius)
+        max_os_angle = utils.suggest_os_angle(pixel_size, oversampling_factor, radius)
         print(
             f"Suggested maximum oversampling angle to avoid cross-talk: {max_os_angle:.2f}°"
         )
@@ -378,7 +378,7 @@ def run_pipeline_psf():
                 profile_half_length,
                 derivative_step,
                 dtheta,
-                oversampling_factor=resample2,
+                oversampling_factor=oversampling_factor,
                 gaussian_sigma=gaussian_sigma,
             )
         )
@@ -386,7 +386,7 @@ def run_pipeline_psf():
         applied_shift_ov = 0  # New variable for oversampled shift
         if manual_shift is not None:
             # Scale the manual shift (which is in 'normal' pixels)
-            manual_shift_ov = int(manual_shift * resample2)
+            manual_shift_ov = int(manual_shift * oversampling_factor)
             print(
                 f"Applying manual shift to oversampled sinogram: {manual_shift_ov} px"
             )
@@ -444,8 +444,8 @@ def run_pipeline_psf():
         fw_h_ov_native, _, _ = wc.fw_at_percent_max(prof_h_ov, 0.5)
         fw_v_ov_native, _, _ = wc.fw_at_percent_max(prof_v_ov, 0.5)
         # Convert FWHM to 'normal' pixel-equivalent
-        fw_h_ov = fw_h_ov_native / resample2
-        fw_v_ov = fw_v_ov_native / resample2
+        fw_h_ov = fw_h_ov_native / oversampling_factor
+        fw_v_ov = fw_v_ov_native / oversampling_factor
 
         print(f"Horizontal (Oversampled):  FWHM={fw_h_ov:.2f} px")
         print(f"Vertical (Oversampled):    FWHM={fw_v_ov:.2f} px")
@@ -528,17 +528,19 @@ def run_pipeline_psf():
 
         # Compute MTF from projection-based LSF profiles
         freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf(
-            prof_h_ov, pixel_size / resample2
+            prof_h_ov, pixel_size / oversampling_factor
         )
-        
-        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf_from_sino(sinogram_oversampled,  pixel_size / resample2,horizontal_idx)
+
+        freq_h_ov, mtf_h_ov, mtf10_h_ov = mtfc.compute_1d_mtf_from_sino(
+            sinogram_oversampled, pixel_size / oversampling_factor, horizontal_idx
+        )
 
         mtf1_h_ov = mtfc.get_mtf_at_freq(1.0, freq_h_ov, mtf_h_ov)
         mtf2_h_ov = mtfc.get_mtf_at_freq(2.0, freq_h_ov, mtf_h_ov)
         mtf3_h_ov = mtfc.get_mtf_at_freq(3.0, freq_h_ov, mtf_h_ov)
 
         freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
-            prof_v_ov, pixel_size / resample2
+            prof_v_ov, pixel_size / oversampling_factor
         )
 
         mtf1_v_ov = mtfc.get_mtf_at_freq(1.0, freq_v_ov, mtf_v_ov)

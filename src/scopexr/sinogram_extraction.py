@@ -293,7 +293,7 @@ def compute_subpixel_profiles_and_sinogram(
     oversampling_factor
         Factor by which to oversample the radial grid.
         When gaussian_sigma=0, this is the only resampling factor.
-        When gaussian_sigma>0, this acts as resample2 (coarse grid) and fine grid is resample*100.
+        When gaussian_sigma>0, this acts as oversampling_factor (coarse grid) and fine grid is resample*100.
     gaussian_sigma
         Sigma for Gaussian smoothing (in units of fine grid spacing).
         If 0.0 (default): Uses traditional binned statistics approach.

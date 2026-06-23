@@ -13,7 +13,7 @@ filter_name: "ramp"             # Filter for reconstruction (ramp, shepp-logan, 
 # --- Oversampling Settings (Sub-Group on Main Tab) ---
 oversample: true                # Enable oversampling for the PSF projection calculation
 dtheta: 2                       # Angular step for oversampling in degrees [--dtheta]
-resample2: 4                    # Radial resampling factor for the final coarse grid [--resample2]
+oversampling_factor: 4          # Radial resampling factor for the final coarse grid [--resample2]
 
 
 # ==============================================================================
