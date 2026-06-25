@@ -809,7 +809,7 @@ class ScopeXRApp(QMainWindow):
         fs_adv_layout.addRow("[--sym]:", self.fs_sym)
 
         self.fs_show = QCheckBox("Show Matplotlib plots")
-        self.fs_show.setChecked(fs_config_data.get("show_plots", True))
+        self.fs_show.setChecked(fs_config_data.get("show_plots", False))
         fs_adv_layout.addRow("[--show]:", self.fs_show)
 
         # FS Shift Sub-group
@@ -929,7 +929,7 @@ class ScopeXRApp(QMainWindow):
         )
 
         self.psf_show = QCheckBox("Show Matplotlib plots")
-        self.psf_show.setChecked(psf_config_data.get("show_plots", True))
+        self.psf_show.setChecked(psf_config_data.get("show_plots", False))
         psf_adv_layout.addRow("[--show]:", self.psf_show)
 
         # PSF Shift Sub-group
