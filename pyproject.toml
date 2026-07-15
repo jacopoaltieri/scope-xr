@@ -4,7 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scopexr"
-version = "1.3.1"
+version = "1.3.2"
+
+[project.urls]
+Homepage = "https://github.com/jacopoaltieri/scope-xr"
+Documentation = "https://scope-xr.readthedocs.io/"
+Repository = "https://github.com/jacopoaltieri/scope-xr"
+Issues = "https://github.com/jacopoaltieri/scope-xr/issues"
+Changelog = "https://github.com/jacopoaltieri/scope-xr/blob/main/CHANGELOG.md"
+Contributing = "https://github.com/jacopoaltieri/scope-xr/blob/main/CONTRIBUTING.md"
+
 description = "Single-image Characterization Of PErformance in X-Ray systems"
 authors = [
   { name = "Jacopo Altieri", email = "jacopo.altieri@gmail.com" },

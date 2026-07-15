@@ -1,9 +1,8 @@
 <h1 align="center">
-<img src="src/scopexr/scopexr_logo.png" width="300">
+<img src="https://github.com/jacopoaltieri/scope-xr/blob/main/src/scopexr/scopexr_logo.png?raw=true)" width="300">
 </h1><br>
 
-[![PyPI](https://img.shields.io/pypi/v/scopexr.svg)](https://pypi.org/project/scopexr/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest) ![Version](https://img.shields.io/badge/version-1.3.1-blue)
+[![PyPI](https://img.shields.io/pypi/v/scopexr)](https://pypi.org/project/scopexr/)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/scope-xr/badge/?version=latest)](https://scope-xr.readthedocs.io/en/latest/?badge=latest)
 
 📚 **Full documentation:** [scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/)
 
