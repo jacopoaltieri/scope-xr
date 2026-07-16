@@ -21,11 +21,11 @@ from skimage.transform import iradon
 from .sinogram_extraction import symmetrize_sinogram, manual_center_sinogram
 
 
-def reconstruct_focal_spot(
+def reconstruct_blurring_kernel(
     sinogram: np.ndarray, filter_name: str, symmetrize: bool
 ) -> np.ndarray:
     """
-    Reconstructs the focal spot image from sinogram via filtered back-projection.
+    Reconstructs the blurring kernel image from sinogram via filtered back-projection.
 
     Parameters
     ----------
@@ -39,7 +39,7 @@ def reconstruct_focal_spot(
     Returns
     -------
     np.ndarray
-        2D array representing the reconstructed focal spot.
+        2D array representing the reconstructed blurring kernel.
     """
     if symmetrize:
         sinogram = symmetrize_sinogram(sinogram)
@@ -96,7 +96,7 @@ def reconstruct_with_axis_shifts(
             trim = shifted_sino.shape[0] - target_rows
             top = trim // 2
             shifted_sino = shifted_sino[top : top + target_rows, :]
-        rec = reconstruct_focal_spot(shifted_sino, filter_name, symmetrize)
+        rec = reconstruct_blurring_kernel(shifted_sino, filter_name, symmetrize)
         reconstructions.append(rec.astype(np.float32))
 
     tifffile.imwrite(

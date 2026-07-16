@@ -146,7 +146,9 @@ def run_pipeline_psf():
         applied_shift = 0
         print("Sinogram shifting is disabled.")
 
-    reconstruction = srec.reconstruct_focal_spot(sinogram, filter_name, symmetrize)
+    reconstruction = srec.reconstruct_blurring_kernel(
+        sinogram, filter_name, symmetrize
+    )
 
     utils.save_and_plot("profiles", profiles, out_dir)
     utils.save_and_plot("sinogram", sinogram, out_dir)
@@ -408,7 +410,7 @@ def run_pipeline_psf():
             applied_shift_ov = 0
             print("Sinogram shifting is disabled (oversampled).")
 
-        recon_oversampled = srec.reconstruct_focal_spot(
+        recon_oversampled = srec.reconstruct_blurring_kernel(
             sinogram_oversampled, filter_name, symmetrize
         )
 

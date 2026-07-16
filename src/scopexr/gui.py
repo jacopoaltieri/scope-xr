@@ -75,12 +75,12 @@ def load_config(filename: str) -> tuple[dict, str | None]:
     try:
         with open(filename, "r") as f:
             data = yaml.safe_load(f)
-    # If the file was completely empty, make it an empty dictionary
+        # If the file was completely empty, make it an empty dictionary
         if data is None:
             data = {}
-            
+
         warning_msg = None
-        
+
         # --- BACKWARDS COMPATIBILITY FOR RESAMPLE2 ---
         if "resample2" in data:
             warning_msg = (
@@ -90,9 +90,9 @@ def load_config(filename: str) -> tuple[dict, str | None]:
             # Fallback: Map the old value to the new key if the new key isn't already present
             if "oversampling_factor" not in data:
                 data["oversampling_factor"] = data["resample2"]
-        
+
         return data, warning_msg
-    
+
     except FileNotFoundError:
         return (
             {},
@@ -1191,7 +1191,8 @@ class ScopeXRApp(QMainWindow):
             config_path = self.fs_config.text()
             config_data = {}
             if config_path and Path(config_path).exists():
-                config_data = load_config(config_path) or {}
+                config_data, _ = load_config(config_path)
+                config_data = config_data or {}
             hough_params = {
                 "dp": self.fs_hough_dp.value(),
                 "min_dist": self.fs_hough_min_dist.value(),

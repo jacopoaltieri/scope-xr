@@ -17,7 +17,7 @@ from scopexr.sinogram_extraction import (
     symmetrize_sinogram,
 )
 from scopexr.sinogram_reconstruction import (
-    reconstruct_focal_spot,
+    reconstruct_blurring_kernel,
     reconstruct_with_axis_shifts,
 )
 
@@ -713,8 +713,8 @@ class TestSymmetrizeSinogram:
         np.testing.assert_allclose(sino180, 150.0, rtol=0.01)
 
 
-class TestReconstructFocalSpot:
-    """Test the reconstruct_focal_spot function."""
+class TestReconstructBlurringKernel:
+    """Test the reconstruct_blurring_kernel function."""
 
     def test_basic_reconstruction(self):
         """Test basic reconstruction without symmetrization."""
@@ -722,7 +722,7 @@ class TestReconstructFocalSpot:
         n_rays, n_angles = 100, 360
         sinogram = np.random.rand(n_rays, n_angles)
 
-        reconstruction = reconstruct_focal_spot(
+        reconstruction = reconstruct_blurring_kernel(
             sinogram, filter_name="ramp", symmetrize=False
         )
 
@@ -737,7 +737,7 @@ class TestReconstructFocalSpot:
         n_rays, n_angles = 100, 360
         sinogram = np.random.rand(n_rays, n_angles)
 
-        reconstruction = reconstruct_focal_spot(
+        reconstruction = reconstruct_blurring_kernel(
             sinogram, filter_name="ramp", symmetrize=True
         )
 
@@ -753,7 +753,7 @@ class TestReconstructFocalSpot:
         filters = ["ramp", "shepp-logan", "cosine", "hamming", "hann"]
 
         for filter_name in filters:
-            reconstruction = reconstruct_focal_spot(
+            reconstruction = reconstruct_blurring_kernel(
                 sinogram, filter_name=filter_name, symmetrize=False
             )
 
@@ -767,7 +767,7 @@ class TestReconstructFocalSpot:
         sinogram = np.random.rand(n_rays, n_angles)
 
         # Without symmetrization (will use 360° mode but with 180 angles)
-        reconstruction = reconstruct_focal_spot(
+        reconstruction = reconstruct_blurring_kernel(
             sinogram, filter_name="ramp", symmetrize=False
         )
 
@@ -872,7 +872,7 @@ class TestIntegration:
         centered_sino, shift = auto_center_sinogram(sinogram, max_shift=20)
 
         # Step 3: Reconstruct
-        reconstruction = reconstruct_focal_spot(
+        reconstruction = reconstruct_blurring_kernel(
             centered_sino, filter_name="ramp", symmetrize=False
         )
 
@@ -907,7 +907,7 @@ class TestIntegration:
         sino180 = symmetrize_sinogram(sinogram)
 
         # Reconstruct
-        reconstruction = reconstruct_focal_spot(
+        reconstruction = reconstruct_blurring_kernel(
             sino180,
             filter_name="hamming",
             symmetrize=False,  # Already symmetrized manually

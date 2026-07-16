@@ -169,7 +169,7 @@ def _internal_helper():
 Use NumPy-style docstrings:
 
 ```python
-def reconstruct_focal_spot(sinogram, filter_type="ramp"):
+def reconstruct_blurring_kernel(sinogram, filter_type="ramp"):
     """
     Reconstruct focal spot using filtered back-projection.
 
@@ -194,7 +194,7 @@ def reconstruct_focal_spot(sinogram, filter_type="ramp"):
     Examples
     --------
     >>> sino = np.random.rand(360, 500)
-    >>> fs = reconstruct_focal_spot(sino, filter_type="hamming")
+    >>> kernel = reconstruct_blurring_kernel(sino, filter_type="hamming")
     >>> print(fs.shape)
     (500, 500)
     """
