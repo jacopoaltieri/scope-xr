@@ -39,23 +39,38 @@ def load_raw_as_ndarray(img_path: str) -> np.ndarray:
     ------
     FileNotFoundError
         If the XML metadata file is not found.
+    ValueError
+        If the XML metadata does not contain valid image dimensions.
     """
     img_path_obj = Path(img_path)
     xml_path = img_path_obj.with_suffix(".xml")
+
     if not xml_path.exists():
         raise FileNotFoundError(f"Metadata XML not found: '{xml_path}'")
 
-    # Parse XML and get width and height
     tree = ET.parse(xml_path)
     root = tree.getroot()
     frame = root.find("frame")
-    img_width = int(frame.find("imgWidth").text)
-    img_height = int(frame.find("imgHeight").text)
 
-    # Read and reshape raw data
+    if frame is None:
+        raise ValueError(f"Missing <frame> element in '{xml_path}'")
+
+    width_element = frame.find("imgWidth")
+    height_element = frame.find("imgHeight")
+
+    if width_element is None or width_element.text is None:
+        raise ValueError(f"Missing or empty <imgWidth> in '{xml_path}'")
+
+    if height_element is None or height_element.text is None:
+        raise ValueError(f"Missing or empty <imgHeight> in '{xml_path}'")
+
+    img_width = int(width_element.text)
+    img_height = int(height_element.text)
+
     with open(img_path, "rb") as f:
         img = np.fromfile(f, dtype=np.uint16)
         img = img.reshape(img_height, img_width)
+
     return img
 
 

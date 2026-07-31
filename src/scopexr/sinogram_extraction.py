@@ -248,8 +248,6 @@ def _extract_wedge_radial_samples(
     return r_vals, intensities
 
 
-
-
 def compute_subpixel_profiles_and_sinogram(
     img: np.ndarray,
     cx: float,
@@ -321,8 +319,6 @@ def compute_subpixel_profiles_and_sinogram(
     min_r = -profile_half_length
     max_r = profile_half_length
 
-
-
     if gaussian_sigma == 0.0:
         # TRADITIONAL APPROACH
         dx = 1 / oversampling_factor
@@ -346,7 +342,7 @@ def compute_subpixel_profiles_and_sinogram(
 
             if r_vals.size > 0:
                 bin_means, _, _ = binned_statistic(
-                    r_vals, intensities, statistic="mean", bins=bin_edges
+                    r_vals, intensities, statistic="mean", bins=bin_edges  # type: ignore[arg-type]
                 )
 
                 nan_mask = np.isnan(bin_means)
@@ -360,19 +356,16 @@ def compute_subpixel_profiles_and_sinogram(
                 interp_vals = bin_means
             else:
                 interp_vals = np.full(r_grid.shape, np.nan)
-            
+
             profiles[i, :] = interp_vals
 
-
-                
             sinogram[i, :] = savgol_filter(
                 interp_vals,
                 window_length=window_length,
                 polyorder=polyorder,
                 deriv=1,
-                delta=dx
+                delta=dx,
             )
-            
 
     else:
         # 3-STEP APPROACH: Fine grid -> Gaussian blur -> Coarse grid
@@ -380,7 +373,6 @@ def compute_subpixel_profiles_and_sinogram(
         n_bins_final = int(np.ceil((max_r - min_r) * oversampling_factor))
         final_r = np.linspace(min_r, max_r, n_bins_final)
         dx_final = final_r[1] - final_r[0]
-        
 
         # Fine grid: oversample by 100x relative to final grid
         n_bins_fine = n_bins_final * 100
@@ -393,7 +385,6 @@ def compute_subpixel_profiles_and_sinogram(
             r_vals, intens = _extract_wedge_radial_samples(
                 phis, rs, img, theta, half_wedge, min_r, max_r
             )
-
 
             if r_vals.size > 0:
                 sort_idx = np.argsort(r_vals)
@@ -414,8 +405,9 @@ def compute_subpixel_profiles_and_sinogram(
                     else final_r[-1] + 1
                 ),
             )
+            
             bin_means, _, _ = binned_statistic(
-                fine_r, smooth, statistic="mean", bins=bin_edges
+                fine_r, smooth, statistic="mean", bins=bin_edges  # type: ignore[arg-type]
             )
             # Handle any remaining NaNs from empty bins
             nan_mask = np.isnan(bin_means)
@@ -427,13 +419,13 @@ def compute_subpixel_profiles_and_sinogram(
                     bin_means[~nan_mask],
                 )
             profiles[i, :] = bin_means
-            
-        sinogram = np.gradient(profiles, final_r[1] - final_r[0], axis=1) 
-        
+
+        sinogram = np.gradient(profiles, final_r[1] - final_r[0], axis=1)
+
     return profiles.T, -sinogram.T
 
 
-def find_best_center_shift(sinogram: np.ndarray, max_shift: int = None) -> int:
+def find_best_center_shift(sinogram: np.ndarray, max_shift: int | None = None) -> int:
     """
     Determines the vertical shift that best centers a sinogram by symmetry minimization.
 
@@ -451,11 +443,13 @@ def find_best_center_shift(sinogram: np.ndarray, max_shift: int = None) -> int:
     """
     n_rays, n_angles = sinogram.shape
     if max_shift is None:
-        max_shift = n_rays // 4
+        ms = n_rays // 4
+    else:
+        ms = int(max_shift)
 
     half = n_angles // 2
-    shift_range = range(-max_shift, max_shift + 1)
-    errors = np.zeros(2 * max_shift + 1)
+    shift_range = range(-ms, ms + 1)
+    errors = np.zeros(2 * ms + 1)
 
     for idx, delta in enumerate(shift_range):
         # Use np.roll for pure integer shifting
@@ -517,7 +511,7 @@ def manual_center_sinogram(sinogram: np.ndarray, delta: int) -> tuple[np.ndarray
 
 
 def auto_center_sinogram(
-    sinogram: np.ndarray, max_shift: int = None
+    sinogram: np.ndarray, max_shift: int | None = None
 ) -> tuple[np.ndarray, int]:
     """
     Automatically centers a sinogram by shifting it to minimize asymmetry.

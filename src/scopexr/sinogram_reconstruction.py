@@ -17,6 +17,7 @@
 import numpy as np
 import tifffile
 from skimage.transform import iradon
+from pathlib import Path
 
 from .sinogram_extraction import symmetrize_sinogram, manual_center_sinogram
 
@@ -57,7 +58,7 @@ def reconstruct_blurring_kernel(
 
 def reconstruct_with_axis_shifts(
     sinogram: np.ndarray,
-    output_tiff_path: str,
+    output_tiff_path: str | Path,
     filter_name: str,
     shifts: list,
     symmetrize: bool = False,

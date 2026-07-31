@@ -148,15 +148,18 @@ def compute_1d_mtf(
     mtf10_value = 0.10
     if np.any(mtf_pos <= mtf10_value):
         idx = np.where(mtf_pos <= mtf10_value)[0][0]
-        # Linear interpolation
+
         if idx == 0:
-            mtf10_freq = freq_pos[0]
+            mtf10_freq = float(freq_pos[0])
         else:
-            f1, f2 = freq_pos[idx - 1], freq_pos[idx]
-            m1, m2 = mtf_pos[idx - 1], mtf_pos[idx]
+            f1 = float(freq_pos[idx - 1])
+            f2 = float(freq_pos[idx])
+            m1 = float(mtf_pos[idx - 1])
+            m2 = float(mtf_pos[idx])
+
             mtf10_freq = f1 + (mtf10_value - m1) * (f2 - f1) / (m2 - m1)
     else:
-        mtf10_freq = np.nan  # Not reached
+        mtf10_freq = np.nan
 
     return freq_pos, mtf_pos, mtf10_freq
 
@@ -211,15 +214,18 @@ def compute_1d_mtf_from_sino(
     mtf10_value = 0.10
     if np.any(mtf_pos <= mtf10_value):
         idx = np.where(mtf_pos <= mtf10_value)[0][0]
-        # Linear interpolation
+
         if idx == 0:
-            mtf10_freq = freq_pos[0]
+            mtf10_freq = float(freq_pos[0])
         else:
-            f1, f2 = freq_pos[idx - 1], freq_pos[idx]
-            m1, m2 = mtf_pos[idx - 1], mtf_pos[idx]
+            f1 = float(freq_pos[idx - 1])
+            f2 = float(freq_pos[idx])
+            m1 = float(mtf_pos[idx - 1])
+            m2 = float(mtf_pos[idx])
+
             mtf10_freq = f1 + (mtf10_value - m1) * (f2 - f1) / (m2 - m1)
     else:
-        mtf10_freq = np.nan  # Not reached
+        mtf10_freq = np.nan
 
     return freq_pos, mtf_pos, mtf10_freq
 

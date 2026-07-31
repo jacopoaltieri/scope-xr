@@ -25,7 +25,7 @@ def plot_circle_on_crop(
     cx: float,
     cy: float,
     radius: float,
-    output_path: str,
+    output_path: str | Path,
     show: bool = False,
 ) -> None:
     """
@@ -73,7 +73,7 @@ def plot_profiles_and_reconstruction(
     profiles: np.ndarray,
     sinogram: np.ndarray,
     reconstruction: np.ndarray,
-    out_dir: str,
+    out_dir: str | Path,
     show_plots: bool,
     reconstruction_type: str,
     suffix: str = "",
@@ -148,10 +148,10 @@ def plot_profiles_with_fwhm(
     fv: float,
     lv: float,
     rv: float,
-    out_path: str,
+    out_path: str | Path,
     show_plots: bool = False,
-    pixel_size: float = None,
-    magnification: float = None,
+    pixel_size: float|None = None,
+    magnification: float|None = None,
 ) -> None:
     """
     Plot the horizontal and vertical sinogram profiles with FWHM/FW15M lines.
@@ -276,7 +276,7 @@ def plot_sinogram_with_traced_profiles(
     sinogram: np.ndarray,
     horizontal_idx: int,
     vertical_idx: int,
-    out_path: str,
+    out_path: str | Path,
     reconstruction_type: str,
     show_plots: bool,
 ) -> None:
@@ -354,7 +354,7 @@ def plot_recon_with_lines(
     recon: np.ndarray,
     angle_horizontal: float,
     angle_vertical: float,
-    out_path: str,
+    out_path: str | Path,
     show_plots: bool = False,
     reconstruction_type: str = "fs",
 ) -> None:
@@ -387,7 +387,7 @@ def plot_recon_with_lines(
     cy = h / 2
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(img, cmap="gray", extent=[0, w, 0, h])
+    ax.imshow(img, cmap="gray", extent=(0, w, 0, h))
     ax.set_xlim(0, w)
     ax.set_ylim(0, h)
     ax.set_aspect("equal")
@@ -422,10 +422,10 @@ def plot_profile_with_gaussian(
     radial: np.ndarray,
     intensity_profile: np.ndarray,
     popt: tuple[float, float, float, float],
-    out_path: str,
+    out_path: str | Path,
     show_plots: bool = False,
-    pixel_size: float = None,
-    magnification: float = None,
+    pixel_size: float | None = None,
+    magnification: float | None = None,
 ) -> None:
     """
     Plot an intensity profile (from sinogram or projection) with its Gaussian fit.
@@ -475,8 +475,8 @@ def plot_1d_mtf(
     freq: np.ndarray,
     mtf: np.ndarray,
     pixel_size: float,
-    out_path: str,
-    mtf10_freq: float = None,
+    out_path: str | Path,
+    mtf10_freq: float | None = None,
     show_plots: bool = False,
 ) -> None:
     """

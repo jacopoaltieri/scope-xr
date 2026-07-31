@@ -102,19 +102,19 @@ def run_pipeline_fs():
             debug=hough_params.get("debug", False),
         )
 
-        if not hough_circle:
-            raise ValueError(
-                "Hough transform did not detect any circle. Please provide a cropped image."
-            )
 
-        x, y, r = hough_circle
-        print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
-        cropped = utils.crop_square_roi(
-            img, center=(x, y), radius=r, width_factor=1.8, output_path=out_dir
+    if hough_circle is None:
+        raise ValueError(
+            "Hough transform did not detect any circle. Provide a cropped image."
         )
 
+    x, y, r = hough_circle
+    print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
+    cropped = utils.crop_square_roi(
+        img, center=(x, y), radius=r, width_factor=1.8, output_path=out_dir
+    )
+
     cx, cy, radius = circ.estimate_circle(cropped)
-    print(cx, cy, cropped.shape)
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
@@ -207,8 +207,8 @@ def run_pipeline_fs():
     # Create radial coordinate array for projection profiles
     angle_step = 360.0 / n_angles
     angles = np.arange(n_angles) * angle_step
-    horizontal_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
-    vertical_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
+    horizontal_idx = int(np.argmin(np.abs(angles - 0)))  # Closest to 0°
+    vertical_idx = int(np.argmin(np.abs(angles - 90)))  # Closest to 90°
     angle_horizontal_deg = angles[horizontal_idx]
     angle_vertical_deg = angles[vertical_idx]
 

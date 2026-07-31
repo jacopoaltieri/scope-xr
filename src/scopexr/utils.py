@@ -19,6 +19,7 @@ from typing import Optional, Callable
 import imageio.v3 as iio
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.optimize import curve_fit
 
 
 def eval_minimum_magnification(a: float, n: int, p: float) -> float:
@@ -70,11 +71,11 @@ def crop_square_roi(
     center: tuple[float, float],
     radius: float,
     width_factor: float = 1.5,
-    output_path: Optional[str] = None,
+    output_path: str | Path | None = None,
 ) -> np.ndarray:
     """
     Crop a square region of interest (ROI) around the specified center.
-    If the ideal crop window extends outside the image frame, falls back to 
+    If the ideal crop window extends outside the image frame, falls back to
     returning the whole image.
 
     Parameters
@@ -103,15 +104,21 @@ def crop_square_roi(
     ideal_x1 = int(cx) + half_w
     ideal_y0 = int(cy) - half_w
     ideal_y1 = int(cy) + half_w
-    print(f"Cropping ROI: ideal box edges = ({ideal_x0}, {ideal_y0}) to ({ideal_x1}, {ideal_y1})")
+    print(
+        f"Cropping ROI: ideal box edges = ({ideal_x0}, {ideal_y0}) to ({ideal_x1}, {ideal_y1})"
+    )
     # 2. Check if the ideal crop box spills outside the image parameters
-    if (ideal_x0 < 0 or ideal_x1 > img.shape[1] or 
-        ideal_y0 < 0 or ideal_y1 > img.shape[0]):
-        
+    if (
+        ideal_x0 < 0
+        or ideal_x1 > img.shape[1]
+        or ideal_y0 < 0
+        or ideal_y1 > img.shape[0]
+    ):
+
         # Fallback to using the entire image frame
         # Note: using .copy() protects the original array if downstream functions modify it
         cropped = img.copy()
-        
+
     else:
         # 3. Perform the standard slice if it fits cleanly inside the image bounds
         cropped = img[int(ideal_y0) : int(ideal_y1), int(ideal_x0) : int(ideal_x1)]
@@ -123,7 +130,7 @@ def crop_square_roi(
             cropped.astype(np.uint16),
             cmap="gray",
         )
-        
+
     return cropped
 
 
@@ -212,7 +219,7 @@ def suggest_os_angle(p: float, n: int, r: float) -> float:
 def save_and_plot(
     name: str,
     arr: np.ndarray,
-    out_dir: str,
+    out_dir: str | Path,
     plot_func: Optional[Callable] = None,
     suffix: str = "",
     show_plots: bool = False,
@@ -269,3 +276,44 @@ def background_percentile(profile: np.ndarray, low_frac: float = 0.15) -> float:
     profile = np.asarray(profile)
     threshold = np.percentile(profile, low_frac * 100)
     return float(np.mean(profile[profile <= threshold]))
+
+
+def fit_gaussian(
+    x: np.ndarray,
+    y: np.ndarray,
+    sigma_initial: float,
+) -> tuple[float, float, float, float]:
+    def gaussian_fit(
+        x: np.ndarray,
+        A: float,
+        mu: float,
+        sigma: float,
+        B: float,
+    ) -> np.ndarray:
+        return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
+
+    default_params = (
+        float(np.max(y)),
+        0.0,
+        sigma_initial,
+        0.0,
+    )
+
+    try:
+        popt, _ = curve_fit(
+            gaussian_fit,
+            x,
+            y,
+            p0=default_params,
+            maxfev=5000,
+        )
+
+        return (
+            float(popt[0]),
+            float(popt[1]),
+            float(popt[2]),
+            float(popt[3]),
+        )
+
+    except Exception:
+        return default_params

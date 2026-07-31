@@ -16,7 +16,6 @@
 
 from pathlib import Path
 import numpy as np
-from scipy.optimize import curve_fit
 
 
 from . import utils, plotters
@@ -106,19 +105,20 @@ def run_pipeline_psf():
             debug=hough_params.get("debug", False),
         )
 
-        x, y, r = hough_circle
-        print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
-        cropped = utils.crop_square_roi(
-            img, center=(x, y), radius=r, width_factor=1.2, output_path=out_dir
+    if hough_circle is None:
+        raise ValueError(
+            "Hough transform did not detect any circle. Provide a cropped image."
         )
 
-        if not hough_circle:
-            raise ValueError(
-                "Hough transform did not detect any circle. Provide a cropped image."
-            )
+    x, y, r = hough_circle
 
+    print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
+
+    cropped = utils.crop_square_roi(
+        img, center=(x, y), radius=r, width_factor=1.8, output_path=out_dir
+    )
+    
     cx, cy, radius = circ.estimate_circle(cropped)
-
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
         exit(1)
@@ -187,8 +187,8 @@ def run_pipeline_psf():
     # Create radial coordinate array for projection profiles
     angle_step = 360.0 / n_angles
     angles = np.arange(n_angles) * angle_step
-    horizontal_idx = np.argmin(np.abs(angles - 0))  # Closest to 0°
-    vertical_idx = np.argmin(np.abs(angles - 90))  # Closest to 90°
+    horizontal_idx = int(np.argmin(np.abs(angles - 0)))  # Closest to 0°
+    vertical_idx = int(np.argmin(np.abs(angles - 90)))  # Closest to 90°
 
     radial = np.arange(len(prof_horizontal)) - (len(prof_horizontal) // 2)
     data = np.column_stack((radial, prof_horizontal, prof_vertical))
@@ -203,31 +203,19 @@ def run_pipeline_psf():
     # )
 
     # Fit Gaussian to projection-based profiles for plotting
-    def gaussian_fit(x, A, mu, sigma, B):
-        return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
 
-    try:
-        popt_h_corr, _ = curve_fit(
-            gaussian_fit,
-            radial,
-            prof_horizontal,
-            p0=[np.max(prof_horizontal), 0, fh / 2.355, 0],
-            maxfev=5000,
-        )
+    
+    popt_h_corr = utils.fit_gaussian(
+        radial,
+        prof_horizontal,
+        fh / 2.355,
+    )
 
-    except Exception:
-        popt_h_corr = np.array([np.max(prof_horizontal), 0, fh / 2.355, 0])
-
-    try:
-        popt_v_corr, _ = curve_fit(
-            gaussian_fit,
-            radial,
-            prof_vertical,
-            p0=[np.max(prof_vertical), 0, fv / 2.355, 0],
-            maxfev=5000,
-        )
-    except Exception:
-        popt_v_corr = np.array([np.max(prof_vertical), 0, fv / 2.355, 0])
+    popt_v_corr = utils.fit_gaussian(
+        radial,
+        prof_vertical,
+        fv / 2.355,
+    )
 
     # Plot profiles with Gaussian fits
     plotters.plot_profile_with_gaussian(
@@ -457,41 +445,18 @@ def run_pipeline_psf():
 
         data_oversampled = np.column_stack((radial_ov, prof_h_ov, prof_v_ov))
 
-        # np.savetxt(
-        #     out_dir / "profiles_oversampled.csv",
-        #     data_oversampled,
-        #     delimiter=",",
-        #     header="radial,horizontal_lsf,vertical_lsf",
-        #     comments="",
-        #     fmt=["%.6f", "%.6f", "%.6f"],
-        # )
-
-        def gaussian_fit(x, A, mu, sigma, B):
-            return A * np.exp(-((x - mu) ** 2) / (2 * sigma**2)) + B
-
-        try:
-            popt_h_ov, _ = curve_fit(
-                gaussian_fit,
-                radial_ov,
-                prof_h_ov,
-                p0=[np.max(prof_h_ov), 0, fw_h_ov / 2.355, 0],
-                maxfev=5000,
-            )
-
-        except Exception:
-            popt_h_ov = np.array([np.max(prof_h_ov), 0, fw_h_ov / 2.355, 0])
-
-        try:
-            popt_v_ov, _ = curve_fit(
-                gaussian_fit,
-                radial_ov,
-                prof_v_ov,
-                p0=[np.max(prof_v_ov), 0, fw_v_ov / 2.355, 0],
-                maxfev=5000,
-            )
-        except Exception:
-            popt_v_ov = np.array([np.max(prof_v_ov), 0, fw_v_ov / 2.355, 0])
-
+        popt_h_ov = utils.fit_gaussian(
+            radial_ov,
+            prof_h_ov,
+            fw_h_ov_native / 2.355,  # Use oversampled FWHM in native pixels
+        )
+        
+        popt_v_ov = utils.fit_gaussian(
+            radial_ov,
+            prof_v_ov,
+            fw_v_ov_native / 2.355,  # Use oversampled FWHM in native pixels
+        )
+        
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
             intensity_profile=prof_h_ov,

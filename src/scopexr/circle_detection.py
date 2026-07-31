@@ -16,6 +16,8 @@
 
 import cv2
 import numpy as np
+from typing import cast
+from pathlib import Path
 from scipy.ndimage import center_of_mass
 
 
@@ -27,7 +29,7 @@ def detect_circle_hough(
     param2: int,
     min_radius: int,
     max_radius: int,
-    output_path: str = None,
+    output_path: str | Path | None = None,
     debug: bool = False,
 ) -> tuple[float, float, float] | None:
     """
@@ -90,7 +92,7 @@ def detect_circle_hough(
         param1=param1,
         param2=param2,
         minRadius=min_radius,
-        maxRadius=max_radius if max_radius > 0 else None,
+        maxRadius=max_radius if max_radius > 0 else 0,
     )
 
     if circles is None:
@@ -98,13 +100,14 @@ def detect_circle_hough(
         return None
 
     # Round and pick the strongest circle (first one)
-    circles = np.uint16(np.around(circles))
-    x, y, r = circles[0][0]
+    circles = np.around(circles).astype(int)
+    x, y, r = circles[0, 0]
 
     output = cv2.cvtColor(img_8bit, cv2.COLOR_GRAY2BGR)
     cv2.circle(output, (x, y), r, (0, 255, 0), 2)
     cv2.circle(output, (x, y), 2, (0, 0, 255), 3)
-    cv2.imwrite(f"{output_path}/detected_circle.png", output)
+    if output_path is not None:
+        cv2.imwrite(str(Path(output_path) / "detected_circle.png"), output)
 
     if debug:
         display_scale = 0.5
@@ -139,8 +142,7 @@ def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
 
     # 2. Calculate Center (y, x)
     # This uses all pixels in the mask to find the geometric centroid
-    cy, cx = center_of_mass(mask)
-
+    cy, cx = cast(tuple[float, float], center_of_mass(mask))
     # 3. Calculate Radius from Area (i.e., number of pixels in the mask)
     # Area = pi * r^2  ->  r = sqrt(Area / pi)
     area = np.sum(mask)

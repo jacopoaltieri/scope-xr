@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scopexr"
-version = "1.3.3"
+version = "1.3.4"
 
 
 description = "Single-image Characterization Of PErformance in X-Ray systems"
