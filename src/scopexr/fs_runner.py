@@ -55,6 +55,7 @@ def run_pipeline_fs():
     img_path = args["img_path"]
     pixel_size = args["pixel_size"]
     circle_diameter = args["circle_diameter"]
+    width_factor = args["width_factor"]
     no_hough = args["no_hough"]
     magnification = args["magnification"]
     min_n = args["min_n"]
@@ -102,7 +103,6 @@ def run_pipeline_fs():
             debug=hough_params.get("debug", False),
         )
 
-
     if hough_circle is None:
         raise ValueError(
             "Hough transform did not detect any circle. Provide a cropped image."
@@ -111,7 +111,7 @@ def run_pipeline_fs():
     x, y, r = hough_circle
     print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
     cropped = utils.crop_square_roi(
-        img, center=(x, y), radius=r, width_factor=1.8, output_path=out_dir
+        img, center=(x, y), radius=r, width_factor=width_factor, output_path=out_dir
     )
 
     cx, cy, radius = circ.estimate_circle(cropped)

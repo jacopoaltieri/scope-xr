@@ -57,6 +57,7 @@ def run_pipeline_psf():
     img_path = args["img_path"]
     pixel_size = args["pixel_size"]
     no_hough = args["no_hough"]
+    width_factor = args["width_factor"]
     n_angles = args["n_angles"]
     profile_half_length = args["profile_half_length"]
     derivative_step = args["derivative_step"]
@@ -79,7 +80,7 @@ def run_pipeline_psf():
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"Saving outputs to {out_dir}")
 
-    # Load image
+    # Image loading
     try:
         img = io.load_image(img_path)
     except FileNotFoundError as e:
@@ -111,11 +112,9 @@ def run_pipeline_psf():
         )
 
     x, y, r = hough_circle
-
     print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
-
     cropped = utils.crop_square_roi(
-        img, center=(x, y), radius=r, width_factor=1.8, output_path=out_dir
+        img, center=(x, y), radius=r, width_factor=width_factor, output_path=out_dir
     )
     
     cx, cy, radius = circ.estimate_circle(cropped)
@@ -509,6 +508,23 @@ def run_pipeline_psf():
         freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
             prof_v_ov, pixel_size / oversampling_factor
         )
+        
+        freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf_from_sino(
+            sinogram_oversampled, pixel_size / oversampling_factor, vertical_idx
+        )
+
+        mtf_profiles_oversampled = np.column_stack(
+            (freq_h_ov, mtf_h_ov, mtf_v_ov)
+        )
+        mtf_csv_path = out_dir / "mtf_profiles_oversampled.csv"
+        np.savetxt(
+            mtf_csv_path,
+            mtf_profiles_oversampled,
+            delimiter=",",
+            header="frequency_cycles_per_mm,mtf_horizontal,mtf_vertical",
+            comments="",
+        )
+        print(f"Oversampled MTF profiles written to {mtf_csv_path}")
 
         mtf1_v_ov = mtfc.get_mtf_at_freq(1.0, freq_v_ov, mtf_v_ov)
         mtf2_v_ov = mtfc.get_mtf_at_freq(2.0, freq_v_ov, mtf_v_ov)

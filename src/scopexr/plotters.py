@@ -238,6 +238,10 @@ def plot_profiles_with_fwhm(
     lv_val = np.interp(lv, idx, radial_display)
     rv_val = np.interp(rv, idx, radial_display)
 
+    if height == 0.5:
+        label_index = "H"
+    else:
+        label_index = str(int(height * 100)) # e.g., 0.15 -> "15"
     # Draw the half-max horizontal lines spanning between left/right edges
     ax.hlines(
         half_h,
@@ -245,7 +249,7 @@ def plot_profiles_with_fwhm(
         rh_val,
         linestyles="-.",
         color="teal",
-        label=f"Horizontal FWHM = {fh_display:.2f}{width_unit}",
+        label=f"Horizontal FW{label_index}M = {fh_display:.2f} {width_unit}",
     )
     ax.hlines(
         half_v,
@@ -253,7 +257,7 @@ def plot_profiles_with_fwhm(
         rv_val,
         linestyles="--",
         color="orange",
-        label=f"Vertical FWHM = {fv_display:.2f}{width_unit}",
+        label=f"Vertical FW{label_index}M = {fv_display:.2f} {width_unit}",
     )
 
     ax.grid(which="major", linestyle="-", linewidth=0.8, alpha=0.7)
@@ -262,7 +266,7 @@ def plot_profiles_with_fwhm(
 
     ax.set_xlabel(x_label)
     ax.set_ylabel("Intensity")
-    ax.set_title("Central FWHM on Sinogram Profiles")
+    ax.set_title(f"Central FW{label_index}M on Sinogram Profiles")
     ax.legend(loc="upper right")
     plt.tight_layout()
 

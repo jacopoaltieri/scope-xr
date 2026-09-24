@@ -47,6 +47,7 @@ def get_merged_config() -> dict:
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
+    parser.add_argument("--width_factor", type=float, help="Crop width factor")
     parser.add_argument(
         "--no_hough",
         action="store_true",
@@ -122,6 +123,7 @@ def get_merged_config() -> dict:
         "out_dir": "./output_psf",
         "pixel_size": 0.1,
         "circle_diameter": 100,
+        "width_factor": 1.2,
         "no_hough": False,
         "n_angles": 360,
         "profile_half_length": 50,
@@ -154,7 +156,7 @@ def get_merged_config() -> dict:
             yaml_config = yaml.safe_load(f)
             if yaml_config:
                 config.update(yaml_config)
-                
+
             # === BACKWARDS COMPATIBILITY FOR RESAMPLE2 ===
             if "resample2" in yaml_config:
                 print(
@@ -167,7 +169,7 @@ def get_merged_config() -> dict:
                     yaml_config["oversampling_factor"] = yaml_config["resample2"]
 
             config.update(yaml_config)
-            
+
     except FileNotFoundError:
         print(
             f"Warning: Config file not found at {args.config}. Using defaults.",
@@ -182,6 +184,7 @@ def get_merged_config() -> dict:
         "o": "out_dir",
         "p": "pixel_size",
         "d": "circle_diameter",
+        "width_factor": "width_factor",
         "no_hough": "no_hough",
         "nangles": "n_angles",
         "hl": "profile_half_length",
@@ -251,6 +254,8 @@ def validate_args(args: dict) -> None:
         raise ValueError("Pixel size must be a positive number.")
     if args.get("circle_diameter") is None or args["circle_diameter"] <= 0:
         raise ValueError("Circle diameter must be a positive number.")
+    if args.get("width_factor") is None or args["width_factor"] <= 0:
+        raise ValueError("Width factor must be a positive number.")
     if args.get("n_angles") is None or args["n_angles"] <= 0:
         raise ValueError("Number of angles must be a positive integer.")
     if args.get("profile_half_length") is None or args["profile_half_length"] <= 0:

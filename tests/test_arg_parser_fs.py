@@ -25,6 +25,7 @@ def _valid_config() -> dict:
         "out_dir": "./output",
         "pixel_size": 0.1,
         "circle_diameter": 1.0,
+        "width_factor": 1.8,
         "magnification": 1.0,
         "min_n": 10,
         "n_angles": 180,
@@ -52,6 +53,7 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
         "auto_shift": False,
         "manual_shift": 3,
         "n_angles": 200,
+        "width_factor": 2.1,
     }
     yaml_path = _write_yaml(tmp_path, yaml_data)
 
@@ -79,6 +81,7 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
     assert config["auto_shift"] is True  # CLI flag wins
     assert config["manual_shift"] is None  # auto_shift clears manual
     assert config["n_angles"] == 200  # YAML retained
+    assert config["width_factor"] == 2.1  # YAML retained
     assert config["min_n"] == 6  # default retained
 
 

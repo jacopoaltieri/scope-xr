@@ -451,6 +451,7 @@ class ScopeXRApp(QMainWindow):
             self.fs_output_dir.setText(new_data["out_dir"])
         set_spin(self.fs_pixel_size, "pixel_size", float)
         set_spin(self.fs_diameter, "circle_diameter", float)
+        set_spin(self.fs_width_factor, "width_factor", float)
         if "no_hough" in new_data:
             self.fs_no_hough.setChecked(bool(new_data["no_hough"]))
 
@@ -587,6 +588,7 @@ class ScopeXRApp(QMainWindow):
             self.psf_output_dir.setText(new_data["out_dir"])
         set_spin(self.psf_pixel_size, "pixel_size", float)
         set_spin(self.psf_diameter, "circle_diameter", float)
+        set_spin(self.psf_width_factor, "width_factor", float)
         if "no_hough" in new_data:
             self.psf_no_hough.setChecked(bool(new_data["no_hough"]))
 
@@ -776,6 +778,12 @@ class ScopeXRApp(QMainWindow):
         )
         fs_adv_layout.addRow("Magnification [--m]:", self.fs_magnification)
 
+        self.fs_width_factor = QDoubleSpinBox()
+        self.fs_width_factor.setDecimals(2)
+        self.fs_width_factor.setRange(1.0, 100.0)
+        self.fs_width_factor.setValue(fs_config_data.get("width_factor", 1.8))
+        fs_adv_layout.addRow("Crop Width Factor [--width_factor]:", self.fs_width_factor)
+
         self.fs_min_pixels = QSpinBox()
         self.fs_min_pixels.setRange(0, 500)
         min_n = fs_config_data.get("min_n", fs_config_data.get("n", 10))
@@ -899,6 +907,12 @@ class ScopeXRApp(QMainWindow):
         self.psf_nangles.setRange(90, 1080)
         self.psf_nangles.setValue(psf_config_data.get("n_angles", 360))
         psf_adv_layout.addRow("Num. Angles [--nangles]:", self.psf_nangles)
+
+        self.psf_width_factor = QDoubleSpinBox()
+        self.psf_width_factor.setDecimals(2)
+        self.psf_width_factor.setRange(1.0, 100.0)
+        self.psf_width_factor.setValue(psf_config_data.get("width_factor", 1.2))
+        psf_adv_layout.addRow("Crop Width Factor [--width_factor]:", self.psf_width_factor)
 
         self.psf_half_length = QSpinBox()
         self.psf_half_length.setRange(1, 10_000)
@@ -1212,6 +1226,7 @@ class ScopeXRApp(QMainWindow):
 
             command.extend(["--p", str(self.fs_pixel_size.value())])
             command.extend(["--d", str(self.fs_diameter.value())])
+            command.extend(["--width_factor", str(self.fs_width_factor.value())])
 
             if self.fs_no_hough.isChecked():
                 command.append("--no_hough")
@@ -1275,6 +1290,7 @@ class ScopeXRApp(QMainWindow):
 
             command.extend(["--p", str(self.psf_pixel_size.value())])
             command.extend(["--d", str(self.psf_diameter.value())])
+            command.extend(["--width_factor", str(self.psf_width_factor.value())])
 
             if self.psf_no_hough.isChecked():
                 command.append("--no_hough")

@@ -5,9 +5,20 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2026-09-17
+
+### Changed
+
+- FIX: Fixed wrong label on profile plotters
+- FIX: psf_runner now correctly applies the image cropping around the circle
+- FIX: Now both horizontal and vertical MTF are computed in the same way
+- Added configurable crop `width_factor` to YAML files, parsers, and GUI (defaults: 1.8 for FS and 1.2 for PSF)
+
+
 ## [1.3.4] - 2026-07-31
 
 ### Changed
+
 - FIX: Fixed various linting and typing errors
 - FIX: Hough detection now gracefully fails
 - FIX: psf_runner now correctly applies the image cropping around the circle
@@ -16,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.3] - 2026-07-27
 
 ### Changed
+
 - FIX: Gui now loads configuration files correctly
 - Renamed the function "reconstruct_focal_spot" to "reconstruct_blurring_kernel", since it is unified for FS and PSF
 
@@ -23,12 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.2] - 2026-07-26
 
 ### Changed
+
 - Modified PyPi flags, fixed logo path in readme
 
 
 ## [1.3.1] - 2026-07-26
 
 ### Added
+
 - Added github workflow to publish release and push on PyPi
 
 

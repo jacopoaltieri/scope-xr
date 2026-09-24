@@ -4,49 +4,48 @@
 # Modify these parameters for every new  setup.
 # ==============================================================================
 
-out_dir: "./output_fs"          # Directory to save results [--o]
-pixel_size: 0.1               # Pixel size in mm [--p]
-circle_diameter: 10             # Diameter of the circle object in mm [--d]
-no_hough: false                 # Skip Hough transform completely (checkbox)
-filter_name: "ramp"             # Filter for reconstruction (ramp, shepp-logan, cosine, hamming, hann, None) [--filter]
-
+out_dir: "./output_fs" # Directory to save results [--o]
+pixel_size: 0.1 # Pixel size in mm [--p]
+circle_diameter: 10 # Diameter of the circle object in mm [--d]
+width_factor: 1.8 # Crop width factor [--width_factor]
+no_hough: false # Skip Hough transform completely (checkbox)
+filter_name: "ramp" # Filter for reconstruction (ramp, shepp-logan, cosine, hamming, hann, None) [--filter]
 
 # ==============================================================================
 # 2. ADVANCED ALGORITHM TUNING (Advanced Tab)
 # ------------------------------------------------------------------------------
-# These fine-tune the tracking/math logic. Leave as default unless the standard 
+# These fine-tune the tracking/math logic. Leave as default unless the standard
 # analysis is giving incorrect results or needs tweaking.
 # ==============================================================================
 
-magnification: null             # Magnification factor (null to auto-calculate) [--m]
-min_n: 6                        # Minimum number of pixels covered by the FS [--n]
-n_angles: 360                   # Number of projection angles [--nangles]
-profile_half_length: 64         # Half-length of the profile in pixels [--hl]
-derivative_step: 1              # Step size for derivative calculation [--ds]
-axis_shifts: 10                 # Shifts Search Range for alignment [--axis_shifts]
-symmetrize: false               # Whether to symmetrize the sinogram [--sym]
-avg_number: 3                   # Number of neighboring pixels to average
-show_plots: false               # Whether to display Matplotlib window plots [--show]
+magnification: null # Magnification factor (null to auto-calculate) [--m]
+min_n: 6 # Minimum number of pixels covered by the FS [--n]
+n_angles: 360 # Number of projection angles [--nangles]
+profile_half_length: 64 # Half-length of the profile in pixels [--hl]
+derivative_step: 1 # Step size for derivative calculation [--ds]
+axis_shifts: 10 # Shifts Search Range for alignment [--axis_shifts]
+symmetrize: false # Whether to symmetrize the sinogram [--sym]
+avg_number: 3 # Number of neighboring pixels to average
+show_plots: false # Whether to display Matplotlib window plots [--show]
 
 # --- Sinogram Shifting Modes ---
 # Determines how the sinogram center is calibrated (Matches GUI radio buttons)
-auto_shift: true                # Automatically calculate and shift the sinogram center
-no_shift: false                 # Disable center sinogram shifting
-manual_shift: null              # Apply an explicit pixel shift (Overridden if null)
-
+auto_shift: true # Automatically calculate and shift the sinogram center
+no_shift: false # Disable center sinogram shifting
+manual_shift: null # Apply an explicit pixel shift (Overridden if null)
 
 # ==============================================================================
 # 3. HOUGH CIRCLE DETECTION PARAMETERS (Advanced Tab -> Sub-Group)
 # ------------------------------------------------------------------------------
-# Highly technical parameters for the computer vision circle finder. 
+# Highly technical parameters for the computer vision circle finder.
 # DO NOT TOUCH unless the program fails to locate the object boundary.
 # ==============================================================================
 
 hough_params:
-  dp: 1.3                       # Inverse ratio of the accumulator resolution
-  min_dist: 100                 # Minimum distance (in pixels) between detected centers
-  param1: 70                    # Upper threshold passed to the Canny edge detector
-  param2: 40                    # Accumulator threshold for center detection
-  min_radius: 10                # Minimum circle radius to search for (in pixels)
-  max_radius: 400               # Maximum circle radius to search for (in pixels, 0 for no max)
-  debug: false                  # Show intermediate Hough tracking diagnostic plots
+  dp: 1.3 # Inverse ratio of the accumulator resolution
+  min_dist: 100 # Minimum distance (in pixels) between detected centers
+  param1: 70 # Upper threshold passed to the Canny edge detector
+  param2: 40 # Accumulator threshold for center detection
+  min_radius: 10 # Minimum circle radius to search for (in pixels)
+  max_radius: 400 # Maximum circle radius to search for (in pixels, 0 for no max)
+  debug: false # Show intermediate Hough tracking diagnostic plots

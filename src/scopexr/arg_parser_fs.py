@@ -44,6 +44,7 @@ def get_merged_config() -> dict:
     parser.add_argument("--o", type=str, help="Output directory")
     parser.add_argument("--p", type=float, help="Pixel size in mm")
     parser.add_argument("--d", type=float, help="Circle diameter in mm")
+    parser.add_argument("--width_factor", type=float, help="Crop width factor")
     parser.add_argument(
         "--no_hough",
         action="store_true",
@@ -90,6 +91,7 @@ def get_merged_config() -> dict:
         "out_dir": "./output_fs",
         "pixel_size": None,
         "circle_diameter": None,
+        "width_factor": 1.8,
         "magnification": None,  # Will be auto-calculated if None or 0
         "min_n": 6,
         "n_angles": 360,
@@ -134,6 +136,7 @@ def get_merged_config() -> dict:
         "o": "out_dir",
         "p": "pixel_size",
         "d": "circle_diameter",
+        "width_factor": "width_factor",
         "no_hough": "no_hough",
         "m": "magnification",
         "n": "min_n",
@@ -200,6 +203,8 @@ def validate_args(args: dict) -> None:
         raise ValueError("Pixel size must be a positive number.")
     if args.get("circle_diameter") is None or args["circle_diameter"] <= 0:
         raise ValueError("Circle diameter must be a positive number.")
+    if args.get("width_factor") is None or args["width_factor"] <= 0:
+        raise ValueError("Width factor must be a positive number.")
     if args.get("magnification") is not None and args["magnification"] < 0:
         raise ValueError(
             "Magnification must be a positive number or 0 for automatic calculation."
