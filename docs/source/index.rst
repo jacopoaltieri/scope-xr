@@ -7,6 +7,9 @@
    :target: https://www.gnu.org/licenses/gpl-3.0
 .. image:: https://img.shields.io/badge/GitHub-Repository-lightgrey?logo=github
    :target: https://github.com/jacopoaltieri/scope-xr
+.. image:: https://img.shields.io/pypi/v/scopexr
+   :target: https://pypi.org/project/scopexr/
+   :alt: PyPI package
 
 SCOPE-XR Documentation
 ======================
