@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scopexr"
-version = "1.3.5"
+version = "1.3.6"
 
 
 description = "Single-image Characterization Of PErformance in X-Ray systems"
@@ -55,10 +55,10 @@ all = [
 scopexr-gui = "scopexr.gui:main"
 scopexr-fs = "scopexr.fs_main:main"
 scopexr-psf = "scopexr.psf_main:main"
-
+scopexr-confex = "scopexr.config_exporter:export_configs"
 
 [tool.setuptools.package-data]
-scopexr = ["*.png"]
+scopexr = ["*.png","default_configs/*.yaml"]
 
 [tool.semantic_release]
 version_variable = "pyproject.toml:version"

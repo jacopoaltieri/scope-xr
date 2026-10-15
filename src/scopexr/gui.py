@@ -96,7 +96,7 @@ def load_config(filename: str) -> tuple[dict, str | None]:
     except FileNotFoundError:
         return (
             {},
-            f"Warning: Config file '{filename}' not found. Using hardcoded defaults.",
+            f"Warning: Config file '{filename}' not found. Using defaults. You can copy the default config using 'scopexr-confex' command.",
         )
     except Exception as e:
         return (

@@ -27,10 +27,13 @@
   - [GUI Execution](#gui-execution)
   - [CLI Execution](#cli-execution)
     - [Overriding Configuration Parameters](#overriding-configuration-parameters)
+  - [Exporting Default Configurations](#exporting-default-configurations)
 - [Processing Pipeline](#processing-pipeline)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [Citation](#citation)
+    - [BibTeX](#bibtex)
+    - [Methodology Citations](#methodology-citations)
 - [Changelog](#changelog)
 - [⚖️ License](#️-license)
 
@@ -94,7 +97,13 @@ If you just want to use the software without modifying the code, install directl
 pip install scopexr
 ```
 
-⚠️ **Important**: Configuration files (`.yaml`) are required for execution. Please download them from the `examples` folder and place them in your working directory.  
+⚠️ **Important**: Configuration files (`.yaml`) are required for execution. Export the bundled defaults to your working directory with:
+
+```bash
+scopexr-confex
+```
+
+Use `scopexr-confex --output-dir path/to/configs` to export them to a different directory.
 
 ### 2. Manual Install (From source)
 
@@ -185,6 +194,21 @@ In this case, the pixel size will be set to `0.2 mm` instead of the default valu
 
 The full list of CLI flags is available in the [documentation](https://scope-xr.readthedocs.io/)
 
+## Exporting Default Configurations
+
+The `scopexr-confex` command exports the bundled `fs_args.yaml` and `psf_args.yaml`
+configuration files. By default, files are written to the current working directory:
+
+```bash
+scopexr-confex
+```
+
+To choose another destination, pass `--output-dir` (or `-o`):
+
+```bash
+scopexr-confex --output-dir path/to/configs
+```
+
 
 # Processing Pipeline
 
@@ -239,42 +263,46 @@ git push origin feature/my-feature
 
 # Citation
 
-If you use SCOPE-XR in your research, please cite:
+If you use **SCOPE-XR** in your research, please cite our published paper as the primary reference:
+
+> Altieri, J., Cardarelli, P., Di Domenico, G., & Taibi, A. (2026). A python framework for single-image characterization of X-ray focal spot distribution and detector point spread function. *Medical Physics*, 53, e70513. https://doi.org/10.1002/mp.70513
+
+### BibTeX
+
+**Primary Paper:**
 
 ```bibtex
-@software{scopexr2026,
-  author = {Altieri, Jacopo},
-  title = {SCOPE-XR: Single-image Characterization Of PErformance in X-Ray systems},
-  year = {2026},
-  version = {1.3.0},
-  url = {https://github.com/jacopoaltieri/scope-xr}
+@article{altieri2026scopexr,
+  author  = {Altieri, Jacopo and Cardarelli, Paolo and Di Domenico, Giovanni and Taibi, Angelo},
+  title   = {A python framework for single-image characterization of X-ray focal spot distribution and detector point spread function},
+  journal = {Medical Physics},
+  volume  = {53},
+  pages   = {e70513},
+  year    = {2026},
+  doi     = {10.1002/mp.70513}
 }
 ```
 
-**Methodology citations:**
-- Focal Spot: [Di Domenico et al. (2016)](https://doi.org/10.1118/1.4938414)
-- PSF Analysis: [Forster et al. (2024)](https://doi.org/10.13140/RG.2.2.27408.89607)
-
-**Published paper:**
-
-The SCOPE-XR methodology and software are described in our paper; please cite it as:
-Altieri J, Cardarelli P, Di Domenico G, Taibi A. A python framework for single-image characterization of X-ray focal spot distribution and detector point spread function. Med Phys. 2026;53:e70513. https://doi.org/10.1002/mp.70513
+**Software Package (PyPI / Version Specific):**
 
 ```bibtex
-@article{https://doi.org/10.1002/mp.70513,
-author = {Altieri, Jacopo and Cardarelli, Paolo and Di Domenico, Giovanni and Taibi, Angelo},
-title = {A python framework for single-image characterization of X-ray focal spot distribution and detector point spread function},
-journal = {Medical Physics},
-volume = {53},
-number = {6},
-pages = {e70513},
-keywords = {focal spot, image reconstruction, open-source, point spread function, python software, quality assurance, X-ray imaging},
-doi = {https://doi.org/10.1002/mp.70513},
-url = {https://aapm.onlinelibrary.wiley.com/doi/abs/10.1002/mp.70513},
-eprint = {https://aapm.onlinelibrary.wiley.com/doi/pdf/10.1002/mp.70513},
-year = {2026}
+@software{scopexr2026software,
+  author    = {Altieri, Jacopo},
+  title     = {SCOPE-XR: Single-image Characterization Of PErformance in X-Ray systems},
+  year      = {2026},
+  version   = {1.3.6},
+  url       = {[https://pypi.org/project/scopexr/](https://pypi.org/project/scopexr/)},
+  publisher = {PyPI}
 }
 ```
+
+---
+
+### Methodology Citations
+
+If your work relies specifically on the underlying algorithmic methods, please also consider citing:
+- **Focal Spot:** [Di Domenico et al. (2016)](https://doi.org/10.1118/1.4938414)
+- **PSF Analysis:** [Forster et al. (2024)](https://doi.org/10.13140/RG.2.2.27408.89607)
 
 
 # Changelog

@@ -124,7 +124,7 @@ def get_merged_config() -> dict:
                 config.update(yaml_config)
     except FileNotFoundError:
         print(
-            f"Warning: Config file not found at {args.config}. Using defaults.",
+            f"Warning: Config file not found at {args.config}. Using defaults. You can copy the default config using 'scopexr-confex' command.",
             file=sys.stderr,
         )
     except Exception as e:
