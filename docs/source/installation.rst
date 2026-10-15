@@ -20,9 +20,19 @@ directly from PyPI:
 
    pip install scopexr
 
-⚠️ **Important**: Configuration files (``.yaml``) are required for
-execution. Please download them from the ``examples`` folder and place
-them in your working directory.
+Configuration files (``.yaml``) are required for execution. Export the
+bundled default files to your working directory with:
+
+.. code-block:: bash
+
+   scopexr-confex
+
+This creates ``fs_args.yaml`` and ``psf_args.yaml`` in the current
+directory. To export them elsewhere, use ``--output-dir`` (or ``-o``):
+
+.. code-block:: bash
+
+   scopexr-confex --output-dir path/to/configs
 
 2. Manual Install (From source)
 ------------

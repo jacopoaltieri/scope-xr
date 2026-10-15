@@ -3,7 +3,9 @@ Usage
 
 SCOPE-XR provides two main interfaces designed for different user workflows.
 
-The program supports configurable execution via YAML configuration files. You can find an example of these files in the ``examples`` folder, along with some simulated images to test the package.
+The program supports configurable execution via YAML configuration files.
+The package includes default ``fs_args.yaml`` and ``psf_args.yaml`` files,
+which can be exported with the ``scopexr-confex`` command.
 
 Supported Image Formats
 -----------------------
@@ -38,6 +40,19 @@ CLI Execution
 
 Ideal for batch processing and integration into automated research pipelines. To run the program with the default settings (as defined in ``fs_args.yaml`` or ``psf_args.yaml``), use the following commands:
 
+Before the first run, export the bundled configuration files:
+
+.. code-block:: bash
+
+    scopexr-confex
+
+By default, the files are written to the current working directory. Use
+``--output-dir`` (or ``-o``) to choose another destination:
+
+.. code-block:: bash
+
+    scopexr-confex --output-dir path/to/configs
+
 * **Focal Spot:**
 
   .. code-block:: bash
@@ -54,6 +69,10 @@ Use the ``--help`` flag with any command to see all available parameters.
 
 Overriding Configuration Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The exported ``fs_args.yaml`` and ``psf_args.yaml`` files can be edited
+directly, or supplied explicitly with the ``--config`` option. Command-line
+arguments take precedence over values loaded from a YAML file.
 
 You can override any configuration value directly from the command line by adding the corresponding flag. For example:
 

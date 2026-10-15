@@ -11,15 +11,32 @@ Make sure you have SCOPE-XR installed. If not, see :doc:`installation`.
 Your First Focal Spot Analysis
 -------------------------------
 
-SCOPE-XR includes sample images in the ``examples/`` folder to help you get started.
+SCOPE-XR includes default configuration files in the package and sample
+images in the repository to help you get started.
 
 Step 1: Locate Example Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-After installation, download the example files from the repository:
+After installation, export the default configuration files:
 
-* ``examples/fs_args.yaml`` - Focal spot configuration
+.. code-block:: bash
+
+    scopexr-confex
+
+This exports:
+
+* ``fs_args.yaml`` - Focal spot configuration
+* ``psf_args.yaml`` - PSF configuration
+
+The sample images are available in the repository's ``examples/`` folder:
+
 * ``examples/Image_FS2_Double_Asym_Clean.tif`` - Sample focal spot image
+
+To place the configuration files in another directory, use:
+
+.. code-block:: bash
+
+    scopexr-confex --output-dir path/to/configs
 
 Step 2: Run the GUI
 ~~~~~~~~~~~~~~~~~~~~
@@ -164,11 +181,13 @@ Next Steps
 * Review the :doc:`pipeline` for quality control
 * See :doc:`troubleshooting` for common issues
 
-For batch processing, create custom YAML configuration files and use the CLI in scripts:
+For batch processing, export the bundled configurations or create custom
+YAML configuration files and use the CLI in scripts:
 
 .. code-block:: bash
 
     #!/bin/bash
+    scopexr-confex --output-dir configs
     for img in data/*.tif; do
-        scopexr-fs --f "$img" --config my_config.yaml
+        scopexr-fs --f "$img" --config configs/fs_args.yaml
     done
