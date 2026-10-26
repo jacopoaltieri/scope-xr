@@ -154,7 +154,7 @@ def load_image(img_path: str) -> np.ndarray:
         return load_tiff_as_ndarray(img_path)
     elif ext == ".png":
         return load_png_as_ndarray(img_path)
-    elif ext == ".dcm":
+    elif ext in [".dcm", ".dicom", ".ima"]:
         return load_dicom_as_ndarray(img_path)
     else:
         raise ValueError(f"Unsupported image format: {ext}")

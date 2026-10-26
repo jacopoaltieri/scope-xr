@@ -15,7 +15,7 @@ The supported input image formats are:
 * ``.png``
 * ``.tif`` / ``.tiff``
 * ``.raw`` (must be accompanied by a corresponding ``.xml`` metadata file)
-* ``.dcm`` (DICOM)
+* ``.dcm`` / ``.dicom`` / ``.ima`` (DICOM)
 
 GUI Execution
 -------------
@@ -30,7 +30,7 @@ The recommended way for routine analysis. It features live image previews and in
 
 * **Easy Mode Selection**: Separate tabs for "Focal Spot (FS)" and "PSF" analysis.
 * **Automatic Configuration**: The GUI automatically loads all default parameters from ``fs_args.yaml`` or ``psf_args.yaml`` on startup.
-* **Image Preview**: Load .png, .tif/.tiff, or .dcm images to see a preview directly in the app.
+* **Image Preview**: Load .png, .tif/.tiff, or .dcm/.dicom/.ima images to see a preview directly in the app.
 * **Full Parameter Control**: All CLI flags are editable via interactive widgets.
 * **Edit Config Files**: A button allows you to directly open and edit the default .yaml config file for the active tab.
 * **Live Output**: All console output from the analysis script is printed directly to a text box within the GUI.
@@ -91,7 +91,7 @@ Focal Spot CLI
 +=========================+===============================================================================================================================================+
 | ``--config`` (str)      | Path to the YAML configuration file.                                                                                                          |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--f`` (str)           | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``/``.tiff``, ``.dcm``).                                                |
+| ``--f`` (str)           | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``/``.tiff``, ``.dcm``/``.dicom``/``.ima``).                            |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--o`` (str)           | Output directory to store results.                                                                                                            |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
@@ -139,7 +139,7 @@ PSF CLI
 +===================================+===============================================================================================================================================================+
 | ``--config`` (str)                | Path to the YAML configuration file.                                                                                                                          |
 +-----------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--f`` (str)                     | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``/``.tiff``, ``.dcm``).                                                                |
+| ``--f`` (str)                     | **Required.** Path to the input image file (``.raw``, ``.png``, ``.tif``/``.tiff``, ``.dcm``/``.dicom``/``.ima``).                                            |
 +-----------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--o`` (str)                     | Output directory to store results.                                                                                                                            |
 +-----------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
