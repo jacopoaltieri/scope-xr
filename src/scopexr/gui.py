@@ -1037,7 +1037,7 @@ class ScopeXRApp(QMainWindow):
         file path for analysis.
         """
         file_name, _ = QFileDialog.getOpenFileName(
-            self, "Select Image", "", "Image Files (*.png *.tif *.tiff *.raw *.dcm)"
+            self, "Select Image", "", "Image Files (*.png *.tif *.tiff *.raw *.dcm *.dicom *.ima)"
         )
         if file_name:
             self.image_path = file_name
@@ -1047,7 +1047,7 @@ class ScopeXRApp(QMainWindow):
                     f"RAW file selected:\n{Path(file_name).name}\n(Preview not available)"
                 )
                 self.image_display_label.setStyleSheet("")
-            elif ext == ".dcm":
+            elif ext in [".dcm", ".dicom", ".ima"]:
                 pixmap = self._dicom_to_qpixmap(file_name)
                 if pixmap is None:
                     self.image_display_label.setText(
