@@ -127,6 +127,7 @@ def estimate_circle(cropped: np.ndarray) -> tuple[float, float, float]:
     - Center (cx, cy): Calculated via center_of_mass on the binary mask.
     - Radius: Calculated from the area (Area = pi * r^2).
     """
+    print(cropped.shape)
     h, w = cropped.shape
 
     # 1. Thresholding to create a binary mask

@@ -10,6 +10,22 @@ from scopexr.mtf_calc import (
     get_mtf_at_freq,
 )
 
+
+def test_mtf10_interpolates_between_frequency_samples():
+    x = np.arange(64) - 32
+    lsf = np.exp(-(x**2) / 2)
+    freq, mtf, mtf10 = compute_1d_mtf(lsf, 0.1)
+    assert mtf10 >= freq[0]
+    assert mtf10 <= freq[-1]
+
+
+def test_mtf10_uses_first_positive_sample_when_already_below_threshold(monkeypatch):
+    import scopexr.mtf_calc as mtf_module
+
+    monkeypatch.setattr(mtf_module.np, "where", lambda *args: (np.array([0]),))
+    freq, _, mtf10 = compute_1d_mtf(np.ones(4), 0.1)
+    assert mtf10 == freq[0]
+
 # Ensure local src is on the path when running tests without installation
 ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT / "src"

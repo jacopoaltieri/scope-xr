@@ -99,6 +99,60 @@ def test_manual_shift_cli_overrides_yaml(tmp_path, monkeypatch):
     assert config["no_shift"] is False
 
 
+def test_oversampling_cli_overrides_yaml(tmp_path, monkeypatch):
+    yaml_path = _write_yaml(
+        tmp_path,
+        {
+            "oversample": False,
+            "dtheta": 3.0,
+            "oversampling_factor": 2.0,
+            "gaussian_sigma": 0.0,
+        },
+    )
+    cli_args = [
+        "prog",
+        "--config",
+        str(yaml_path),
+        "--oversample",
+        "--dtheta",
+        "1.5",
+        "--oversampling_factor",
+        "4",
+        "--gaussian_sigma",
+        "0.75",
+    ]
+    monkeypatch.setattr(sys, "argv", cli_args)
+
+    config = get_merged_config()
+
+    assert config["oversample"] is True
+    assert config["dtheta"] == 1.5
+    assert config["oversampling_factor"] == 4.0
+    assert config["gaussian_sigma"] == 0.75
+
+
+def test_oversampling_defaults_are_available():
+    cfg = _valid_config()
+    validate_args(cfg)
+    assert cfg.get("oversample", False) is False
+
+
+@pytest.mark.parametrize(
+    "key,value,message",
+    [
+        ("dtheta", 0, "Oversampling angular width"),
+        ("oversampling_factor", 0, "Oversampling factor"),
+        ("gaussian_sigma", -1, "Gaussian sigma"),
+        ("manual_shift", 1.5, "Manual shift"),
+    ],
+)
+def test_validate_oversampling_and_shift_failures(key, value, message):
+    cfg = _valid_config()
+    cfg[key] = value
+    with pytest.raises(ValueError, match=message):
+        validate_args(cfg)
+
+
 def test_validate_args_success():
     cfg = _valid_config()
     validate_args(cfg)  # Should not raise
@@ -110,6 +164,7 @@ def test_validate_args_success():
         ({"img_path": None}, "Image path is required"),
         ({"pixel_size": 0}, "Pixel size must be a positive number"),
         ({"circle_diameter": 0}, "Circle diameter must be a positive number"),
+        ({"width_factor": 0}, "Width factor must be a positive number"),
         ({"magnification": -1}, "Magnification must be a positive number"),
         ({"min_n": 0}, "Minimum pixel count must be a positive integer"),
         ({"n_angles": 0}, "Number of angles must be a positive integer"),

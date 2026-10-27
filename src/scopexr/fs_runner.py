@@ -68,6 +68,10 @@ def run_pipeline_fs():
     manual_shift = args["manual_shift"]
     auto_shift = args["auto_shift"]
     show_plots = args["show_plots"]
+    oversample = args["oversample"]
+    dtheta = args["dtheta"]
+    oversampling_factor = args["oversampling_factor"]
+    gaussian_sigma = args["gaussian_sigma"]
 
     # ----------------------------------------------------------------------------------#
     # Create output directory
@@ -103,16 +107,16 @@ def run_pipeline_fs():
             debug=hough_params.get("debug", False),
         )
 
-    if hough_circle is None:
-        raise ValueError(
-            "Hough transform did not detect any circle. Provide a cropped image."
-        )
+        if hough_circle is None:
+            raise ValueError(
+                "Hough transform did not detect any circle. Provide a cropped image."
+            )
 
-    x, y, r = hough_circle
-    print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
-    cropped = utils.crop_square_roi(
-        img, center=(x, y), radius=r, width_factor=width_factor, output_path=out_dir
-    )
+        x, y, r = hough_circle
+        print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
+        cropped = utils.crop_square_roi(
+            img, center=(x, y), radius=r, width_factor=width_factor, output_path=out_dir
+        )
 
     cx, cy, radius = circ.estimate_circle(cropped)
     if not circ.is_circle_centered(cropped, cx, cy):
@@ -349,6 +353,188 @@ def run_pipeline_fs():
         f"{'Spot Size (FW15M):': <{label_width}} {vertical_fs15m:.3f} mm",
         "",
     ]
+
+    # Optional oversampled focal-spot reconstruction. This uses the same
+    # sub-pixel wedge sampling and controls as the PSF pipeline.
+    if oversample:
+        max_os_angle = utils.suggest_os_angle(
+            pixel_size, oversampling_factor, radius
+        )
+        print(
+            f"Suggested maximum oversampling angle to avoid cross-talk: "
+            f"{max_os_angle:.2f}°"
+        )
+        if dtheta > max_os_angle:
+            print(
+                f"Caution!: oversampling angle {dtheta}° exceeds the suggested "
+                f"maximum {max_os_angle:.2f}°."
+            )
+
+        profiles_oversampled, sinogram_oversampled = (
+            se.compute_subpixel_profiles_and_sinogram(
+                cropped,
+                cx,
+                cy,
+                radius,
+                n_angles,
+                profile_half_length,
+                derivative_step,
+                dtheta,
+                oversampling_factor=oversampling_factor,
+                gaussian_sigma=gaussian_sigma,
+            )
+        )
+
+        if manual_shift is not None:
+            sinogram_oversampled, applied_shift_oversampled = (
+                se.manual_center_sinogram(
+                    sinogram_oversampled,
+                    int(manual_shift * oversampling_factor),
+                )
+            )
+        elif auto_shift:
+            sinogram_oversampled, applied_shift_oversampled = (
+                se.auto_center_sinogram(sinogram_oversampled)
+            )
+        else:
+            applied_shift_oversampled = 0
+
+        reconstruction_oversampled = srec.reconstruct_blurring_kernel(
+            sinogram_oversampled, filter_name, symmetrize
+        )
+        utils.save_and_plot(
+            "profiles_oversampled", profiles_oversampled, out_dir
+        )
+        utils.save_and_plot(
+            "sinogram_oversampled", sinogram_oversampled, out_dir
+        )
+        utils.save_and_plot(
+            "reconstruction_oversampled", reconstruction_oversampled, out_dir
+        )
+        srec.reconstruct_with_axis_shifts(
+            sinogram_oversampled,
+            out_dir / "oversampled_recon_axis_shifts.tiff",
+            filter_name,
+            list(range(-axis_shifts, axis_shifts)),
+            symmetrize,
+        )
+        plotters.plot_profiles_and_reconstruction(
+            profiles_oversampled,
+            sinogram_oversampled,
+            reconstruction_oversampled,
+            out_dir,
+            show_plots,
+            reconstruction_type="fs",
+            suffix="_oversampled",
+        )
+
+        prof_h_ov, prof_v_ov = wc.compute_lsf_from_projection(
+            reconstruction_oversampled
+        )
+        fh_ov_native, lh_ov, rh_ov = wc.fw_at_percent_max(prof_h_ov, 0.5)
+        fv_ov_native, lv_ov, rv_ov = wc.fw_at_percent_max(prof_v_ov, 0.5)
+        f15h_ov_native, l15h_ov, r15h_ov = wc.fw_at_percent_max(
+            prof_h_ov, 0.15
+        )
+        f15v_ov_native, l15v_ov, r15v_ov = wc.fw_at_percent_max(
+            prof_v_ov, 0.15
+        )
+        fh_ov = fh_ov_native / oversampling_factor
+        fv_ov = fv_ov_native / oversampling_factor
+        f15h_ov = f15h_ov_native / oversampling_factor
+        f15v_ov = f15v_ov_native / oversampling_factor
+
+        radial_ov = np.arange(len(prof_h_ov)) - len(prof_h_ov) // 2
+        plotters.plot_profiles_with_fwhm(
+            radial_ov,
+            prof_h_ov,
+            prof_v_ov,
+            horizontal_idx,
+            vertical_idx,
+            0.5,
+            fh_ov_native,
+            lh_ov,
+            rh_ov,
+            fv_ov_native,
+            lv_ov,
+            rv_ov,
+            out_dir / "oversampled_fwhm_profiles.png",
+            show_plots,
+            pixel_size / oversampling_factor,
+            m_fs,
+        )
+        plotters.plot_profiles_with_fwhm(
+            radial_ov,
+            prof_h_ov,
+            prof_v_ov,
+            horizontal_idx,
+            vertical_idx,
+            0.15,
+            f15h_ov_native,
+            l15h_ov,
+            r15h_ov,
+            f15v_ov_native,
+            l15v_ov,
+            r15v_ov,
+            out_dir / "oversampled_fw15m_profiles.png",
+            show_plots,
+            pixel_size / oversampling_factor,
+            m_fs,
+        )
+        plotters.plot_sinogram_with_traced_profiles(
+            sinogram_oversampled,
+            horizontal_idx,
+            vertical_idx,
+            out_dir / "oversampled_sinogram_traced_profiles.png",
+            reconstruction_type="fs",
+            show_plots=show_plots,
+        )
+        plotters.plot_recon_with_lines(
+            reconstruction_oversampled,
+            angle_horizontal_deg,
+            angle_vertical_deg,
+            out_dir / "oversampled_focal_spot_traced_profiles.png",
+            show_plots=show_plots,
+            reconstruction_type="fs",
+        )
+
+        horizontal_fs_ov = wc.compute_fs_width(
+            fh_ov, pixel_size, m_fs
+        )
+        vertical_fs_ov = wc.compute_fs_width(
+            fv_ov, pixel_size, m_fs
+        )
+        horizontal_fs15m_ov = wc.compute_fs_width(
+            f15h_ov, pixel_size, m_fs
+        )
+        vertical_fs15m_ov = wc.compute_fs_width(
+            f15v_ov, pixel_size, m_fs
+        )
+        print(
+            f"Oversampled focal spot FWHM: "
+            f"H={horizontal_fs_ov:.3f} mm, V={vertical_fs_ov:.3f} mm"
+        )
+        print(
+            f"Oversampled focal spot FW15M: "
+            f"H={horizontal_fs15m_ov:.3f} mm, "
+            f"V={vertical_fs15m_ov:.3f} mm"
+        )
+
+        summary += [
+            "--- Oversampled Results ---",
+            f"{'Applied Axis Shift:': <{label_width}} "
+            f"{applied_shift_oversampled} oversampled px",
+            f"{'FWHM:': <{label_width}} "
+            f"H={fh_ov:.3f} px, V={fv_ov:.3f} px",
+            f"{'FW15M:': <{label_width}} "
+            f"H={f15h_ov:.3f} px, V={f15v_ov:.3f} px",
+            f"{'Spot Size (FWHM):': <{label_width}} "
+            f"H={horizontal_fs_ov:.3f} mm, V={vertical_fs_ov:.3f} mm",
+            f"{'Spot Size (FW15M):': <{label_width}} "
+            f"H={horizontal_fs15m_ov:.3f} mm, "
+            f"V={vertical_fs15m_ov:.3f} mm",
+            "",
+        ]
 
     # Save summary to .txt
     results_path = out_dir / "fs_results.txt"

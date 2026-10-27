@@ -32,6 +32,14 @@ def create_synthetic_circle_image(
     return img
 
 
+def test_estimate_circle_empty_image_uses_center_fallback(monkeypatch):
+    import scopexr.circle_detection as circle_detection
+
+    monkeypatch.setattr(circle_detection.np, "any", lambda _: False)
+    cx, cy, radius = estimate_circle(np.zeros((12, 20), dtype=np.uint16))
+    assert (cx, cy, radius) == (10.0, 6.0, 0.0)
+
+
 class TestDetectCircleHough:
     def test_detect_perfect_circle(self, tmp_path):
         """Test detection of a perfect circle."""

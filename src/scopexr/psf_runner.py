@@ -106,13 +106,13 @@ def run_pipeline_psf():
             debug=hough_params.get("debug", False),
         )
 
-    if hough_circle is None:
-        raise ValueError(
-            "Hough transform did not detect any circle. Provide a cropped image."
-        )
+        if hough_circle is None:
+            raise ValueError(
+                "Hough transform did not detect any circle. Provide a cropped image."
+            )
 
-    x, y, r = hough_circle
-    print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
+        x, y, r = hough_circle
+        print(f"Detected circle via Hough transform: Center=({x}, {y}), Radius={r} px")
     cropped = utils.crop_square_roi(
         img, center=(x, y), radius=r, width_factor=width_factor, output_path=out_dir
     )
@@ -371,39 +371,42 @@ def run_pipeline_psf():
                 gaussian_sigma=gaussian_sigma,
             )
         )
-
-        applied_shift_ov = 0  # New variable for oversampled shift
+        applied_shift_ov = 0
         if manual_shift is not None:
-            # Scale the manual shift (which is in 'normal' pixels)
             manual_shift_ov = int(manual_shift * oversampling_factor)
             print(
-                f"Applying manual shift to oversampled sinogram: {manual_shift_ov} px"
+                f"Applying manual shift to oversampled sinogram: "
+                f"{manual_shift_ov} px"
             )
-            # Apply shift to sinogram_oversampled
-            centered_sino, applied_shift_ov = se.manual_center_sinogram(
+            sinogram_oversampled, applied_shift_ov = se.manual_center_sinogram(
                 sinogram_oversampled, manual_shift_ov
             )
-            sinogram_oversampled = centered_sino
         elif auto_shift:
             print("Running automatic sinogram centering (oversampled)...")
-            # Apply auto-shift to sinogram_oversampled
-            centered_sino, applied_shift_ov = se.auto_center_sinogram(
+            sinogram_oversampled, applied_shift_ov = se.auto_center_sinogram(
                 sinogram_oversampled
             )
-            sinogram_oversampled = centered_sino
-            print(f"Applied automatic axis shift: {applied_shift_ov} px (oversampled)")
+            print(
+                f"Applied automatic axis shift: {applied_shift_ov} px "
+                "(oversampled)"
+            )
         else:
-            # No shift is applied
-            applied_shift_ov = 0
             print("Sinogram shifting is disabled (oversampled).")
 
         recon_oversampled = srec.reconstruct_blurring_kernel(
             sinogram_oversampled, filter_name, symmetrize
         )
-
         utils.save_and_plot("profiles_oversampled", profiles_oversampled, out_dir)
         utils.save_and_plot("sinogram_oversampled", sinogram_oversampled, out_dir)
         utils.save_and_plot("reconstruction_oversampled", recon_oversampled, out_dir)
+        shift_list = list(range(-axis_shifts, axis_shifts))
+        srec.reconstruct_with_axis_shifts(
+            sinogram_oversampled,
+            out_dir / "oversampled_recon_axis_shifts.tiff",
+            filter_name,
+            shift_list,
+            symmetrize,
+        )
 
         plotters.plot_profiles_and_reconstruction(
             profiles_oversampled,
@@ -413,17 +416,6 @@ def run_pipeline_psf():
             show_plots,
             reconstruction_type="psf",
             suffix="_oversampled",
-        )
-
-        # Oversampled sinogram reconstruction with axis shifts
-        shift_list = list(range(-axis_shifts, axis_shifts))
-        shift_tiff_path = out_dir / "oversampled_recon_axis_shifts.tiff"
-        srec.reconstruct_with_axis_shifts(
-            sinogram_oversampled,
-            shift_tiff_path,
-            filter_name,
-            shift_list,
-            symmetrize,
         )
 
         # Compute LSF from projection of the oversampled PSF reconstruction

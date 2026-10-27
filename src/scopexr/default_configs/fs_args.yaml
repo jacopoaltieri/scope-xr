@@ -27,6 +27,10 @@ axis_shifts: 10 # Shifts Search Range for alignment [--axis_shifts]
 symmetrize: false # Whether to symmetrize the sinogram [--sym]
 avg_number: 3 # Number of neighboring pixels to average
 show_plots: false # Whether to display Matplotlib window plots [--show]
+oversample: false # Enable oversampled focal-spot reconstruction [--oversample]
+dtheta: 2.0 # Angular wedge width for oversampling in degrees [--dtheta]
+oversampling_factor: 4.0 # Radial oversampling factor [--oversampling_factor]
+gaussian_sigma: 0.0 # Gaussian smoothing sigma; zero uses binned statistics [--gaussian_sigma]
 
 # --- Sinogram Shifting Modes ---
 # Determines how the sinogram center is calibrated (Matches GUI radio buttons)

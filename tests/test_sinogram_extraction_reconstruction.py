@@ -50,6 +50,99 @@ def create_synthetic_circular_edge_image(
     return img.astype(np.uint16)
 
 
+def test_subpixel_profiles_handle_empty_wedges_and_gaussian_mode():
+    image = np.zeros((64, 64), dtype=np.float32)
+    profiles, sinogram = compute_subpixel_profiles_and_sinogram(
+        image, 32, 32, 12, 8, 6, 1, 0.1, 2, gaussian_sigma=1.0
+    )
+    assert profiles.shape == sinogram.shape
+    assert np.isfinite(profiles).all()
+
+
+def test_subpixel_profiles_cover_empty_and_partial_gaussian_bins(monkeypatch):
+    import scopexr.sinogram_extraction as extraction
+
+    monkeypatch.setattr(
+        extraction,
+        "_extract_wedge_radial_samples",
+        lambda *args: (np.array([]), np.array([])),
+    )
+    profiles, _ = compute_subpixel_profiles_and_sinogram(
+        np.zeros((32, 32)),
+        16,
+        16,
+        8,
+        4,
+        6,
+        1,
+        0.1,
+        2,
+        gaussian_sigma=1.0,
+    )
+    assert np.isnan(profiles).all()
+
+    def partial_bins(*args, **kwargs):
+        bins = np.ones(len(kwargs["bins"]) - 1)
+        bins[0] = np.nan
+        return bins, np.array([]), np.array([])
+
+    monkeypatch.setattr(extraction, "binned_statistic", partial_bins)
+    monkeypatch.setattr(
+        extraction,
+        "_extract_wedge_radial_samples",
+        lambda *args: (np.array([-1.0, 0.0, 1.0]), np.array([1.0, 2.0, 1.0])),
+    )
+    profiles, _ = compute_subpixel_profiles_and_sinogram(
+        np.zeros((32, 32)),
+        16,
+        16,
+        8,
+        4,
+        6,
+        1,
+        0.1,
+        2,
+        gaussian_sigma=1.0,
+    )
+    assert np.isfinite(profiles).all()
+
+
+def test_subpixel_profiles_cover_empty_direct_bins(monkeypatch):
+    import scopexr.sinogram_extraction as extraction
+
+    monkeypatch.setattr(
+        extraction, "savgol_filter", lambda values, *args, **kwargs: values
+    )
+    monkeypatch.setattr(
+        extraction,
+        "_extract_wedge_radial_samples",
+        lambda *args: (np.array([]), np.array([])),
+    )
+    profiles, _ = compute_subpixel_profiles_and_sinogram(
+        np.zeros((32, 32)),
+        16,
+        16,
+        8,
+        4,
+        6,
+        1,
+        0.1,
+        2,
+        gaussian_sigma=0,
+    )
+    assert np.isnan(profiles).all()
+
+
+def test_reconstruct_with_axis_shifts_rejects_excessive_shift(tmp_path):
+    with pytest.raises(ValueError, match="too large"):
+        reconstruct_with_axis_shifts(
+            np.ones((3, 4)),
+            tmp_path / "out.tiff",
+            "ramp",
+            [-3, 0, 3],
+        )
+
+
 class TestCheckPhl:
     """Test the _check_phl function for boundary validation."""
 

@@ -13,6 +13,7 @@ from scopexr.utils import (
     suggest_os_angle,
     save_and_plot,
     background_percentile,
+    fit_gaussian,
 )
 
 # Ensure local src is on the path when running tests without installation
@@ -201,6 +202,34 @@ class TestInterpolateNans1d:
         assert result[2] == 3.0  # Interpolated
         assert result[3] == 4.0
         assert result[4] == 5.0
+
+    def test_all_nans(self):
+        result = interpolate_nans_1d(np.array([np.nan, np.nan]))
+        np.testing.assert_array_equal(result, np.zeros(2))
+
+
+def test_fit_gaussian_returns_fallback_when_fit_fails(monkeypatch):
+    import scopexr.utils as utils_module
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("intentional")
+
+    monkeypatch.setattr(utils_module, "curve_fit", fail)
+    x = np.arange(4, dtype=float)
+    y = np.array([1.0, 2.0, 1.0, 0.0])
+    assert fit_gaussian(x, y, 2.0) == (2.0, 0.0, 2.0, 0.0)
+
+
+def test_fit_gaussian_success_invokes_model(monkeypatch):
+    import scopexr.utils as utils_module
+
+    def fake_curve_fit(model, x_values, y_values, **kwargs):
+        model(x_values, 1.0, 0.0, 1.0, 0.0)
+        return np.array([3.0, 1.0, 2.0, 0.5]), None
+
+    monkeypatch.setattr(utils_module, "curve_fit", fake_curve_fit)
+    result = fit_gaussian(np.arange(4, dtype=float), np.ones(4), 2.0)
+    assert result == (3.0, 1.0, 2.0, 0.5)
 
     def test_multiple_nans(self):
         """Test interpolation of multiple NaNs."""

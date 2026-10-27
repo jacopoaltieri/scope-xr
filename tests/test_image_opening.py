@@ -35,6 +35,22 @@ def _create_test_xml(xml_path: Path, width: int, height: int) -> None:
     xml_path.write_text(xml_content)
 
 
+@pytest.mark.parametrize(
+    "xml,match",
+    [
+        ("<root />", "Missing <frame>"),
+        ("<root><frame><imgHeight>2</imgHeight></frame></root>", "imgWidth"),
+        ("<root><frame><imgWidth>2</imgWidth></frame></root>", "imgHeight"),
+    ],
+)
+def test_load_raw_rejects_incomplete_metadata(tmp_path, xml, match):
+    raw_path = tmp_path / "broken.raw"
+    raw_path.write_bytes(b"\x00\x00")
+    raw_path.with_suffix(".xml").write_text(xml)
+    with pytest.raises(ValueError, match=match):
+        load_raw_as_ndarray(str(raw_path))
+
+
 def _create_test_raw(
     raw_path: Path, width: int, height: int, data: np.ndarray = None
 ) -> np.ndarray:

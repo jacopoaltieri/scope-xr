@@ -158,6 +158,7 @@ def test_validate_args_with_oversample():
         ({"img_path": None}, "Image path is required"),
         ({"pixel_size": 0}, "Pixel size must be a positive number"),
         ({"circle_diameter": 0}, "Circle diameter must be a positive number"),
+        ({"width_factor": 0}, "Width factor must be a positive number"),
         ({"n_angles": 0}, "Number of angles must be a positive integer"),
         ({"profile_half_length": 0}, "Half profile length must be a positive integer"),
         ({"derivative_step": 0}, "Derivative step size must be a positive integer"),
@@ -277,6 +278,19 @@ def test_config_file_not_found(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "Warning: Config file not found" in captured.err
     assert str(non_existent_path) in captured.err
+
+
+def test_legacy_resample2_config_is_mapped(tmp_path, monkeypatch, capsys):
+    yaml_path = tmp_path / "psf_args.yaml"
+    yaml_path.write_text("resample2: 3.5\n")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["prog", "--config", str(yaml_path)],
+    )
+    config = get_merged_config()
+    assert config["oversampling_factor"] == 3.5
+    assert "deprecated" in capsys.readouterr().err
 
 
 def test_invalid_yaml_file(tmp_path, monkeypatch, capsys):

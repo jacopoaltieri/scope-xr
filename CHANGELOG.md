@@ -5,6 +5,22 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-27
+
+### Added
+
+- Added focal-spot oversampling controls to the GUI.
+- Added missing tests
+
+### Changed
+
+- Updated usage documentation for focal-spot oversampling.
+
+### Fixed
+
+- Added the missing Gaussian sigma control to the PSF GUI oversampling settings
+- Corrected the behavior when skipping Hough Transform
+
 ## [1.3.8] - 2026-10-26
 
 ### Added

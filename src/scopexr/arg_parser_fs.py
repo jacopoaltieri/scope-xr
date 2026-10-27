@@ -62,6 +62,37 @@ def get_merged_config() -> dict:
         "--sym", action="store_true", default=None, help="Symmetrize the sinogram"
     )
     parser.add_argument("--show", action="store_true", default=None, help="Show plots")
+    parser.add_argument(
+        "--dtheta",
+        type=float,
+        help="Angular wedge width for oversampling in degrees",
+    )
+    parser.add_argument(
+        "--oversampling_factor",
+        type=float,
+        help="Radial resampling factor for oversampling",
+    )
+    parser.add_argument(
+        "--gaussian_sigma",
+        type=float,
+        help="Gaussian smoothing sigma for oversampling; zero disables smoothing",
+    )
+
+    oversample_group = parser.add_mutually_exclusive_group()
+    oversample_group.add_argument(
+        "--oversample",
+        dest="oversample",
+        action="store_true",
+        default=None,
+        help="Enable oversampled focal-spot reconstruction",
+    )
+    oversample_group.add_argument(
+        "--no_oversample",
+        dest="oversample",
+        action="store_false",
+        default=None,
+        help="Disable oversampled focal-spot reconstruction",
+    )
 
     shift_group = parser.add_mutually_exclusive_group()
     shift_group.add_argument(
@@ -105,6 +136,10 @@ def get_merged_config() -> dict:
         "no_hough": False,
         "symmetrize": False,
         "show_plots": False,
+        "oversample": False,
+        "dtheta": 2.0,
+        "oversampling_factor": 4.0,
+        "gaussian_sigma": 0.0,
         "hough_params": {
             "dp": 1,
             "min_dist": 100,
@@ -147,6 +182,10 @@ def get_merged_config() -> dict:
         "filter": "filter_name",
         "sym": "symmetrize",
         "show": "show_plots",
+        "oversample": "oversample",
+        "dtheta": "dtheta",
+        "oversampling_factor": "oversampling_factor",
+        "gaussian_sigma": "gaussian_sigma",
         "auto_shift": "auto_shift",
         "manual_shift": "manual_shift",
         "no_shift": "no_shift",
@@ -219,6 +258,15 @@ def validate_args(args: dict) -> None:
         raise ValueError("Derivative step size must be a positive integer.")
     if args.get("axis_shifts") is None or args["axis_shifts"] < 0:
         raise ValueError("Axis shifts must be a non-negative integer.")
+    if args.get("dtheta", 2.0) is None or args.get("dtheta", 2.0) <= 0:
+        raise ValueError("Oversampling angular width must be positive.")
+    if (
+        args.get("oversampling_factor", 4.0) is None
+        or args.get("oversampling_factor", 4.0) <= 1.0
+    ):
+        raise ValueError("Oversampling factor must be greater than 1.")
+    if args.get("gaussian_sigma", 0.0) is None or args.get("gaussian_sigma", 0.0) < 0:
+        raise ValueError("Gaussian sigma must be non-negative.")
 
     if args.get("manual_shift") is not None and not isinstance(
         args["manual_shift"], int

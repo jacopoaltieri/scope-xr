@@ -484,6 +484,12 @@ class ScopeXRApp(QMainWindow):
 
         if "show_plots" in new_data:
             self.fs_show.setChecked(bool(new_data["show_plots"]))
+        if "oversample" in new_data:
+            self.fs_oversample_checkbox.setChecked(bool(new_data["oversample"]))
+        set_spin(self.fs_dtheta, "dtheta", float)
+        set_spin(self.fs_oversampling_factor, "oversampling_factor", float)
+        set_spin(self.fs_gaussian_sigma, "gaussian_sigma", float)
+        self.update_fs_oversample_controls()
 
         hough_params = new_data.get("hough_params", {})
         if hough_params:
@@ -555,7 +561,66 @@ class ScopeXRApp(QMainWindow):
         self.fs_filter.setCurrentText(str(config_data.get("filter_name", "ramp")))
         layout.addRow("Filter [--filter]:", self.fs_filter)
 
+        oversampling_group = QGroupBox("Oversampling Settings")
+        oversampling_layout = QFormLayout()
+
+        fs_os_note = QLabel("Note: You may need this for FS smaller than 300 µm")
+        fs_os_note.setStyleSheet("font-style: italic;")
+        oversampling_layout.addRow(fs_os_note)
+
+        self.fs_oversample_checkbox = QCheckBox(
+            "Enable oversampling (--oversample)"
+        )
+        self.fs_oversample_checkbox.setChecked(
+            config_data.get("oversample", False)
+        )
+        self.fs_oversample_checkbox.stateChanged.connect(
+            self.update_fs_oversample_controls
+        )
+        oversampling_layout.addRow(
+            "Oversampling:", self.fs_oversample_checkbox
+        )
+
+        self.fs_dtheta = QDoubleSpinBox()
+        self.fs_dtheta.setDecimals(2)
+        self.fs_dtheta.setRange(0.01, 180.0)
+        self.fs_dtheta.setValue(config_data.get("dtheta", 2.0))
+        oversampling_layout.addRow(
+            "Oversample Angle (deg) [--dtheta]:", self.fs_dtheta
+        )
+
+        self.fs_oversampling_factor = QDoubleSpinBox()
+        self.fs_oversampling_factor.setDecimals(2)
+        self.fs_oversampling_factor.setRange(0.01, 1000.0)
+        self.fs_oversampling_factor.setValue(
+            config_data.get("oversampling_factor", 4.0)
+        )
+        oversampling_layout.addRow(
+            "Resample factor [--oversampling_factor]:",
+            self.fs_oversampling_factor,
+        )
+
+        self.fs_gaussian_sigma = QDoubleSpinBox()
+        self.fs_gaussian_sigma.setDecimals(2)
+        self.fs_gaussian_sigma.setRange(0.0, 1000.0)
+        self.fs_gaussian_sigma.setValue(
+            config_data.get("gaussian_sigma", 0.0)
+        )
+        oversampling_layout.addRow(
+            "Gaussian Sigma [--gaussian_sigma]:", self.fs_gaussian_sigma
+        )
+        oversampling_group.setLayout(oversampling_layout)
+        layout.addRow(oversampling_group)
+        self.update_fs_oversample_controls()
+
         return tab_widget
+
+    def update_fs_oversample_controls(self) -> None:
+        """Enable or disable focal-spot oversampling parameters."""
+        enabled = self.fs_oversample_checkbox.isChecked()
+        self.fs_dtheta.setEnabled(enabled)
+        self.fs_oversampling_factor.setEnabled(enabled)
+        self.fs_gaussian_sigma.setEnabled(enabled)
 
     def update_psf_gui(self) -> None:
         """Update all PSF GUI widgets from a loaded configuration file.
@@ -715,9 +780,18 @@ class ScopeXRApp(QMainWindow):
         )
 
         self.psf_oversampling_factor = QDoubleSpinBox()
+        self.psf_oversampling_factor.setRange(1.0, 1000.0)
         self.psf_oversampling_factor.setValue(config_data.get("oversampling_factor", 2))
         oversampling_layout.addRow(
             "Resample factor [--oversampling_factor]:", self.psf_oversampling_factor
+        )
+
+        self.psf_gaussian_sigma = QDoubleSpinBox()
+        self.psf_gaussian_sigma.setDecimals(2)
+        self.psf_gaussian_sigma.setRange(0.0, 1000.0)
+        self.psf_gaussian_sigma.setValue(config_data.get("gaussian_sigma", 0.0))
+        oversampling_layout.addRow(
+            "Gaussian Sigma [--gaussian_sigma]:", self.psf_gaussian_sigma
         )
 
         oversampling_group.setLayout(oversampling_layout)
@@ -934,13 +1008,6 @@ class ScopeXRApp(QMainWindow):
         self.psf_sym = QCheckBox("Symmetrize Sinogram")
         self.psf_sym.setChecked(psf_config_data.get("symmetrize", False))
         psf_adv_layout.addRow("[--sym]:", self.psf_sym)
-
-        self.psf_gaussian_sigma = QDoubleSpinBox()
-        self.psf_gaussian_sigma.setDecimals(2)
-        self.psf_gaussian_sigma.setValue(psf_config_data.get("gaussian_sigma", 0.0))
-        psf_adv_layout.addRow(
-            "Gaussian Sigma (0=no blur) [--gaussian_sigma]:", self.psf_gaussian_sigma
-        )
 
         self.psf_show = QCheckBox("Show Matplotlib plots")
         self.psf_show.setChecked(psf_config_data.get("show_plots", False))
@@ -1250,6 +1317,18 @@ class ScopeXRApp(QMainWindow):
                 command.append("--sym")
             if self.fs_show.isChecked():
                 command.append("--show")
+
+            if self.fs_oversample_checkbox.isChecked():
+                command.append("--oversample")
+            else:
+                command.append("--no_oversample")
+            command.extend(["--dtheta", str(self.fs_dtheta.value())])
+            command.extend(
+                ["--oversampling_factor", str(self.fs_oversampling_factor.value())]
+            )
+            command.extend(
+                ["--gaussian_sigma", str(self.fs_gaussian_sigma.value())]
+            )
 
             if self.fs_radio_manual.isChecked():
                 command.extend(
