@@ -6,6 +6,10 @@ on:
       - main
     paths:
       - "CHANGELOG.md"
+      - "pyproject.toml"
+      - "src/scopexr/__init__.py"
+      - "docs/source/conf.py"
+      - ".github/workflows/release.yaml"
 
 permissions:
   contents: write
