@@ -93,19 +93,51 @@ def run_pipeline_fs():
             "Caution! Hough transform not used. Using provided image as already cropped."
         )
         cropped = img
+        
     else:
         hough_params = args["hough_params"]
-        hough_circle = circ.detect_circle_hough(
-            img,
-            dp=hough_params["dp"],
-            min_dist=hough_params["min_dist"],
-            param1=hough_params["param1"],
-            param2=hough_params["param2"],
-            min_radius=hough_params["min_radius"],
-            max_radius=hough_params["max_radius"],
-            output_path=out_dir,
-            debug=hough_params.get("debug", False),
-        )
+        hough_circle = None
+
+        # Strategy 1: Constrained search when magnification is provided
+        if magnification is not None and magnification > 0:
+            expected_r_px = (circle_diameter / 2) * magnification / pixel_size
+            tolerance = 0.15
+
+            calc_min_r = max(1, int(np.floor(expected_r_px * (1 - tolerance))))
+            calc_max_r = int(np.ceil(expected_r_px * (1 + tolerance)))
+
+            print(
+                f"Attempting constrained Hough search: Expected radius ~{expected_r_px:.1f} px "
+                f"(range: {calc_min_r}-{calc_max_r} px)"
+            )
+            hough_circle = circ.detect_circle_hough(
+                img,
+                dp=hough_params["dp"],
+                min_dist=hough_params["min_dist"],
+                param1=hough_params["param1"],
+                param2=hough_params["param2"],
+                min_radius=calc_min_r,
+                max_radius=calc_max_r,
+                output_path=out_dir,
+                debug=hough_params.get("debug", False),
+            )
+
+            if hough_circle is None:
+                print("Constrained Hough detection failed. Falling back to default YAML parameters.")
+
+        # Strategy 2: Standard YAML search (runs if magnification is None OR constrained search failed)
+        if hough_circle is None:
+            hough_circle = circ.detect_circle_hough(
+                img,
+                dp=hough_params["dp"],
+                min_dist=hough_params["min_dist"],
+                param1=hough_params["param1"],
+                param2=hough_params["param2"],
+                min_radius=hough_params["min_radius"],
+                max_radius=hough_params["max_radius"],
+                output_path=out_dir,
+                debug=hough_params.get("debug", False),
+            )
 
         if hough_circle is None:
             raise ValueError(
