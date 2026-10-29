@@ -127,15 +127,15 @@ Focal Spot CLI
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--no_avg``            | Do not average neighboring profiles. (*Mutually exclusive with* ``--avg``)                                                                    |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--oversample``        | Enable sub-pixel focal-spot oversampling using circular angular wedges.                                                                        |
+| ``--oversample``        | Enable sub-pixel focal-spot oversampling using circular angular wedges.                                                                       |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--no_oversample``     | Disable focal-spot oversampling. (*Mutually exclusive with* ``--oversample``)                                                                  |
+| ``--no_oversample``     | Disable focal-spot oversampling. (*Mutually exclusive with* ``--oversample``)                                                                 |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--dtheta`` (float)    | Angular wedge width for oversampling, in degrees.                                                                                              |
+| ``--dtheta`` (float)    | Angular wedge width for oversampling, in degrees.                                                                                             |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--oversampling_factor`` (float) | Radial resampling factor used by oversampling.                                                                                         |
+| ``--oversampling_factor`` (float) | Radial resampling factor used by oversampling.                                                                                      |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
-| ``--gaussian_sigma`` (float) | Gaussian sigma for the optional fine-grid smoothing step; ``0`` uses direct binned statistics.                                         |
+| ``--gaussian_sigma`` (float) | Gaussian sigma for the optional fine-grid smoothing step; ``0`` uses direct binned statistics.                                           |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 | ``--show``              | Display plots during processing (matplotlib windows).                                                                                         |
 +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+

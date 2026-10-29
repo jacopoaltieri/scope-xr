@@ -28,6 +28,14 @@ scopexr.circle\_detection module
    :show-inheritance:
    :undoc-members:
 
+scopexr.config\_exporter module
+-------------------------------
+
+.. automodule:: scopexr.config_exporter
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 scopexr.fs\_main module
 -----------------------
 
@@ -92,10 +100,18 @@ scopexr.psf\_runner module
    :show-inheritance:
    :undoc-members:
 
-scopexr.sinogram\_recon module
-------------------------------
+scopexr.sinogram\_extraction module
+-----------------------------------
 
-.. automodule:: scopexr.sinogram_recon
+.. automodule:: scopexr.sinogram_extraction
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+scopexr.sinogram\_reconstruction module
+---------------------------------------
+
+.. automodule:: scopexr.sinogram_reconstruction
    :members:
    :show-inheritance:
    :undoc-members:

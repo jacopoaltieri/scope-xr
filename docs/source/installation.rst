@@ -1,17 +1,18 @@
 Installation
-=============
+============
 
 SCOPE-XR is installed as a standard Python package. It is recommended to
 use a virtual environment (venv or conda) to keep your system clean.
 
+
 Prerequisites
-------------
+-------------
 
 -  Python 3.9 or higher
 -  Git
 
 1. Quick Install (For regular users)
-------------
+------------------------------------
 
 If you just want to use the software without modifying the code, install
 directly from PyPI:
@@ -35,7 +36,7 @@ directory. To export them elsewhere, use ``--output-dir`` (or ``-o``):
    scopexr-confex --output-dir path/to/configs
 
 2. Manual Install (From source)
-------------
+-------------------------------
 
 Recommended if you wish to modify the code or contribute:
 

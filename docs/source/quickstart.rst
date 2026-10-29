@@ -14,8 +14,8 @@ Your First Focal Spot Analysis
 SCOPE-XR includes default configuration files in the package and sample
 images in the repository to help you get started.
 
-Step 1: Locate Example Files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Step 1: Get the configuration files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After installation, export the default configuration files:
 
@@ -28,17 +28,21 @@ This exports:
 * ``fs_args.yaml`` - Focal spot configuration
 * ``psf_args.yaml`` - PSF configuration
 
-The sample images are available in the repository's ``examples/`` folder:
-
-* ``examples/Image_FS2_Double_Asym_Clean.tif`` - Sample focal spot image
-
 To place the configuration files in another directory, use:
 
 .. code-block:: bash
 
     scopexr-confex --output-dir path/to/configs
 
-Step 2: Run the GUI
+Step 2: Get the example images
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The sample images are available in the repository's ``examples/`` folder. You can download them directly from here:
+
+
+* :download:`Download Focal Spot Sample <https://raw.githubusercontent.com/jacopoaltieri/scope-xr/main/examples/simulations/Image_FS2_Double_Asym_Clean.tif>`
+* :download:`Download PSF Sample <https://raw.githubusercontent.com/jacopoaltieri/scope-xr/main/examples/simulations/Image_PSF_Asym_1.5px_Clean.tif>`
+
+Step 3: Run the GUI
 ~~~~~~~~~~~~~~~~~~~~
 
 The easiest way to start is with the graphical interface:
@@ -52,30 +56,11 @@ The easiest way to start is with the graphical interface:
 1. The GUI opens with two tabs: "Focal Spot (FS)" and "PSF"
 2. Click the **Focal Spot (FS)** tab
 3. Click **"Browse"** to select ``Image_FS2_Double_Asym_Clean.tif``
-4. The image preview appears in the GUI (PNG, TIFF, and DICOM images show previews)
+4. The image preview appears in the GUI (PNG, TIFF, and DICOM/IMA images show previews)
 5. Click **"Run Analysis"**
 6. Watch the output in the console window
 7. Results are saved to the output directory (default: ``output_fs/``)
 
-Step 3: Interpret Results
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-After analysis completes, check the output folder. You'll find:
-
-**Generated Files:**
-
-* ``reconstructed_fs.png`` - 2D visualization of the focal spot
-* ``sinogram.png`` - Derivative profiles used for reconstruction
-* ``profiles.png`` - Extracted radial profiles
-* ``results.txt`` - Numerical measurements (FWHM, dimensions)
-
-**Key Metrics to Check:**
-
-.. code-block:: text
-
-    Focal Spot FWHM (horizontal): 0.598 mm
-    Focal Spot FWHM (vertical): 0.546 mm
-    Magnification: 5.85
 
 Your First PSF Analysis
 -----------------------
@@ -96,25 +81,6 @@ Step 2: Run PSF Analysis
 
     # Or use CLI:
     scopexr-psf --f "examples/Image_PSF_Asym_1.5px_Clean.tif"
-
-Step 3: Interpret PSF Results
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The output folder (``output_psf/``) contains:
-
-* ``reconstructed_psf.png`` - 2D detector response function
-* ``sinogram.png`` - Processed edge profiles
-* ``mtf_plot.png`` - Modulation Transfer Function curve
-* ``results.txt`` - PSF dimensions and MTF values
-
-**Typical PSF Output:**
-
-.. code-block:: text
-
-    PSF FWHM (horizontal): 1.542 pixels
-    PSF FWHM (vertical): 2.005 pixels
-    MTF at 10% (horizontal): 1.54 cycles/pixel
-    MTF at 10% (vertical): 2.01 cycles/pixel
 
 CLI Quick Reference
 -------------------
@@ -142,7 +108,7 @@ For automated workflows, use the command-line interface:
     scopexr-psf --f "path/to/image.tif"
     
     # With sub-pixel oversampling
-    scopexr-psf --f "image.tif" --oversample --dtheta 2 --oversampling_factor 3 --gaussian_sigma 0.5
+    scopexr-psf --f "image.tif" --oversample --dtheta 2 --oversampling_factor 3
 
 Common First-Time Issues
 ------------------------

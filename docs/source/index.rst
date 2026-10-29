@@ -3,13 +3,18 @@
    :align: center
    :alt: SCOPE-XR Logo
 
-.. image:: https://img.shields.io/badge/License-GPLv3-blue.svg
-   :target: https://www.gnu.org/licenses/gpl-3.0
-.. image:: https://img.shields.io/badge/GitHub-Repository-lightgrey?logo=github
-   :target: https://github.com/jacopoaltieri/scope-xr
 .. image:: https://img.shields.io/pypi/v/scopexr
    :target: https://pypi.org/project/scopexr/
    :alt: PyPI package
+.. image:: https://img.shields.io/badge/DOI-10.1002%2Fmp.70513-blue.svg
+   :target: https://doi.org/10.1002/mp.70513
+   :alt: DOI
+.. image:: https://img.shields.io/badge/License-GPLv3-blue.svg
+   :target: https://www.gnu.org/licenses/gpl-3.0
+   :alt: License
+.. image:: https://img.shields.io/badge/GitHub-Repository-lightgrey?logo=github
+   :target: https://github.com/jacopoaltieri/scope-xr
+   :alt: GitHub Repository
 
 SCOPE-XR Documentation
 ======================

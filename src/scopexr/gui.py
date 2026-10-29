@@ -116,7 +116,8 @@ class RunThread(QThread):
 
     # Signal emitting subprocess output text.
     output = pyqtSignal(str)
-
+    """pyqtSignal(str): Signal emitting subprocess output text."""
+    
     def __init__(self, cmd_list: list) -> None:
         """Initialize the run thread.
 

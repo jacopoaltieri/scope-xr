@@ -4,9 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scopexr"
-version = "1.4.0"
-
-
+version = "1.4.1"
 description = "Single-image Characterization Of PErformance in X-Ray systems"
 authors = [
   { name = "Jacopo Altieri", email = "jacopo.altieri@gmail.com" },
@@ -28,6 +26,7 @@ dependencies = [
 Homepage = "https://github.com/jacopoaltieri/scope-xr"
 Documentation = "https://scope-xr.readthedocs.io/"
 Repository = "https://github.com/jacopoaltieri/scope-xr"
+Paper = "https://doi.org/10.1002/mp.70513"
 Issues = "https://github.com/jacopoaltieri/scope-xr/issues"
 Changelog = "https://github.com/jacopoaltieri/scope-xr/blob/main/CHANGELOG.md"
 Contributing = "https://github.com/jacopoaltieri/scope-xr/blob/main/CONTRIBUTING.md"
@@ -58,7 +57,7 @@ scopexr-psf = "scopexr.psf_main:main"
 scopexr-confex = "scopexr.config_exporter:export_configs"
 
 [tool.setuptools.package-data]
-scopexr = ["*.png","default_configs/*.yaml"]
+scopexr = ["*.png", "default_configs/*.yaml"]
 
 [tool.semantic_release]
 version_variable = "pyproject.toml:version"

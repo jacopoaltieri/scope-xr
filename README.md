@@ -2,7 +2,7 @@
 <img src="https://github.com/jacopoaltieri/scope-xr/blob/main/src/scopexr/scopexr_logo.png?raw=true)" width="300">
 </h1><br>
 
-[![PyPI](https://img.shields.io/pypi/v/scopexr)](https://pypi.org/project/scopexr/) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://img.shields.io/readthedocs/scope-xr)](https://scope-xr.readthedocs.io/en/latest/)
+[![PyPI](https://img.shields.io/pypi/v/scopexr)](https://pypi.org/project/scopexr/) [![DOI](https://img.shields.io/badge/DOI-10.1002%2Fmp.70513-blue.svg)](https://doi.org/10.1002/mp.70513) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://img.shields.io/readthedocs/scope-xr)](https://scope-xr.readthedocs.io/en/latest/)
 
 📚 **Full documentation:** [scope-xr.readthedocs.io](https://scope-xr.readthedocs.io/)
 
@@ -50,18 +50,26 @@
 
 # Quick Start
 
-Get started in 3 steps:
+Get started in 4 steps:
 
 ```bash
 # 1. Install from PyPI
 pip install scopexr
 
-# 2. Run GUI
+# 2. Get the default configuration
+scopexr-confex
+
+# 3. Run GUI
 scopexr-gui
 
-# 3. Or use CLI
+# 4. Or use CLI
 scopexr-fs --f "path/to/image.tif"
 ```
+
+If you need images, use our simulated ones!
+* 📥 [Download Focal Spot Sample Image (fs_simulated.tif)](https://raw.githubusercontent.com/jacopoaltieri/scope-xr/main/examples/simulations/Image_FS2_Double_Asym_Clean.tif)
+* 📥 [Download PSF Sample Image (psf_simulated.tif)](https://raw.githubusercontent.com/jacopoaltieri/scope-xr/main/examples/simulations/Image_PSF_Asym_1.5px_Clean.tif)
+
 
 📘 **New to SCOPE-XR?** Check out the [Quickstart Guide](https://scope-xr.readthedocs.io/en/latest/quickstart.html) with step-by-step instructions.
 
