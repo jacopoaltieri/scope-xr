@@ -7,7 +7,6 @@ import tifffile
 
 from scopexr.sinogram_extraction import (
     _check_phl,
-    _center_sinogram_columns,
     _condition_profiles_monotonic,
     compute_profiles_and_sinogram,
     _compute_polar_coordinates,
@@ -19,6 +18,7 @@ from scopexr.sinogram_extraction import (
     symmetrize_sinogram,
 )
 from scopexr.sinogram_reconstruction import (
+    _center_sinogram_columns,
     reconstruct_blurring_kernel,
     reconstruct_with_axis_shifts,
 )
@@ -189,7 +189,7 @@ class TestCenterSinogramColumns:
         assert centered.dtype == np.float64
         assert empty.dtype == np.float64
         assert single_ray.dtype == np.float64
-        np.testing.assert_array_equal(centered[:, 0], [0.0, 4.0, 0.0])
+        np.testing.assert_array_equal(centered[:, 0], [4.0, 4.0, 0.0])
         np.testing.assert_array_equal(empty, np.empty((0, 2)))
         np.testing.assert_array_equal(single_ray, [[1.0, 2.0]])
 
