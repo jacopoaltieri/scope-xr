@@ -7,6 +7,8 @@ import tifffile
 
 from scopexr.sinogram_extraction import (
     _check_phl,
+    _center_sinogram_columns,
+    _condition_profiles_monotonic,
     compute_profiles_and_sinogram,
     _compute_polar_coordinates,
     _extract_wedge_radial_samples,
@@ -143,6 +145,55 @@ def test_reconstruct_with_axis_shifts_rejects_excessive_shift(tmp_path):
         )
 
 
+class TestCenterSinogramColumns:
+    """Test radial alignment of sinogram columns."""
+
+    def test_rejects_non_2d_input(self):
+        with pytest.raises(ValueError, match="two-dimensional"):
+            _center_sinogram_columns(np.ones(4))
+
+    def test_centers_positive_columns_on_radial_midpoint(self):
+        sinogram = np.zeros((7, 3), dtype=np.float32)
+        sinogram[1, 0] = 10.0
+        sinogram[5, 1] = 20.0
+        sinogram[3, 2] = 30.0
+
+        centered = _center_sinogram_columns(sinogram)
+
+        np.testing.assert_array_equal(centered[3], [10.0, 20.0, 30.0])
+        assert centered.dtype == sinogram.dtype
+        np.testing.assert_array_equal(sinogram[[1, 5, 3], [0, 1, 2]], [10, 20, 30])
+
+    @pytest.mark.parametrize(
+        "sinogram",
+        [
+            np.zeros((5, 2), dtype=np.float64),
+            np.full((5, 2), -1.0, dtype=np.float64),
+            np.full((5, 2), np.nan, dtype=np.float64),
+        ],
+    )
+    def test_leaves_columns_without_positive_finite_signal_unchanged(self, sinogram):
+        centered = _center_sinogram_columns(sinogram)
+
+        assert np.array_equal(centered, sinogram, equal_nan=True)
+        assert centered is not sinogram
+
+    def test_promotes_integer_input_and_handles_degenerate_shapes(self):
+        integer_sinogram = np.zeros((3, 1), dtype=np.uint16)
+        integer_sinogram[0, 0] = 4
+
+        centered = _center_sinogram_columns(integer_sinogram)
+        empty = _center_sinogram_columns(np.empty((0, 2), dtype=np.uint16))
+        single_ray = _center_sinogram_columns(np.array([[1, 2]], dtype=np.uint16))
+
+        assert centered.dtype == np.float64
+        assert empty.dtype == np.float64
+        assert single_ray.dtype == np.float64
+        np.testing.assert_array_equal(centered[:, 0], [0.0, 4.0, 0.0])
+        np.testing.assert_array_equal(empty, np.empty((0, 2)))
+        np.testing.assert_array_equal(single_ray, [[1.0, 2.0]])
+
+
 class TestCheckPhl:
     """Test the _check_phl function for boundary validation."""
 
@@ -208,6 +259,59 @@ class TestCheckPhl:
         result = _check_phl(img, cx, cy, radius, phl)
         # Should be reduced since radius + phl would exceed boundary
         assert result < phl
+
+
+class TestConditionProfilesMonotonic:
+    """Test the condition_profiles_monotonic function."""
+
+    def test_rejects_non_2d_input(self):
+        """Test that 1D or 3D inputs raise ValueError."""
+        with pytest.raises(ValueError, match="two-dimensional"):
+            _condition_profiles_monotonic(np.array([1.0, 2.0, 3.0]))
+
+        with pytest.raises(ValueError, match="two-dimensional"):
+            _condition_profiles_monotonic(np.zeros((2, 3, 4)))
+
+    def test_increasing_and_decreasing_profiles(self):
+        """Test isotonic regression on both increasing and decreasing noisy edges."""
+        rng = np.random.default_rng(42)
+        inc = np.linspace(0.0, 10.0, 50) + rng.normal(0.0, 0.3, 50)
+        dec = np.linspace(10.0, 0.0, 50) + rng.normal(0.0, 0.3, 50)
+        profiles = np.vstack([inc, dec])
+
+        conditioned = _condition_profiles_monotonic(profiles)
+
+        assert conditioned.shape == profiles.shape
+        assert np.all(np.diff(conditioned[0]) >= -1e-12)
+        assert np.all(np.diff(conditioned[1]) <= 1e-12)
+
+    def test_handles_nans_and_short_profiles(self):
+        """Test preservation of NaNs and profiles with fewer than 2 finite samples."""
+        profiles = np.array(
+            [
+                [np.nan, 10.0, 8.0, 9.0, 2.0, np.nan],
+                [np.nan, np.nan, 5.0, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            ],
+            dtype=np.float32,
+        )
+
+        conditioned = _condition_profiles_monotonic(profiles)
+
+        assert conditioned.dtype == np.float32
+        assert np.isnan(conditioned[0, 0]) and np.isnan(conditioned[0, -1])
+        assert np.all(np.diff(conditioned[0, 1:-1]) <= 1e-6)
+        assert conditioned[1, 2] == 5.0
+        assert np.isnan(conditioned[2]).all()
+
+    def test_integer_input_promoted_to_float64(self):
+        """Test that integer profiles are returned as float64 without truncation."""
+        profiles = np.array([[100, 90, 95, 50, 10]], dtype=np.uint16)
+
+        conditioned = _condition_profiles_monotonic(profiles)
+
+        assert conditioned.dtype == np.float64
+        np.testing.assert_allclose(conditioned[0], [100.0, 92.5, 92.5, 50.0, 10.0])
 
 
 class TestComputeProfilesAndSinogram:
@@ -309,6 +413,37 @@ class TestComputeProfilesAndSinogram:
 
         # Sinogram should be nearly zero (no edges)
         assert np.all(np.abs(sinogram) < 1e-5)
+
+    def test_monotonic_condition_flag(self):
+        """Test toggling monotonic_condition on noisy radial profiles."""
+        rng = np.random.default_rng(7)
+        y, x = np.ogrid[:120, :120]
+        img = ((np.hypot(x - 60.0, y - 60.0) <= 25.0) * 500.0).astype(np.float32)
+        img += rng.normal(0.0, 15.0, img.shape).astype(np.float32)
+
+        prof_cond, _ = compute_profiles_and_sinogram(
+            img,
+            60.0,
+            60.0,
+            25.0,
+            n_angles=36,
+            profile_half_length=15,
+            derivative_step=1,
+            monotonic_condition=True,
+        )
+        prof_uncond, _ = compute_profiles_and_sinogram(
+            img,
+            60.0,
+            60.0,
+            25.0,
+            n_angles=36,
+            profile_half_length=15,
+            derivative_step=1,
+            monotonic_condition=False,
+        )
+
+        assert np.all(np.diff(prof_cond, axis=0) <= 1e-6)
+        assert np.any(np.diff(prof_uncond, axis=0) > 0)
 
 
 class TestComputePolarCoordinates:
@@ -476,6 +611,43 @@ class TestComputeSubpixelProfilesTraditional:
             assert profiles.shape[0] >= expected_bins - 5
             assert profiles.shape[0] <= expected_bins + 5
 
+    def test_monotonic_condition_flag_traditional(self):
+        """Test toggling monotonic_condition in traditional subpixel mode."""
+        rng = np.random.default_rng(11)
+        y, x = np.ogrid[:120, :120]
+        img = ((np.hypot(x - 60.0, y - 60.0) <= 25.0) * 500.0).astype(np.float32)
+        img += rng.normal(0.0, 15.0, img.shape).astype(np.float32)
+
+        prof_cond, _ = compute_subpixel_profiles_and_sinogram(
+            img,
+            60.0,
+            60.0,
+            25.0,
+            n_angles=36,
+            profile_half_length=15,
+            derivative_step=1,
+            dtheta=5.0,
+            oversampling_factor=2.0,
+            gaussian_sigma=0.0,
+            monotonic_condition=True,
+        )
+        prof_uncond, _ = compute_subpixel_profiles_and_sinogram(
+            img,
+            60.0,
+            60.0,
+            25.0,
+            n_angles=36,
+            profile_half_length=15,
+            derivative_step=1,
+            dtheta=5.0,
+            oversampling_factor=2.0,
+            gaussian_sigma=0.0,
+            monotonic_condition=False,
+        )
+
+        assert np.all(np.diff(prof_cond, axis=0) <= 1e-6)
+        assert np.any(np.diff(prof_uncond, axis=0) > 0)
+
 
 class TestComputeSubpixelProfilesTraditionalEdgeCases:
     """Test edge cases for compute_subpixel_profiles_and_sinogram (traditional mode)."""
@@ -612,6 +784,43 @@ class TestComputeSubpixelProfiles3Step:
 
         # This is a statistical test, so we check the trend
         assert variance_smooth <= variance_noisy * 1.2  # Allow some tolerance
+
+    def test_monotonic_condition_flag_3step(self):
+        """Test toggling monotonic_condition in 3-step subpixel mode."""
+        rng = np.random.default_rng(19)
+        y, x = np.ogrid[:120, :120]
+        img = ((np.hypot(x - 60.0, y - 60.0) <= 25.0) * 500.0).astype(np.float32)
+        img += rng.normal(0.0, 15.0, img.shape).astype(np.float32)
+
+        prof_cond, _ = compute_subpixel_profiles_and_sinogram(
+            img,
+            60.0,
+            60.0,
+            25.0,
+            n_angles=36,
+            profile_half_length=15,
+            derivative_step=1,
+            dtheta=5.0,
+            oversampling_factor=2.0,
+            gaussian_sigma=1.0,
+            monotonic_condition=True,
+        )
+        prof_uncond, _ = compute_subpixel_profiles_and_sinogram(
+            img,
+            60.0,
+            60.0,
+            25.0,
+            n_angles=36,
+            profile_half_length=15,
+            derivative_step=1,
+            dtheta=5.0,
+            oversampling_factor=2.0,
+            gaussian_sigma=1.0,
+            monotonic_condition=False,
+        )
+
+        assert np.all(np.diff(prof_cond, axis=0) <= 1e-6)
+        assert np.any(np.diff(prof_uncond, axis=0) > 0)
 
 
 class TestFindBestCenterShift:

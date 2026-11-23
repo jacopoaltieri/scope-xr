@@ -77,6 +77,11 @@ def get_merged_config() -> dict:
         type=float,
         help="Standard deviation of the Gaussian blur for oversampling. Set to 0 for traditional binned statistics (no blur), >0 for 3-step with Gaussian smoothing.",
     )
+    parser.add_argument(
+        "--tilt_deg",
+        type=float,
+        help="Tilt angle relative to the horizontal axis, in degrees.",
+    )
     parser.add_argument("--show", action="store_true", default=None, help="Show plots")
 
     shift_group = parser.add_mutually_exclusive_group()
@@ -138,6 +143,7 @@ def get_merged_config() -> dict:
         "dtheta": 2,
         "oversampling_factor": 4,
         "gaussian_sigma": 0.0,
+        "tilt_deg": 2.25,
         "show_plots": False,
         "hough_params": {
             "dp": 1,
@@ -197,6 +203,7 @@ def get_merged_config() -> dict:
         "dtheta": "dtheta",
         "oversampling_factor": "oversampling_factor",
         "gaussian_sigma": "gaussian_sigma",
+        "tilt_deg": "tilt_deg",
         "auto_shift": "auto_shift",
         "manual_shift": "manual_shift",
         "no_shift": "no_shift",

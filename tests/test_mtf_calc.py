@@ -5,10 +5,65 @@ import numpy as np
 import pytest
 
 from scopexr.mtf_calc import (
+    _extrapolate_lsf_tails,
+    _window_lsf,
     compute_1d_mtf,
     compute_1d_mtf_from_sino,
     get_mtf_at_freq,
 )
+
+
+class TestExtrapolateLsfTails:
+    def test_extrapolates_both_tails_with_valid_decay_slopes(self, monkeypatch):
+        lsf = np.array([0.1, 0.2, 0.4, 0.8, 1.0, 0.8, 0.4, 0.2, 0.1])
+        slopes = iter([(1.0, 0.0), (-1.0, 0.0)])
+        monkeypatch.setattr(
+            np, "polyfit", lambda *args, **kwargs: next(slopes)
+        )
+
+        result = _extrapolate_lsf_tails(lsf, threshold_ratio=0.5, fit_points=2)
+
+        assert result.shape == lsf.shape
+        assert result[0] != lsf[0]
+        assert result[-1] != lsf[-1]
+        assert np.all(result >= 0)
+
+    def test_replaces_tails_with_zero_for_invalid_decay_slopes(self, monkeypatch):
+        lsf = np.array([0.1, 0.2, 0.4, 0.8, 1.0, 0.8, 0.4, 0.2, 0.1])
+        slopes = iter([(0.0, 0.0), (1.0, 0.0)])
+        monkeypatch.setattr(
+            np, "polyfit", lambda *args, **kwargs: next(slopes)
+        )
+
+        result = _extrapolate_lsf_tails(lsf, threshold_ratio=0.5, fit_points=2)
+
+        assert np.all(result[:3] == 0.0)
+        assert np.all(result[6:] == 0.0)
+
+    def test_leaves_tails_unchanged_when_fit_window_does_not_fit(self):
+        lsf = np.array([0.0, 1.0, 0.0])
+
+        result = _extrapolate_lsf_tails(lsf, threshold_ratio=0.5, fit_points=5)
+
+        np.testing.assert_array_equal(result, lsf)
+
+
+class TestWindowLsf:
+    def test_returns_empty_and_constant_lsfs_unchanged(self):
+        empty = np.array([])
+        constant = np.ones(4)
+
+        np.testing.assert_array_equal(_window_lsf(empty), empty)
+        np.testing.assert_array_equal(_window_lsf(constant), constant)
+
+    def test_applies_peak_centered_window(self):
+        lsf = np.array([1.0, 2.0, 4.0, 2.0, 1.0])
+
+        windowed = _window_lsf(lsf)
+
+        assert windowed[2] == pytest.approx(lsf[2])
+        assert windowed[0] == pytest.approx(0.0)
+        assert windowed[-1] == pytest.approx(0.0)
 
 
 def test_mtf10_interpolates_between_frequency_samples():
@@ -57,6 +112,13 @@ def create_gaussian_sinogram(n_rays: int, n_angles: int, sigma: float) -> np.nda
 
 
 class TestCompute1dMtf:
+    def test_zero_lsf_does_not_fail_normalization(self):
+        freq, mtf, mtf10 = compute_1d_mtf(np.zeros(8), 0.1)
+
+        assert len(freq) == len(mtf)
+        assert np.all(mtf == 0.0)
+        assert np.isnan(mtf10) or np.isfinite(mtf10)
+
     def test_basic_computation(self):
         """Test basic MTF computation from PSF."""
         psf = create_gaussian_psf(100, 5.0)
@@ -181,6 +243,24 @@ class TestCompute1dMtf:
         valid_mtf = mtf_sino[~np.isnan(mtf_sino)]
         if len(valid_mtf) > 0:
             assert np.all((valid_mtf >= 0) & (valid_mtf <= 1))
+
+    def test_odd_angle_sinogram_uses_selected_profile(self):
+        sinogram = create_gaussian_sinogram(32, 5, 3.0)
+        sinogram[:, 2] *= np.linspace(0.5, 1.5, sinogram.shape[0])
+
+        sino_result = compute_1d_mtf_from_sino(sinogram, 0.1, 2)
+        profile_result = compute_1d_mtf(sinogram[:, 2], 0.1)
+
+        np.testing.assert_allclose(sino_result[0], profile_result[0])
+        np.testing.assert_allclose(sino_result[1], profile_result[1])
+        assert sino_result[2] == pytest.approx(profile_result[2])
+
+    def test_zero_sinogram_uses_zero_otf_normalization_guard(self):
+        freq, mtf, mtf10 = compute_1d_mtf_from_sino(np.zeros((8, 4)), 0.1, 0)
+
+        assert len(freq) == len(mtf)
+        assert np.all(mtf == 0.0)
+        assert mtf10 == freq[0]
 
     def test_mtf10_zero_denominator_in_interpolation(self):
         """Test MTF10 interpolation when m2 == m1 (zero denominator)."""

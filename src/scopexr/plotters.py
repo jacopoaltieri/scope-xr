@@ -535,8 +535,12 @@ def plot_1d_mtf(
     plt.ylabel("MTF")
     plt.title("1D Modulation Transfer Function (MTF)")
     plt.ylim([0, 1.05])
-    plt.xlim([0, nyquist_freq * 1.05])
+    if mtf10_freq is not None and not np.isnan(mtf10_freq):
+        plt.xlim([0, max(nyquist_freq, mtf10_freq) * 1.05])
+    else:
+        plt.xlim([0, nyquist_freq * 1.05])
     plt.grid(True, which="both", ls=":")
+    plt.minorticks_on()
     plt.legend()
     plt.tight_layout()
     plt.savefig(out_path, dpi=300)

@@ -70,6 +70,7 @@ def run_pipeline_psf():
     dtheta = args["dtheta"]
     oversampling_factor = args["oversampling_factor"]
     gaussian_sigma = args["gaussian_sigma"]
+    tilt_deg = args["tilt_deg"]
     show_plots = args["show_plots"]
 
     # ----------------------------------------------------------------------------------#
@@ -116,7 +117,7 @@ def run_pipeline_psf():
     cropped = utils.crop_square_roi(
         img, center=(x, y), radius=r, width_factor=width_factor, output_path=out_dir
     )
-    
+
     cx, cy, radius = circ.estimate_circle(cropped)
     if not circ.is_circle_centered(cropped, cx, cy):
         print("Warning: The estimated circle center is not at the image center.")
@@ -129,7 +130,14 @@ def run_pipeline_psf():
 
     # Extract profiles and sinogram
     profiles, sinogram = se.compute_profiles_and_sinogram(
-        cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
+        cropped,
+        cx,
+        cy,
+        radius,
+        n_angles,
+        profile_half_length,
+        derivative_step,
+        monotonic_condition=True,
     )
 
     if manual_shift is not None:
@@ -146,7 +154,7 @@ def run_pipeline_psf():
         print("Sinogram shifting is disabled.")
 
     reconstruction = srec.reconstruct_blurring_kernel(
-        sinogram, filter_name, symmetrize
+        sinogram, filter_name, symmetrize, center_columns=True
     )
 
     utils.save_and_plot("profiles", profiles, out_dir)
@@ -171,6 +179,7 @@ def run_pipeline_psf():
         filter_name,
         shift_list,
         symmetrize,
+        center_columns=True,
     )
 
     # Compute LSF from projection of the focal spot reconstruction
@@ -186,8 +195,14 @@ def run_pipeline_psf():
     # Create radial coordinate array for projection profiles
     angle_step = 360.0 / n_angles
     angles = np.arange(n_angles) * angle_step
-    horizontal_idx = int(np.argmin(np.abs(angles - 0)))  # Closest to 0°
-    vertical_idx = int(np.argmin(np.abs(angles - 90)))  # Closest to 90°
+
+    horizontal_idx = int(np.argmin(np.abs(angles - tilt_deg)))
+    if np.isclose(angles[horizontal_idx] % 90.0, 0.0):
+        horizontal_idx = (horizontal_idx + 1) % n_angles
+
+    vertical_idx = int(np.argmin(np.abs(angles - (90.0 + tilt_deg))))
+    if np.isclose(angles[vertical_idx] % 90.0, 0.0):
+        vertical_idx = (vertical_idx + 1) % n_angles
 
     radial = np.arange(len(prof_horizontal)) - (len(prof_horizontal) // 2)
     data = np.column_stack((radial, prof_horizontal, prof_vertical))
@@ -203,7 +218,6 @@ def run_pipeline_psf():
 
     # Fit Gaussian to projection-based profiles for plotting
 
-    
     popt_h_corr = utils.fit_gaussian(
         radial,
         prof_horizontal,
@@ -258,15 +272,16 @@ def run_pipeline_psf():
     # Compute MTF in horizontal and vertical directions
 
     # Compute MTF from the projection-based LSF profiles
-    freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf(prof_horizontal, pixel_size)
+    freq_h, mtf_h, mtf10_h = mtfc.compute_1d_mtf_from_sino(
+        sinogram, pixel_size, horizontal_idx
+    )
 
     mtf1_h = mtfc.get_mtf_at_freq(1.0, freq_h, mtf_h)
     mtf2_h = mtfc.get_mtf_at_freq(2.0, freq_h, mtf_h)
     mtf3_h = mtfc.get_mtf_at_freq(3.0, freq_h, mtf_h)
 
-    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf(
-        prof_vertical,
-        pixel_size,
+    freq_v, mtf_v, mtf10_v = mtfc.compute_1d_mtf_from_sino(
+        sinogram, pixel_size, vertical_idx
     )
 
     mtf1_v = mtfc.get_mtf_at_freq(1.0, freq_v, mtf_v)
@@ -368,6 +383,7 @@ def run_pipeline_psf():
                 derivative_step,
                 dtheta,
                 oversampling_factor=oversampling_factor,
+                monotonic_condition=True,
                 gaussian_sigma=gaussian_sigma,
             )
         )
@@ -387,14 +403,13 @@ def run_pipeline_psf():
                 sinogram_oversampled
             )
             print(
-                f"Applied automatic axis shift: {applied_shift_ov} px "
-                "(oversampled)"
+                f"Applied automatic axis shift: {applied_shift_ov} px " "(oversampled)"
             )
         else:
             print("Sinogram shifting is disabled (oversampled).")
 
         recon_oversampled = srec.reconstruct_blurring_kernel(
-            sinogram_oversampled, filter_name, symmetrize
+            sinogram_oversampled, filter_name, symmetrize, center_columns=True
         )
         utils.save_and_plot("profiles_oversampled", profiles_oversampled, out_dir)
         utils.save_and_plot("sinogram_oversampled", sinogram_oversampled, out_dir)
@@ -406,6 +421,7 @@ def run_pipeline_psf():
             filter_name,
             shift_list,
             symmetrize,
+            center_columns=True,
         )
 
         plotters.plot_profiles_and_reconstruction(
@@ -441,13 +457,13 @@ def run_pipeline_psf():
             prof_h_ov,
             fw_h_ov_native / 2.355,  # Use oversampled FWHM in native pixels
         )
-        
+
         popt_v_ov = utils.fit_gaussian(
             radial_ov,
             prof_v_ov,
             fw_v_ov_native / 2.355,  # Use oversampled FWHM in native pixels
         )
-        
+
         plotters.plot_profile_with_gaussian(
             radial=radial_ov,
             intensity_profile=prof_h_ov,
@@ -500,14 +516,12 @@ def run_pipeline_psf():
         freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf(
             prof_v_ov, pixel_size / oversampling_factor
         )
-        
+
         freq_v_ov, mtf_v_ov, mtf10_v_ov = mtfc.compute_1d_mtf_from_sino(
             sinogram_oversampled, pixel_size / oversampling_factor, vertical_idx
         )
 
-        mtf_profiles_oversampled = np.column_stack(
-            (freq_h_ov, mtf_h_ov, mtf_v_ov)
-        )
+        mtf_profiles_oversampled = np.column_stack((freq_h_ov, mtf_h_ov, mtf_v_ov))
         mtf_csv_path = out_dir / "mtf_profiles_oversampled.csv"
         np.savetxt(
             mtf_csv_path,

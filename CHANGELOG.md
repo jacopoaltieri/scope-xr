@@ -5,6 +5,26 @@ All notable changes to SCOPE-XR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-23
+
+### Added
+
+- Added tilt angle for MTF calculation
+- Monotonic conditioning on ESF profiles for MTF calculation
+- Each PSF profile is independently shifted to center its COM before reconstructing the PSF, as suggested by Forster et al. 
+
+### Changed
+
+- Sinogram based MTF now averages the contribution of the two opposite profiles in order to reduce noise
+- Circle detection now supports float values to increase precision
+- Now apply a Hann window to the LSF profile before computing MTF, in accordance with IEC standards
+- MTF plot now stops after MTF10% instead of Nyquist
+   
+### Removed
+
+- Removed tail truncation in MTF to align with IEC standards
+
+
 ## [1.4.2] - 2026-10-29
 
 ### Added

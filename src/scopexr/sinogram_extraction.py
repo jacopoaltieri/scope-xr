@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from scipy.ndimage import map_coordinates, gaussian_filter1d
-from scipy.stats import binned_statistic
+from scipy.ndimage import gaussian_filter1d, map_coordinates
+from scipy.optimize import isotonic_regression
 from scipy.signal import savgol_filter
+from scipy.stats import binned_statistic
 
 
 def _check_phl(
@@ -87,6 +88,50 @@ def _check_phl(
     return profile_half_length
 
 
+def _condition_profiles_monotonic(profiles: np.ndarray) -> np.ndarray:
+    """
+    Condition each radial ESF to be monotonic before differentiation.
+
+    The direction is selected independently for each profile from its endpoint
+    values, so both increasing and decreasing edge transitions are supported.
+
+    Parameters
+    ----------
+    profiles
+        2D array of radial profiles with shape (n_angles, profile_length).
+
+    Returns
+    -------
+    np.ndarray
+        2D array of monotonically conditioned profiles with the same shape.
+
+    Raises
+    ------
+    ValueError
+        If ``profiles`` is not a two-dimensional array.
+    """
+    profiles = np.asarray(profiles)
+    if profiles.ndim != 2:
+        raise ValueError("profiles must be a two-dimensional array")
+
+    conditioned = profiles.astype(np.float64, copy=True)
+    for profile in conditioned:
+        finite_mask = np.isfinite(profile)
+        if finite_mask.sum() < 2:
+            continue
+
+        finite_values = profile[finite_mask]
+        increasing = bool(finite_values[-1] >= finite_values[0])
+        profile[finite_mask] = isotonic_regression(
+            finite_values, increasing=increasing
+        ).x
+
+    out_dtype = (
+        profiles.dtype if np.issubdtype(profiles.dtype, np.floating) else np.float64
+    )
+    return conditioned.astype(out_dtype, copy=False)
+
+
 def compute_profiles_and_sinogram(
     img: np.ndarray,
     cx: float,
@@ -95,6 +140,7 @@ def compute_profiles_and_sinogram(
     n_angles: int,
     profile_half_length: int,
     derivative_step: int,
+    monotonic_condition: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Extracts radial edge profiles around a circle and computes the sinogram via derivative.
@@ -115,6 +161,9 @@ def compute_profiles_and_sinogram(
         Half-length (in pixels) of the radial sampling profile.
     derivative_step
         Step size for computing the radial derivative.
+    monotonic_condition
+        If True enforces monotonicity on each radial ESF via
+        isotonic regression prior to computing the derivative.
 
     Returns
     -------
@@ -150,6 +199,8 @@ def compute_profiles_and_sinogram(
         profiles[i, :] = map_coordinates(
             img, [py[i], px[i]], order=1, mode="constant", cval=0.0
         )
+    if monotonic_condition:
+        profiles = _condition_profiles_monotonic(profiles)
 
     # Compute the derivative to obtain the sinogram
     sinogram = np.gradient(profiles, derivative_step, axis=1)
@@ -259,6 +310,7 @@ def compute_subpixel_profiles_and_sinogram(
     dtheta: float,
     oversampling_factor: float,
     gaussian_sigma: float = 0.0,
+    monotonic_condition: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Computes sub-pixel edge profiles and sinogram via oversampled binning in angular wedges.
@@ -292,6 +344,9 @@ def compute_subpixel_profiles_and_sinogram(
         Factor by which to oversample the radial grid.
         When gaussian_sigma=0, this is the only resampling factor.
         When gaussian_sigma>0, this acts as oversampling_factor (coarse grid) and fine grid is resample*100.
+    monotonic_condition
+        If True, enforces monotonicity on each radial ESF via
+        isotonic regression prior to computing the derivative.
     gaussian_sigma
         Sigma for Gaussian smoothing (in units of fine grid spacing).
         If 0.0 (default): Uses traditional binned statistics approach.
@@ -359,8 +414,11 @@ def compute_subpixel_profiles_and_sinogram(
 
             profiles[i, :] = interp_vals
 
+        if monotonic_condition:
+            profiles = _condition_profiles_monotonic(profiles)
+        for i in range(n_angles):
             sinogram[i, :] = savgol_filter(
-                interp_vals,
+                profiles[i, :],
                 window_length=window_length,
                 polyorder=polyorder,
                 deriv=1,
@@ -405,7 +463,7 @@ def compute_subpixel_profiles_and_sinogram(
                     else final_r[-1] + 1
                 ),
             )
-            
+
             bin_means, _, _ = binned_statistic(
                 fine_r, smooth, statistic="mean", bins=bin_edges  # type: ignore[arg-type]
             )
@@ -420,6 +478,8 @@ def compute_subpixel_profiles_and_sinogram(
                 )
             profiles[i, :] = bin_means
 
+        if monotonic_condition:
+            profiles = _condition_profiles_monotonic(profiles)
         sinogram = np.gradient(profiles, final_r[1] - final_r[0], axis=1)
 
     return profiles.T, -sinogram.T

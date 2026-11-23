@@ -100,12 +100,12 @@ def detect_circle_hough(
         return None
 
     # Round and pick the strongest circle (first one)
-    circles = np.around(circles).astype(int)
+    circles = np.around(circles)
     x, y, r = circles[0, 0]
 
     output = cv2.cvtColor(img_8bit, cv2.COLOR_GRAY2BGR)
-    cv2.circle(output, (x, y), r, (0, 255, 0), 2)
-    cv2.circle(output, (x, y), 2, (0, 0, 255), 3)
+    cv2.circle(output, (int(x), int(y)), int(r), (0, 255, 0), 2)
+    cv2.circle(output, (int(x), int(y)), 2, (0, 0, 255), 3)
     if output_path is not None:
         cv2.imwrite(str(Path(output_path) / "detected_circle.png"), output)
 

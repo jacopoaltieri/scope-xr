@@ -10,6 +10,7 @@ circle_diameter: 100 # Diameter of the circle object in mm [--d]
 width_factor: 1.2 # Crop width factor [--width_factor]
 no_hough: false # Skip Hough transform completely (checkbox) [--no_hough]
 filter_name: "ramp" # Filter for reconstruction (ramp, shepp-logan, cosine, hamming, hann, None) [--filter]
+tilt_deg: 2.25 # Tilt angle relative to the horizontal axis in degrees [--tilt_deg]
 
 # --- Oversampling Settings (Sub-Group on Main Tab) ---
 oversample: true # Enable oversampling for the PSF projection calculation

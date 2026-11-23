@@ -41,6 +41,7 @@ def _valid_config() -> dict:
         "dtheta": 10.0,
         "oversampling_factor": 1.5,
         "gaussian_sigma": 0.5,
+        "tilt_deg": 2.25,
     }
 
 
@@ -56,6 +57,7 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
         "width_factor": 1.4,
         "oversample": True,
         "dtheta": 15.0,
+        "tilt_deg": 3.5,
     }
     yaml_path = _write_yaml(tmp_path, yaml_data)
 
@@ -86,6 +88,7 @@ def test_cli_overrides_yaml_and_defaults(tmp_path, monkeypatch):
     assert config["width_factor"] == 1.4  # YAML retained
     assert config["oversample"] is False  # CLI flag overrides YAML
     assert config["dtheta"] == 15.0  # YAML retained
+    assert config["tilt_deg"] == 3.5  # YAML retained
 
 
 def test_manual_shift_cli_overrides_yaml(tmp_path, monkeypatch):
@@ -236,6 +239,8 @@ def test_all_numeric_params(tmp_path, monkeypatch):
         "2.5",
         "--gaussian_sigma",
         "1.2",
+        "--tilt_deg",
+        "3.25",
     ]
     monkeypatch.setattr(sys, "argv", cli_args)
 
@@ -248,6 +253,7 @@ def test_all_numeric_params(tmp_path, monkeypatch):
     assert config["dtheta"] == 25.5
     assert config["oversampling_factor"] == 2.5
     assert config["gaussian_sigma"] == 1.2
+    assert config["tilt_deg"] == 3.25
 
 
 def test_filter_name_cli(tmp_path, monkeypatch):

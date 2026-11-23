@@ -93,7 +93,7 @@ def run_pipeline_fs():
             "Caution! Hough transform not used. Using provided image as already cropped."
         )
         cropped = img
-        
+
     else:
         hough_params = args["hough_params"]
         hough_circle = None
@@ -180,7 +180,14 @@ def run_pipeline_fs():
 
     # Profiles and sinogram extraction
     profiles, sinogram = se.compute_profiles_and_sinogram(
-        cropped, cx, cy, radius, n_angles, profile_half_length, derivative_step
+        cropped,
+        cx,
+        cy,
+        radius,
+        n_angles,
+        profile_half_length,
+        derivative_step,
+        monotonic_condition=False,
     )
 
     if manual_shift is not None:
@@ -197,7 +204,9 @@ def run_pipeline_fs():
         applied_shift = 0
         print("Sinogram shifting is disabled.")
 
-    reconstruction = srec.reconstruct_blurring_kernel(sinogram, filter_name, symmetrize)
+    reconstruction = srec.reconstruct_blurring_kernel(
+        sinogram, filter_name, symmetrize, center_columns=False
+    )
 
     utils.save_and_plot("profiles", profiles, out_dir)
     utils.save_and_plot("sinogram", sinogram, out_dir)
@@ -221,6 +230,7 @@ def run_pipeline_fs():
         filter_name,
         shift_list,
         symmetrize,
+        center_columns=False,
     )
 
     # Compute LSF from projection of the focal spot reconstruction
@@ -389,9 +399,7 @@ def run_pipeline_fs():
     # Optional oversampled focal-spot reconstruction. This uses the same
     # sub-pixel wedge sampling and controls as the PSF pipeline.
     if oversample:
-        max_os_angle = utils.suggest_os_angle(
-            pixel_size, oversampling_factor, radius
-        )
+        max_os_angle = utils.suggest_os_angle(pixel_size, oversampling_factor, radius)
         print(
             f"Suggested maximum oversampling angle to avoid cross-talk: "
             f"{max_os_angle:.2f}°"
@@ -413,33 +421,28 @@ def run_pipeline_fs():
                 derivative_step,
                 dtheta,
                 oversampling_factor=oversampling_factor,
+                monotonic_condition=False,
                 gaussian_sigma=gaussian_sigma,
             )
         )
 
         if manual_shift is not None:
-            sinogram_oversampled, applied_shift_oversampled = (
-                se.manual_center_sinogram(
-                    sinogram_oversampled,
-                    int(manual_shift * oversampling_factor),
-                )
+            sinogram_oversampled, applied_shift_oversampled = se.manual_center_sinogram(
+                sinogram_oversampled,
+                int(manual_shift * oversampling_factor),
             )
         elif auto_shift:
-            sinogram_oversampled, applied_shift_oversampled = (
-                se.auto_center_sinogram(sinogram_oversampled)
+            sinogram_oversampled, applied_shift_oversampled = se.auto_center_sinogram(
+                sinogram_oversampled
             )
         else:
             applied_shift_oversampled = 0
 
         reconstruction_oversampled = srec.reconstruct_blurring_kernel(
-            sinogram_oversampled, filter_name, symmetrize
+            sinogram_oversampled, filter_name, symmetrize, center_columns=False
         )
-        utils.save_and_plot(
-            "profiles_oversampled", profiles_oversampled, out_dir
-        )
-        utils.save_and_plot(
-            "sinogram_oversampled", sinogram_oversampled, out_dir
-        )
+        utils.save_and_plot("profiles_oversampled", profiles_oversampled, out_dir)
+        utils.save_and_plot("sinogram_oversampled", sinogram_oversampled, out_dir)
         utils.save_and_plot(
             "reconstruction_oversampled", reconstruction_oversampled, out_dir
         )
@@ -449,6 +452,7 @@ def run_pipeline_fs():
             filter_name,
             list(range(-axis_shifts, axis_shifts)),
             symmetrize,
+            center_columns=False,
         )
         plotters.plot_profiles_and_reconstruction(
             profiles_oversampled,
@@ -465,12 +469,8 @@ def run_pipeline_fs():
         )
         fh_ov_native, lh_ov, rh_ov = wc.fw_at_percent_max(prof_h_ov, 0.5)
         fv_ov_native, lv_ov, rv_ov = wc.fw_at_percent_max(prof_v_ov, 0.5)
-        f15h_ov_native, l15h_ov, r15h_ov = wc.fw_at_percent_max(
-            prof_h_ov, 0.15
-        )
-        f15v_ov_native, l15v_ov, r15v_ov = wc.fw_at_percent_max(
-            prof_v_ov, 0.15
-        )
+        f15h_ov_native, l15h_ov, r15h_ov = wc.fw_at_percent_max(prof_h_ov, 0.15)
+        f15v_ov_native, l15v_ov, r15v_ov = wc.fw_at_percent_max(prof_v_ov, 0.15)
         fh_ov = fh_ov_native / oversampling_factor
         fv_ov = fv_ov_native / oversampling_factor
         f15h_ov = f15h_ov_native / oversampling_factor
@@ -530,18 +530,10 @@ def run_pipeline_fs():
             reconstruction_type="fs",
         )
 
-        horizontal_fs_ov = wc.compute_fs_width(
-            fh_ov, pixel_size, m_fs
-        )
-        vertical_fs_ov = wc.compute_fs_width(
-            fv_ov, pixel_size, m_fs
-        )
-        horizontal_fs15m_ov = wc.compute_fs_width(
-            f15h_ov, pixel_size, m_fs
-        )
-        vertical_fs15m_ov = wc.compute_fs_width(
-            f15v_ov, pixel_size, m_fs
-        )
+        horizontal_fs_ov = wc.compute_fs_width(fh_ov, pixel_size, m_fs)
+        vertical_fs_ov = wc.compute_fs_width(fv_ov, pixel_size, m_fs)
+        horizontal_fs15m_ov = wc.compute_fs_width(f15h_ov, pixel_size, m_fs)
+        vertical_fs15m_ov = wc.compute_fs_width(f15v_ov, pixel_size, m_fs)
         print(
             f"Oversampled focal spot FWHM: "
             f"H={horizontal_fs_ov:.3f} mm, V={vertical_fs_ov:.3f} mm"
@@ -556,10 +548,8 @@ def run_pipeline_fs():
             "--- Oversampled Results ---",
             f"{'Applied Axis Shift:': <{label_width}} "
             f"{applied_shift_oversampled} oversampled px",
-            f"{'FWHM:': <{label_width}} "
-            f"H={fh_ov:.3f} px, V={fv_ov:.3f} px",
-            f"{'FW15M:': <{label_width}} "
-            f"H={f15h_ov:.3f} px, V={f15v_ov:.3f} px",
+            f"{'FWHM:': <{label_width}} " f"H={fh_ov:.3f} px, V={fv_ov:.3f} px",
+            f"{'FW15M:': <{label_width}} " f"H={f15h_ov:.3f} px, V={f15v_ov:.3f} px",
             f"{'Spot Size (FWHM):': <{label_width}} "
             f"H={horizontal_fs_ov:.3f} mm, V={vertical_fs_ov:.3f} mm",
             f"{'Spot Size (FW15M):': <{label_width}} "

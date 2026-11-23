@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-
+from scipy.ndimage import shift
 
 def _extrapolate_lsf_tails(
     lsf: np.ndarray, threshold_ratio: float = 0.1, fit_points: int = 5
@@ -101,6 +101,23 @@ def _extrapolate_lsf_tails(
     return lsf_extrapolated
 
 
+
+def _window_lsf(lsf: np.ndarray) -> np.ndarray:
+    """Apply a peak-centered Hann window (IEC 62220-1) """
+    lsf = np.asarray(lsf, dtype=np.float64)
+    n = lsf.size
+    if n == 0 or np.all(lsf == lsf[0]):
+        return lsf
+
+    peak_idx = int(np.argmax(lsf))
+    max_dist = max(peak_idx, n - 1 - peak_idx, 1)
+
+    full_window = np.hanning(2 * max_dist + 1)
+    start = max_dist - peak_idx
+    window = full_window[start : start + n]
+
+    return lsf * window
+
 def compute_1d_mtf(
     lsf: np.ndarray, pixel_size: float
 ) -> tuple[np.ndarray, np.ndarray, float]:
@@ -123,15 +140,18 @@ def compute_1d_mtf(
     mtf10: float
         Frequency at which MTF drops to 10% (cycles/mm).
     """
-    # lsf = lsf / np.sum(lsf) if np.sum(lsf) != 0 else lsf
+    lsf = lsf / np.sum(lsf) if np.sum(lsf) != 0 else lsf # Shouldn't be needed, but just in case
+    lsf = _window_lsf(lsf)
 
-    lsf = _extrapolate_lsf_tails(lsf, threshold_ratio=0.05, fit_points=5)
-    # lsf = np.hanning(lsf.size) * lsf  # Apply Hanning window to reduce edge effects
 
     # Compute FFT and frequencies
     otf_1d = np.fft.fft(np.fft.ifftshift(lsf))
     mtf_1d = np.abs(otf_1d)
-    mtf_1d = mtf_1d / mtf_1d[0]  # Normalize to 1 at zero frequency
+    mtf_1d = (
+        mtf_1d / mtf_1d[0]
+        if mtf_1d[0] != 0
+        else mtf_1d / (mtf_1d[0] + 1e-10)
+    )
 
     freq = np.fft.fftfreq(lsf.size, d=pixel_size)
 
@@ -168,12 +188,13 @@ def compute_1d_mtf_from_sino(
     sinogram: np.ndarray, pixel_size: float, angle: int
 ) -> tuple[np.ndarray, np.ndarray, float]:
     """
-    Compute 1D MTF from sinogram
+    Compute 1D MTF from sinogram by averaging the profile at `angle` with its
+    radially flipped and sub-bin-aligned opposite profile (angle + 180°).
 
     Parameters
     ----------
     sinogram
-        2D array representing the sinogram.
+        2D array representing the sinogram of shape (n_rays, n_angles).
     pixel_size
         Pixel size in mm.
     angle
@@ -188,9 +209,35 @@ def compute_1d_mtf_from_sino(
     mtf10: float
         Frequency at which MTF drops to 10% (cycles/mm).
     """
-    lsf = sinogram[:, angle]
+    n_angles = sinogram.shape[1]
+    lsf_a = sinogram[:, angle].astype(np.float64)
 
-    lsf = _extrapolate_lsf_tails(lsf, threshold_ratio=0.05, fit_points=5)
+    if n_angles % 2 == 0:
+        opp_angle = (angle + n_angles // 2) % n_angles
+        lsf_b = np.flip(sinogram[:, opp_angle]).astype(np.float64)
+
+        # Sub-bin alignment via 3-point parabolic interpolation of cross-correlation
+        corr = np.correlate(
+            lsf_a - np.mean(lsf_a), lsf_b - np.mean(lsf_b), mode="full"
+        )
+        lags = np.arange(-len(lsf_a) + 1, len(lsf_a))
+        k = int(np.argmax(corr))
+
+        if 0 < k < len(corr) - 1:
+            c_m, c_0, c_p = corr[k - 1], corr[k], corr[k + 1]
+            denom = c_m - 2.0 * c_0 + c_p
+            delta = 0.5 * (c_m - c_p) / denom if abs(denom) > 1e-12 else 0.0
+            best_lag = float(lags[k]) + float(np.clip(delta, -0.5, 0.5))
+        else:
+            best_lag = float(lags[k])
+
+        lsf_b_aligned = shift(lsf_b, best_lag, order=3, mode="nearest")
+        lsf = 0.5 * (lsf_a + lsf_b_aligned)
+    else:
+        lsf = lsf_a
+
+    lsf = lsf / np.sum(lsf) if np.sum(lsf) != 0 else lsf  # Shouldn't be needed, but just in case
+    lsf = _window_lsf(lsf)
 
     # Compute FFT and frequencies
     otf_1d = np.fft.fft(np.fft.ifftshift(lsf))
@@ -228,7 +275,6 @@ def compute_1d_mtf_from_sino(
         mtf10_freq = np.nan
 
     return freq_pos, mtf_pos, mtf10_freq
-
 
 def get_mtf_at_freq(
     target_freq: float, freq_array: np.ndarray, mtf_array: np.ndarray

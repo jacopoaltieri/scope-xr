@@ -663,6 +663,7 @@ class ScopeXRApp(QMainWindow):
         set_spin(self.psf_half_length, "profile_half_length", int)
         set_spin(self.psf_derivative_step, "derivative_step", int)
         set_spin(self.psf_axis_shifts, "axis_shifts", int)
+        set_spin(self.psf_tilt_deg, "tilt_deg", float)
 
         if "filter_name" in new_data:
             self.psf_filter.setCurrentText(str(new_data["filter_name"]))
@@ -1005,6 +1006,12 @@ class ScopeXRApp(QMainWindow):
         psf_adv_layout.addRow(
             "Shifts Search Range [--axis_shifts]:", self.psf_axis_shifts
         )
+
+        self.psf_tilt_deg = QDoubleSpinBox()
+        self.psf_tilt_deg.setDecimals(4)
+        self.psf_tilt_deg.setRange(-180.0, 180.0)
+        self.psf_tilt_deg.setValue(psf_config_data.get("tilt_deg", 2.25))
+        psf_adv_layout.addRow("Tilt (deg) [--tilt_deg]:", self.psf_tilt_deg)
 
         self.psf_sym = QCheckBox("Symmetrize Sinogram")
         self.psf_sym.setChecked(psf_config_data.get("symmetrize", False))
@@ -1379,6 +1386,7 @@ class ScopeXRApp(QMainWindow):
             command.extend(["--hl", str(self.psf_half_length.value())])
             command.extend(["--ds", str(self.psf_derivative_step.value())])
             command.extend(["--axis_shifts", str(self.psf_axis_shifts.value())])
+            command.extend(["--tilt_deg", str(self.psf_tilt_deg.value())])
 
             filter_text = self.psf_filter.currentText()
             if filter_text != "None":

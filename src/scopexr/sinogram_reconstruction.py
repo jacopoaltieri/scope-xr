@@ -16,14 +16,80 @@
 
 import numpy as np
 import tifffile
-from skimage.transform import iradon
 from pathlib import Path
+from scipy.ndimage import shift as ndimage_shift
+from skimage.transform import iradon
+from scipy.ndimage import shift as ndimage_shift
 
 from .sinogram_extraction import symmetrize_sinogram, manual_center_sinogram
 
 
+def _center_sinogram_columns(sinogram: np.ndarray) -> np.ndarray:
+    """
+    Aligns each angular column's center of mass to the radial midpoint of the sinogram.
+    This is only used when reconstructing the detector PSF.
+    Parameters
+    ----------
+    sinogram
+        2D array of shape (n_rays, n_angles).
+
+    Returns
+    -------
+    np.ndarray
+        2D array of shape (n_rays, n_angles) with each column shifted so its
+        center of mass lies at the central radial index.
+
+    Raises
+    ------
+    ValueError
+        If ``sinogram`` is not a two-dimensional array.
+    """
+    sinogram = np.asarray(sinogram)
+    if sinogram.ndim != 2:
+        raise ValueError("sinogram must be a two-dimensional array")
+
+    n_rays, n_angles = sinogram.shape
+    out_dtype = (
+        sinogram.dtype if np.issubdtype(sinogram.dtype, np.floating) else np.float64
+    )
+    if n_rays < 2 or n_angles == 0:
+        return sinogram.astype(out_dtype, copy=True)
+
+    centered = np.empty((n_rays, n_angles), dtype=np.float64)
+    center_idx = (n_rays - 1) / 2.0
+    ray_indices = np.arange(n_rays, dtype=np.float64)
+
+    for j in range(n_angles):
+        col = sinogram[:, j].astype(np.float64)
+        finite_mask = np.isfinite(col)
+        if not np.any(finite_mask):
+            centered[:, j] = col
+            continue
+
+        peak = np.max(col[finite_mask])
+        if peak <= 0.0:
+            centered[:, j] = col
+            continue
+
+        # Suppress baseline tail noise (< 10% of peak) so far-field noise cannot bias CoM
+        weights = np.where(finite_mask, np.maximum(col - 0.1 * peak, 0.0), 0.0)
+        w_sum = weights.sum()
+        if w_sum <= 0.0:
+            centered[:, j] = col
+            continue
+
+        com = np.dot(ray_indices, weights) / w_sum
+        delta = center_idx - com
+        centered[:, j] = ndimage_shift(col, shift=delta, order=1, mode="nearest")
+
+    return centered.astype(out_dtype, copy=False)
+
+
 def reconstruct_blurring_kernel(
-    sinogram: np.ndarray, filter_name: str, symmetrize: bool
+    sinogram: np.ndarray,
+    filter_name: str,
+    symmetrize: bool,
+    center_columns: bool = False,
 ) -> np.ndarray:
     """
     Reconstructs the blurring kernel image from sinogram via filtered back-projection.
@@ -36,12 +102,20 @@ def reconstruct_blurring_kernel(
         Name of the filter to use in the inverse radon transform.
     symmetrize
         If True, average sinogram over 180 degrees before reconstruction.
+    center_columns
+        If True, aligns each angular column's center of mass to the radial
+        midpoint before symmetrization and back-projection. Recommended for
+        detector PSF reconstruction (`True`), and disabled by default (`False`)
+        for focal spot (FS) reconstruction.
 
     Returns
     -------
     np.ndarray
         2D array representing the reconstructed blurring kernel.
     """
+    if center_columns:
+        sinogram = _center_sinogram_columns(sinogram)
+
     if symmetrize:
         sinogram = symmetrize_sinogram(sinogram)
         theta = np.linspace(0.0, 180.0, sinogram.shape[1], endpoint=False)
@@ -62,6 +136,7 @@ def reconstruct_with_axis_shifts(
     filter_name: str,
     shifts: list,
     symmetrize: bool = False,
+    center_columns: bool = False,
 ) -> None:
     """
     Applies multiple vertical shifts to a sinogram, reconstructs each, and saves as a multi-page TIFF.
@@ -78,6 +153,9 @@ def reconstruct_with_axis_shifts(
         List of integer shifts (rows) to apply to sinogram.
     symmetrize
         If True, reconstruction is performed with 180-degree sinogram symmetrization.
+    center_columns
+        If True, aligns each angular column's center of mass to the radial
+        midpoint prior to applying the axis shifts. Defaults to False.
 
     Returns
     -------
@@ -91,13 +169,18 @@ def reconstruct_with_axis_shifts(
     if target_rows <= 0:
         raise ValueError("Axis shifts are too large for the sinogram height.")
 
+    if center_columns:
+        sinogram = _center_sinogram_columns(sinogram)
+
     for delta in shifts:
         shifted_sino, _ = manual_center_sinogram(sinogram, delta)
         if shifted_sino.shape[0] > target_rows:
             trim = shifted_sino.shape[0] - target_rows
             top = trim // 2
             shifted_sino = shifted_sino[top : top + target_rows, :]
-        rec = reconstruct_blurring_kernel(shifted_sino, filter_name, symmetrize)
+        rec = reconstruct_blurring_kernel(
+            shifted_sino, filter_name, symmetrize, center_columns=False
+        )
         reconstructions.append(rec.astype(np.float32))
 
     tifffile.imwrite(
